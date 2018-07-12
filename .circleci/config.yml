@@ -27,7 +27,13 @@ workflows:
   version: 2
   pull_request_test:
     jobs:
-      - checkout_code
+      - checkout_code:
+        filters:
+            branches:
+              ignore: master
       - unit_test:
+          filters:
+            branches:
+              ignore: master
           requires:
             - checkout_code
