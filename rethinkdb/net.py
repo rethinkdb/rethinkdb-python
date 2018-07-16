@@ -1,4 +1,20 @@
+# Copyright 2018 RebirthDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
+
 
 import collections
 import errno
@@ -11,19 +27,23 @@ import ssl
 import struct
 import time
 
-from . import ql2_pb2 as p
+from rethinkdb import ql2_pb2
+from rethinkdb.ast import DB, ReQLDecoder, ReQLEncoder, Repl, expr
+from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlInternalError, ReqlNonExistenceError,\
+    ReqlOpFailedError, ReqlOpIndeterminateError, ReqlPermissionError, ReqlQueryLogicError, ReqlResourceLimitError,\
+    ReqlRuntimeError, ReqlServerCompileError, ReqlTimeoutError, ReqlUserError
+from rethinkdb.handshake import HandshakeV0_4, HandshakeV1_0
+
 
 __all__ = ['connect', 'set_loop_type', 'Connection', 'Cursor', 'DEFAULT_PORT']
 
+
 DEFAULT_PORT = 28015
 
-pErrorType = p.Response.ErrorType
-pResponse = p.Response.ResponseType
-pQuery = p.Query.QueryType
+pErrorType = ql2_pb2.Response.ErrorType
+pResponse = ql2_pb2.Response.ResponseType
+pQuery = ql2_pb2.Query.QueryType
 
-from .ast import DB, Repl, ReQLDecoder, ReQLEncoder, expr
-from .errors import *
-from .handshake import *
 
 try:
     from ssl import match_hostname, CertificateError
@@ -32,14 +52,17 @@ except ImportError:
 
 try:
     {}.iteritems
-    dict_items = lambda d: d.iteritems()
+
+    def dict_items(d): return d.iteritems()
 except AttributeError:
-    dict_items = lambda d: d.items()
+    def dict_items(d): return d.items()
+
 
 def maybe_profile(value, res):
     if res.profile is not None:
         return {'value': value, 'profile': res.profile}
     return value
+
 
 class Query(object):
     def __init__(self, type, token, term, global_optargs):
@@ -48,7 +71,7 @@ class Query(object):
         self.term = term
         self.global_optargs = global_optargs
 
-        global_optargs = global_optargs or { }
+        global_optargs = global_optargs or {}
         self._json_encoder = global_optargs.pop('json_encoder', None)
         self._json_decoder = global_optargs.pop('json_decoder', None)
 
@@ -128,7 +151,7 @@ class Response(object):
 #     def _empty_error(self):
 #         which returns the appropriate error to be raised when the cursor is empty
 class Cursor(object):
-    def __init__(self, conn_instance, query, first_response, items_type = collections.deque):
+    def __init__(self, conn_instance, query, first_response, items_type=collections.deque):
         self.conn = conn_instance
         self.query = query
         self.items = items_type()
@@ -187,9 +210,10 @@ class Cursor(object):
 
         if self.outstanding_requests == 0 and self.error is not None:
             del self.conn._cursor_cache[res.token]
-    
+
     def __str__(self):
-        val_str = pprint.pformat([self.items[x] for x in range(min(10, len(self.items)))] + (['...'] if len(self.items) > 10 else []))
+        val_str = pprint.pformat([self.items[x] for x in range(min(10, len(self.items)))] +
+                                 (['...'] if len(self.items) > 10 else []))
         if val_str.endswith("'...']"):
             val_str = val_str[:-len("'...']")] + "...]"
         spacer_str = '\n' if '\n' in val_str else ''
@@ -199,15 +223,16 @@ class Cursor(object):
             status_str = 'done streaming'
         else:
             status_str = 'error: %s' % str(self.error)
-        
+
         return "%s.%s (%s): %s%s" % (
             self.__class__.__module__, self.__class__.__name__,
             status_str,
             spacer_str, val_str
         )
-    
+
     def __repr__(self):
-        val_str = pprint.pformat([self.items[x] for x in range(min(10, len(self.items)))] + (['...'] if len(self.items) > 10 else []))
+        val_str = pprint.pformat([self.items[x] for x in range(min(10, len(self.items)))] +
+                                 (['...'] if len(self.items) > 10 else []))
         if val_str.endswith("'...']"):
             val_str = val_str[:-len("'...']")] + "...]"
         spacer_str = '\n' if '\n' in val_str else ''
@@ -217,7 +242,7 @@ class Cursor(object):
             status_str = 'done streaming'
         else:
             status_str = 'error: %s' % repr(self.error)
-        
+
         return "<%s.%s object at %s (%s): %s%s>" % (
             self.__class__.__module__, self.__class__.__name__,
             hex(id(self)),
@@ -282,27 +307,37 @@ class SocketWrapper(object):
 
             if len(self.ssl) > 0:
                 try:
-                    if hasattr(ssl, 'SSLContext'): # Python2.7 and 3.2+, or backports.ssl
+                    if hasattr(ssl, 'SSLContext'):  # Python2.7 and 3.2+, or backports.ssl
                         ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
                         if hasattr(ssl_context, "options"):
                             ssl_context.options |= getattr(ssl, "OP_NO_SSLv2", 0)
                             ssl_context.options |= getattr(ssl, "OP_NO_SSLv3", 0)
                         ssl_context.verify_mode = ssl.CERT_REQUIRED
-                        ssl_context.check_hostname = True # redundant with match_hostname
+                        ssl_context.check_hostname = True  # redundant with match_hostname
                         ssl_context.load_verify_locations(self.ssl["ca_certs"])
                         self._socket = ssl_context.wrap_socket(self._socket, server_hostname=self.host)
-                    else: # this does not disable SSLv2 or SSLv3
+                    else:  # this does not disable SSLv2 or SSLv3
                         self._socket = ssl.wrap_socket(
                             self._socket, cert_reqs=ssl.CERT_REQUIRED, ssl_version=ssl.PROTOCOL_SSLv23,
                             ca_certs=self.ssl["ca_certs"])
                 except IOError as err:
                     self._socket.close()
-                    
-                    if 'EOF occurred in violation of protocol' in str(err) or 'sslv3 alert handshake failure' in str(err):
+
+                    if 'EOF occurred in violation of protocol' in str(
+                            err) or 'sslv3 alert handshake failure' in str(err):
                         # probably on an older version of OpenSSL
-                        raise ReqlDriverError("SSL handshake failed, likely because Python is linked against an old version of OpenSSL that does not support either TLSv1.2 or any of the allowed ciphers. This can be worked around by lowering the security setting on the server with the options `--tls-min-protocol TLSv1 --tls-ciphers EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH:AES256-SHA` (see server log for more information): %s" % str(err))
+                        raise ReqlDriverError(
+                            "SSL handshake failed, likely because Python is linked against an old version of OpenSSL "
+                            "that does not support either TLSv1.2 or any of the allowed ciphers. This can be worked "
+                            "around by lowering the security setting on the server with the options "
+                            "`--tls-min-protocol TLSv1 --tls-ciphers "
+                            "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH:AES256-SHA` (see server log for more "
+                            "information): %s" % str(err)
+                        )
                     else:
-                        raise ReqlDriverError("SSL handshake failed (see server log for more information): %s" % str(err))
+                        raise ReqlDriverError(
+                            "SSL handshake failed (see server log for more information): %s" %
+                            str(err))
                 try:
                     match_hostname(self._socket.getpeercert(), hostname=self.host)
                 except CertificateError:
@@ -381,13 +416,13 @@ class SocketWrapper(object):
                     elif ex.errno != errno.EINTR:
                         self.close()
                         raise ReqlDriverError(('Connection interrupted ' +
-                                              'receiving from %s:%s - %s') %
-                                             (self.host, self.port, str(ex)))
+                                               'receiving from %s:%s - %s') %
+                                              (self.host, self.port, str(ex)))
                 except Exception as ex:
                     self.close()
                     raise ReqlDriverError('Error receiving from %s:%s - %s' %
-                                         (self.host, self.port, str(ex)))
-                except:
+                                          (self.host, self.port, str(ex)))
+                except BaseException:
                     self.close()
                     raise
             if len(chunk) == 0:
@@ -408,15 +443,16 @@ class SocketWrapper(object):
                 elif ex.errno != errno.EINTR:
                     self.close()
                     raise ReqlDriverError(('Connection interrupted ' +
-                                          'sending to %s:%s - %s') %
-                                         (self.host, self.port, str(ex)))
+                                           'sending to %s:%s - %s') %
+                                          (self.host, self.port, str(ex)))
             except Exception as ex:
                 self.close()
                 raise ReqlDriverError('Error sending to %s:%s - %s' %
-                                     (self.host, self.port, str(ex)))
-            except:
+                                      (self.host, self.port, str(ex)))
+            except BaseException:
                 self.close()
                 raise
+
 
 class ConnectionInstance(object):
     def __init__(self, parent):
@@ -648,13 +684,26 @@ class Connection(object):
     def _get_json_encoder(self, query):
         return (query._json_encoder or self._json_encoder)()
 
+
 class DefaultConnection(Connection):
     def __init__(self, *args, **kwargs):
         Connection.__init__(self, ConnectionInstance, *args, **kwargs)
 
+
 connection_type = DefaultConnection
 
-def connect(host=None, port=None, db=None, auth_key=None, user=None, password=None, timeout=20, ssl=None, _handshake_version=10, **kwargs):
+
+def connect(
+        host=None,
+        port=None,
+        db=None,
+        auth_key=None,
+        user=None,
+        password=None,
+        timeout=20,
+        ssl=None,
+        _handshake_version=10,
+        **kwargs):
     if host is None:
         host = 'localhost'
     if port is None:
@@ -671,24 +720,25 @@ def connect(host=None, port=None, db=None, auth_key=None, user=None, password=No
     conn = connection_type(host, port, db, auth_key, user, password, timeout, ssl, _handshake_version, **kwargs)
     return conn.reconnect(timeout=timeout)
 
+
 def set_loop_type(library):
     global connection_type
     import pkg_resources
-    
+
     # find module file
     manager = pkg_resources.ResourceManager()
-    libPath = '%(library)s_net/net_%(library)s.py' % {'library':library}
+    libPath = '%(library)s_net/net_%(library)s.py' % {'library': library}
     if not manager.resource_exists(__name__, libPath):
         raise ValueError('Unknown loop type: %r' % library)
-    
+
     # load the module
     modulePath = manager.resource_filename(__name__, libPath)
     moduleName = 'net_%s' % library
     moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
     module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
-    
+
     # set the connection type
     connection_type = module.Connection
-    
+
     # cleanup
     manager.cleanup_resources()

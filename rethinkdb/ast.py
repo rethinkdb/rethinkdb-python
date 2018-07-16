@@ -1,18 +1,34 @@
+# Copyright 2018 RebirthDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
 __all__ = ['expr', 'RqlQuery', 'ReQLEncoder', 'ReQLDecoder', 'Repl']
 
-import datetime
-import collections
+
 import base64
 import binascii
-import json as py_json
+import collections
+import datetime
+import json
 import threading
 
-from .errors import ReqlDriverError, ReqlDriverCompileError, QueryPrinter, T
-from . import ql2_pb2 as p
+from rethinkdb import ql2_pb2
+from rethinkdb.errors import QueryPrinter, ReqlDriverCompileError, ReqlDriverError, T
 
-pTerm = p.Term.TermType
+pTerm = ql2_pb2.Term.TermType
 
 try:
     unicode
@@ -24,9 +40,10 @@ except NameError:
     xrange = range
 try:
     {}.iteritems
-    dict_items = lambda d: d.iteritems()
+
+    def dict_items(d): return d.iteritems()
 except AttributeError:
-    dict_items = lambda d: d.items()
+    def dict_items(d): return d.items()
 
 
 class Repl(object):
@@ -53,6 +70,8 @@ class Repl(object):
 
 # This is both an external function and one used extensively
 # internally to convert coerce python values to RQL types
+
+
 def expr(val, nesting_depth=20):
     '''
         Convert a Python primitive into a RQL primitive value
@@ -113,12 +132,12 @@ class RqlQuery(object):
             if c is None:
                 if Repl.replActive:
                     raise ReqlDriverError("RqlQuery.run must be given" +
-                        " a connection to run on. A default connection" +
-                        " has been set with `repl()` on another thread," +
-                        " but not this one.")
+                                          " a connection to run on. A default connection" +
+                                          " has been set with `repl()` on another thread," +
+                                          " but not this one.")
                 else:
                     raise ReqlDriverError("RqlQuery.run must be given" +
-                        " a connection to run on.")
+                                          " a connection to run on.")
 
         return c._start(self, **global_optargs)
 
@@ -726,33 +745,36 @@ def recursively_make_hashable(obj):
     return obj
 
 
-class ReQLEncoder(py_json.JSONEncoder):
+class ReQLEncoder(json.JSONEncoder):
     '''
         Default JSONEncoder subclass to handle query conversion.
     '''
+
     def __init__(self):
-        py_json.JSONEncoder.__init__(self, ensure_ascii=False, allow_nan=False,
-                                     check_circular=False, separators=(',', ':'))
+        json.JSONEncoder.__init__(
+            self, ensure_ascii=False, allow_nan=False, check_circular=False, separators=(',', ':')
+        )
 
     def default(self, obj):
         if isinstance(obj, RqlQuery):
             return obj.build()
-        return py_json.JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, obj)
 
 
-class ReQLDecoder(py_json.JSONDecoder):
+class ReQLDecoder(json.JSONDecoder):
     '''
         Default JSONDecoder subclass to handle pseudo-type conversion.
     '''
+
     def __init__(self, reql_format_opts=None):
-        py_json.JSONDecoder.__init__(self, object_hook=self.convert_pseudotype)
+        json.JSONDecoder.__init__(self, object_hook=self.convert_pseudotype)
         self.reql_format_opts = reql_format_opts or {}
 
     def convert_time(self, obj):
         if 'epoch_time' not in obj:
             raise ReqlDriverError(('pseudo-type TIME object %s does not ' +
                                    'have expected field "epoch_time".')
-                                  % py_json.dumps(obj))
+                                  % json.dumps(obj))
 
         if 'timezone' in obj:
             return datetime.datetime.fromtimestamp(obj['epoch_time'],
@@ -764,14 +786,14 @@ class ReQLDecoder(py_json.JSONDecoder):
         if 'data' not in obj:
             raise ReqlDriverError(('pseudo-type GROUPED_DATA object' +
                                    ' %s does not have the expected field "data".')
-                                  % py_json.dumps(obj))
+                                  % json.dumps(obj))
         return dict([(recursively_make_hashable(k), v) for k, v in obj['data']])
 
     def convert_binary(self, obj):
         if 'data' not in obj:
             raise ReqlDriverError(('pseudo-type BINARY object %s does not have ' +
                                    'the expected field "data".')
-                                  % py_json.dumps(obj))
+                                  % json.dumps(obj))
         return RqlBinary(base64.b64decode(obj['data'].encode('utf-8')))
 
     def convert_pseudotype(self, obj):
@@ -784,14 +806,14 @@ class ReQLDecoder(py_json.JSONDecoder):
                     return self.convert_time(obj)
                 elif time_format != 'raw':
                     raise ReqlDriverError("Unknown time_format run option \"%s\"."
-                                         % time_format)
+                                          % time_format)
             elif reql_type == 'GROUPED_DATA':
                 group_format = self.reql_format_opts.get('group_format')
                 if group_format is None or group_format == 'native':
                     return self.convert_grouped_data(obj)
                 elif group_format != 'raw':
                     raise ReqlDriverError("Unknown group_format run option \"%s\"."
-                                         % group_format)
+                                          % group_format)
             elif reql_type == 'GEOMETRY':
                 # No special support for this. Just return the raw object
                 return obj
@@ -801,7 +823,7 @@ class ReQLDecoder(py_json.JSONDecoder):
                     return self.convert_binary(obj)
                 elif binary_format != 'raw':
                     raise ReqlDriverError("Unknown binary_format run option \"%s\"."
-                                         % binary_format)
+                                          % binary_format)
             else:
                 raise ReqlDriverError("Unknown pseudo-type %s" % reql_type)
         # If there was no pseudotype, or the relevant format is raw, return
@@ -1324,9 +1346,11 @@ class Map(RqlMethodQuery):
     tt = pTerm.MAP
     st = 'map'
 
+
 class Fold(RqlMethodQuery):
     tt = pTerm.FOLD
     st = 'fold'
+
 
 class Filter(RqlMethodQuery):
     tt = pTerm.FILTER
@@ -1502,13 +1526,16 @@ class TableListTL(RqlTopLevelQuery):
     tt = pTerm.TABLE_LIST
     st = "table_list"
 
+
 class SetWriteHook(RqlMethodQuery):
     tt = pTerm.SET_WRITE_HOOK
     st = 'set_write_hook'
 
+
 class GetWriteHook(RqlMethodQuery):
     tt = pTerm.GET_WRITE_HOOK
     st = 'get_write_hook'
+
 
 class IndexCreate(RqlMethodQuery):
     tt = pTerm.INDEX_CREATE
@@ -1573,6 +1600,7 @@ class Sync(RqlMethodQuery):
 class Grant(RqlMethodQuery):
     tt = pTerm.GRANT
     st = 'grant'
+
 
 class GrantTL(RqlTopLevelQuery):
     tt = pTerm.GRANT
@@ -1649,7 +1677,7 @@ class RqlBinary(bytes):
 
     def __repr__(self):
         excerpt = binascii.hexlify(self[0:6]).decode('utf-8')
-        excerpt = ' '.join([excerpt[i:i+2]
+        excerpt = ' '.join([excerpt[i:i + 2]
                             for i in xrange(0, len(excerpt), 2)])
         excerpt = ', \'%s%s\'' % (excerpt, '...' if len(self) > 6 else '') \
                   if len(self) > 0 else ''
@@ -1899,9 +1927,9 @@ class Func(RqlQuery):
         self.optargs = {}
 
     def compose(self, args, optargs):
-            return T('lambda ', T(*[v.compose([v._args[0].compose(None, None)],
-                                              []) for v in self.vrs],
-                                  intsp=', '), ': ', args[1])
+        return T('lambda ', T(*[v.compose([v._args[0].compose(None, None)],
+                                          []) for v in self.vrs],
+                              intsp=', '), ': ', args[1])
 
 
 class Asc(RqlTopLevelQuery):

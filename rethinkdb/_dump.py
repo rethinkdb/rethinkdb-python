@@ -1,14 +1,41 @@
 #!/usr/bin/env python
 
+# Copyright 2018 RebirthDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
+# Copyright 2010-2016 RethinkDB, all rights reserved.
+
+
 '''`rethinkdb dump` creates an archive of data from a RethinkDB cluster'''
 
 from __future__ import print_function
 
-import datetime, optparse, os, platform, shutil, sys, tarfile, tempfile, time, traceback
+import datetime
+import os
+import platform
+import shutil
+import sys
+import tarfile
+import tempfile
+import time
+import traceback
 
-from . import utils_common, net, _export
+from rethinkdb import _export, utils_common
 
-usage = "rethinkdb dump [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert FILENAME] [-f FILE] [--clients NUM] [-e (DB | DB.TABLE)]..."
+usage = "rethinkdb dump [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert FILENAME] [-f FILE] " \
+        "[--clients NUM] [-e (DB | DB.TABLE)]..."
 help_epilog = '''
 EXAMPLES:
 rethinkdb dump -c mnemosyne:39500
@@ -20,40 +47,73 @@ rethinkdb dump -e test -f rdb_dump.tar.gz
 rethinkdb dump -c hades -e test.subscribers -p
   Archive a specific table from a cluster running on host 'hades' which requires a password.'''
 
+
 def parse_options(argv, prog=None):
     parser = utils_common.CommonOptionsParser(usage=usage, epilog=help_epilog, prog=prog)
-    
-    parser.add_option("-f", "--file",     dest="out_file",  metavar="FILE",        default=None,  help='file to write archive to (defaults to rethinkdb_dump_DATE_TIME.tar.gz);\nif FILE is -, use standard output (note that intermediate files will still be written to the --temp-dir directory)')
-    parser.add_option("-e", "--export",   dest="db_tables", metavar="DB|DB.TABLE", default=[],    help='limit dump to the given database or table (may be specified multiple times)', action="append")
 
-    parser.add_option("--temp-dir",       dest="temp_dir",  metavar="directory",   default=None,   help='the directory to use for intermediary results')
-    parser.add_option("--overwrite-file", dest="overwrite",                        default=False,  help="overwrite -f/--file if it exists", action="store_true")
-    parser.add_option("--clients",        dest="clients",   metavar="NUM",         default=3,      help='number of tables to export simultaneously (default: 3)', type="pos_int")
-    parser.add_option("--read-outdated",  dest="outdated",                         default=False,  help='use outdated read mode', action="store_true")
-    
+    parser.add_option(
+        "-f",
+        "--file",
+        dest="out_file",
+        metavar="FILE",
+        default=None,
+        help='file to write archive to (defaults to rethinkdb_dump_DATE_TIME.tar.gz);\nif FILE is -, use standard '
+             'output (note that intermediate files will still be written to the --temp-dir directory)')
+    parser.add_option(
+        "-e",
+        "--export",
+        dest="db_tables",
+        metavar="DB|DB.TABLE",
+        default=[],
+        help='limit dump to the given database or table (may be specified multiple times)',
+        action="append")
+
+    parser.add_option("--temp-dir", dest="temp_dir", metavar="directory", default=None,
+                      help='the directory to use for intermediary results')
+    parser.add_option(
+        "--overwrite-file",
+        dest="overwrite",
+        default=False,
+        help="overwrite -f/--file if it exists",
+        action="store_true")
+    parser.add_option(
+        "--clients",
+        dest="clients",
+        metavar="NUM",
+        default=3,
+        help='number of tables to export simultaneously (default: 3)',
+        type="pos_int")
+    parser.add_option(
+        "--read-outdated",
+        dest="outdated",
+        default=False,
+        help='use outdated read mode',
+        action="store_true")
+
     options, args = parser.parse_args(argv)
-    
+
     # Check validity of arguments
-    
+
     if len(args) != 0:
         raise parser.error("No positional arguments supported. Unrecognized option(s): %s" % args)
-    
+
     # Add dump name
     if platform.system() == "Windows" or platform.system().lower().startswith('cygwin'):
-        options.dump_name = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H-%M-%S") # no colons in name
+        options.dump_name = "rethinkdb_dump_%s" % datetime.datetime.today().strftime(
+            "%Y-%m-%dT%H-%M-%S")  # no colons in name
     else:
         options.dump_name = "rethinkdb_dump_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")
-        
+
     # Verify valid output file
     if options.out_file == "-":
         options.out_file = sys.stdout
-        options.quiet = True 
+        options.quiet = True
     elif options.out_file is None:
         options.out_file = os.path.realpath("%s.tar.gz" % options.dump_name)
     else:
         options.out_file = os.path.realpath(options.out_file)
-    
-    if not options.out_file is not sys.stdout:
+
+    if not (options.out_file is not sys.stdout):
         if os.path.exists(options.out_file) and not options.overwrite:
             parser.error("Output file already exists: %s" % options.out_file)
         if os.path.exists(options.out_file) and not os.path.isfile(options.out_file):
@@ -65,7 +125,7 @@ def parse_options(argv, prog=None):
 
     # Make sure the temporary directory exists and is accessible
     if options.temp_dir is not None:
-        if not exists(options.temp_dir):
+        if not os.path.exists(options.temp_dir):
             try:
                 os.makedirs(options.temp_dir)
             except OSError:
@@ -74,8 +134,9 @@ def parse_options(argv, prog=None):
             parser.error("Temporary directory doesn't exist or is not a directory: %s" % options.temp_dir)
         if not os.access(options.temp_dir, os.W_OK):
             parser.error("Temporary directory inaccessible: %s" % options.temp_dir)
-    
+
     return options
+
 
 def main(argv=None, prog=None):
     options = parse_options(argv or sys.argv[2:], prog=prog)
@@ -89,14 +150,14 @@ def main(argv=None, prog=None):
 
         try:
             start_time = time.time()
-            archive    = None
+            archive = None
 
             # -- _export options - need to be kep in-sync with _export
 
             options.directory = os.path.realpath(tempfile.mkdtemp(dir=options.temp_dir))
-            options.fields    = None
+            options.fields = None
             options.delimiter = None
-            options.format    = 'json'
+            options.format = 'json'
 
             # -- export to a directory
 
@@ -133,7 +194,13 @@ def main(argv=None, prog=None):
             # --
 
             if not options.quiet:
-                print("Done (%.2f seconds): %s" % (time.time() - start_time, options.out_file.name if hasattr(options.out_file, 'name') else options.out_file))
+                print(
+                    "Done (%.2f seconds): %s" %
+                    (time.time() -
+                     start_time,
+                     options.out_file.name if hasattr(
+                         options.out_file,
+                         'name') else options.out_file))
         except KeyboardInterrupt:
             time.sleep(0.2)
             raise RuntimeError("Interrupted")
@@ -147,6 +214,7 @@ def main(argv=None, prog=None):
         print(ex, file=sys.stderr)
         return 1
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

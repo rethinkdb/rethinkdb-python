@@ -1,20 +1,36 @@
-# Copyright 2015 RethinkDB, all rights reserved.
+# Copyright 2018 RebirthDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 import errno
+import ssl
 import struct
+
 import gevent
 import gevent.socket as socket
-from gevent.event import Event, AsyncResult
+from gevent.event import AsyncResult, Event
 from gevent.lock import Semaphore
-
-from . import ql2_pb2 as p
-from . import net
-from .errors import *
+from rethinkdb import net, ql2_pb2
+from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError, RqlDriverError, \
+    RqlTimeoutError
 
 __all__ = ['Connection']
 
-pResponse = p.Response.ResponseType
-pQuery = p.Query.QueryType
+pResponse = ql2_pb2.Response.ResponseType
+pQuery = ql2_pb2.Query.QueryType
 
 
 class GeventCursorEmpty(ReqlCursorEmpty, StopIteration):
@@ -42,7 +58,7 @@ class GeventCursor(net.Cursor):
         self.new_response.clear()
 
     def _get_next(self, timeout):
-        with gevent.Timeout(timeout, RqlTimeoutError()) as timeout:
+        with gevent.Timeout(timeout, RqlTimeoutError()):
             self._maybe_fetch_batch()
             while len(self.items) == 0:
                 if self.error is not None:
@@ -67,16 +83,16 @@ class SocketWrapper(net.SocketWrapper):
 
             if len(self.ssl) > 0:
                 try:
-                    if hasattr(ssl, 'SSLContext'): # Python2.7 and 3.2+, or backports.ssl
+                    if hasattr(ssl, 'SSLContext'):  # Python2.7 and 3.2+, or backports.ssl
                         ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
                         if hasattr(ssl_context, "options"):
                             ssl_context.options |= getattr(ssl, "OP_NO_SSLv2", 0)
                             ssl_context.options |= getattr(ssl, "OP_NO_SSLv3", 0)
                         self.ssl_context.verify_mode = ssl.CERT_REQUIRED
-                        self.ssl_context.check_hostname = True # redundant with match_hostname
+                        self.ssl_context.check_hostname = True  # redundant with match_hostname
                         self.ssl_context.load_verify_locations(self.ssl["ca_certs"])
                         self._socket = ssl_context.wrap_socket(self._socket, server_hostname=self.host)
-                    else: # this does not disable SSLv2 or SSLv3
+                    else:  # this does not disable SSLv2 or SSLv3
                         self._socket = ssl.wrap_socket(
                             self._socket, cert_reqs=ssl.CERT_REQUIRED, ssl_version=ssl.PROTOCOL_SSLv23,
                             ca_certs=self.ssl["ca_certs"])
@@ -84,8 +100,8 @@ class SocketWrapper(net.SocketWrapper):
                     self._socket.close()
                     raise ReqlDriverError("SSL handshake failed (see server log for more information): %s" % str(exc))
                 try:
-                    match_hostname(self._socket.getpeercert(), hostname=self.host)
-                except CertificateError:
+                    ssl.match_hostname(self._socket.getpeercert(), hostname=self.host)
+                except ssl.CertificateError:
                     self._socket.close()
                     raise
 
@@ -112,8 +128,8 @@ class SocketWrapper(net.SocketWrapper):
             raise
         except ReqlDriverError as ex:
             self.close()
-            error = str(ex)\
-                .replace('receiving from', 'during handshake with')\
+            error = str(ex) \
+                .replace('receiving from', 'during handshake with') \
                 .replace('sending to', 'during handshake with')
             raise ReqlDriverError(error)
         except Exception as ex:
@@ -146,16 +162,12 @@ class SocketWrapper(net.SocketWrapper):
                         raise ReqlDriverError("Connection is closed.")
                     elif ex.errno != errno.EINTR:
                         self.close()
-                        raise ReqlDriverError(('Connection interrupted ' +
-                                              'receiving from %s:%s - %s') %
-                                             (self.host, self.port, str(ex)))
+                        raise ReqlDriverError(
+                            'Connection interrupted receiving from %s:%s - %s' % (self.host, self.port, str(ex))
+                        )
                 except Exception as ex:
                     self.close()
-                    raise ReqlDriverError('Error receiving from %s:%s - %s' %
-                                         (self.host, self.port, str(ex)))
-                except:
-                    self.close()
-                    raise
+                    raise ReqlDriverError('Error receiving from %s:%s - %s' % (self.host, self.port, str(ex)))
             if len(chunk) == 0:
                 self.close()
                 raise ReqlDriverError("Connection is closed.")
@@ -174,23 +186,19 @@ class SocketWrapper(net.SocketWrapper):
                 elif ex.errno != errno.EINTR:
                     self.close()
                     raise ReqlDriverError(('Connection interrupted ' +
-                                          'sending to %s:%s - %s') %
-                                         (self.host, self.port, str(ex)))
+                                           'sending to %s:%s - %s') %
+                                          (self.host, self.port, str(ex)))
             except Exception as ex:
                 self.close()
-                raise ReqlDriverError('Error sending to %s:%s - %s' %
-                                     (self.host, self.port, str(ex)))
-            except:
-                self.close()
-                raise
+                raise ReqlDriverError('Error sending to %s:%s - %s' % (self.host, self.port, str(ex)))
 
 
 class ConnectionInstance(object):
     def __init__(self, parent, io_loop=None):
         self._parent = parent
         self._closing = False
-        self._user_queries = { }
-        self._cursor_cache = { }
+        self._user_queries = {}
+        self._cursor_cache = {}
 
         self._write_mutex = Semaphore()
         self._socket = None
@@ -220,8 +228,8 @@ class ConnectionInstance(object):
         for query, async_res in iter(self._user_queries.values()):
             async_res.set_exception(RqlDriverError(err_message))
 
-        self._user_queries = { }
-        self._cursor_cache = { }
+        self._user_queries = {}
+        self._cursor_cache = {}
 
         if noreply_wait:
             noreply = net.Query(pQuery.NOREPLY_WAIT, token, None, None)
@@ -229,7 +237,7 @@ class ConnectionInstance(object):
 
         try:
             self._socket.close()
-        except:
+        except Exception:
             pass
 
     # TODO: make connection recoverable if interrupted by a user's gevent.Timeout?
