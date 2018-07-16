@@ -31,7 +31,7 @@ from rethinkdb.version import version
 
 
 setuptools.setup(
-    name='rebirthdb',
+    name='rethinkdb',
     zip_safe=True,
     version=version,
     description='Python driver library for the RethinkDB database server.',
