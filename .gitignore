@@ -66,3 +66,7 @@ virtualenv/
 
 # RebirthDB
 rethinkdb/ql2_pb2.py
+
+# Editors
+.vscode/
+.idea/
