@@ -1,38 +1,54 @@
-# Copyright 2010-2015 RethinkDB, all rights reserved.
-"""
-Please see the following links for more information::
+# Copyright 2018 RebirthDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
-- `Python API documentation <http://rethinkdb.com/api/python/>`_
-- `GitHub Project <https://github.com/rethinkdb/rethinkdb>`_
-- `Python Driver Source <https://github.com/rethinkdb/rethinkdb/tree/next/drivers/python>`_
+'''
 
-"""
+'''
 
-import os, setuptools, sys
+import setuptools
 
-modulePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'rethinkdb')
-sys.path.insert(0, modulePath)
-from version import version
-sys.path.remove(modulePath)
+try:
+    import asyncio
+    conditional_packages = ['rethinkdb.asyncio_net']
+except ImportError:
+    conditional_packages = []
 
-conditionalPackages = []
-if 'upload' in sys.argv: # ensure that uplodas always have everything while uploading to pypi
-    conditionalPackages = ['rethinkdb.asyncio_net']
-else:
-    try: # only add asyncio when it is supported per #4702
-        import asyncio
-        conditionalPackages = ['rethinkdb.asyncio_net']
-    except ImportError: pass
+from rethinkdb.version import version
+
 
 setuptools.setup(
-    name="rethinkdb",
+    name='rethinkdb',
     zip_safe=True,
     version=version,
-    description="Python driver library for the RethinkDB database server.",
+    description='Python driver library for the RethinkDB database server.',
     long_description=__doc__,
-    url="http://rethinkdb.com",
-    maintainer="RethinkDB Inc.",
-    maintainer_email="bugs@rethinkdb.com",
+    url='https://github.com/RebirthDB/rebirthdb-python',
+    maintainer='RebirthDB.',
+    maintainer_email='bugs@rethinkdb.com',
+    classifiers=[
+        'Intended Audience :: Developers',
+        'Natural Language :: English',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+    ],
     packages=[
         'rethinkdb',
         'rethinkdb.tornado_net',
@@ -40,7 +56,7 @@ setuptools.setup(
         'rethinkdb.gevent_net',
         'rethinkdb.backports',
         'rethinkdb.backports.ssl_match_hostname'
-    ] + conditionalPackages,
+    ] + conditional_packages,
     package_dir={'rethinkdb':'rethinkdb'},
     package_data={ 'rethinkdb':['backports/ssl_match_hostname/*.txt'] },
     entry_points={
@@ -52,5 +68,8 @@ setuptools.setup(
             'rethinkdb-index-rebuild = rethinkdb._index_rebuild:main',
             'rethinkdb-repl = rethinkdb.__main__:startInterpreter'
         ]
-    }
+    },
+    setup_requires=['pytest-runner'],
+    test_suite='tests',
+    tests_require=['pytest']
 )

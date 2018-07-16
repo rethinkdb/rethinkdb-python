@@ -1,0 +1,6 @@
+# CI requirements
+tox-travis==0.10
+
+# Test requirements
+pytest==3.6.3
+tox==3.1.1
