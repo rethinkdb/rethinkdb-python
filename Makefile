@@ -47,7 +47,11 @@ clean:
 		${FILE_CONVERTER_NAME} \
 		${TARGET_PROTO_FILE} \
 		${TARGET_CONVERTED_PROTO_FILE} \
-		${BUILD_DIR}
+		${BUILD_DIR} \
+		.tox \
+		.pytest_cache \
+		.eggs \
+		*.egg-info
 
 prepare:
 	curl -qo ${TARGET_PROTO_FILE} ${PROTO_FILE_URL}
