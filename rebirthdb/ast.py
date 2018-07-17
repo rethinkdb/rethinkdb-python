@@ -25,8 +25,8 @@ import datetime
 import json
 import threading
 
-from rethinkdb import ql2_pb2
-from rethinkdb.errors import QueryPrinter, ReqlDriverCompileError, ReqlDriverError, T
+from rebirthdb import ql2_pb2
+from rebirthdb.errors import QueryPrinter, ReqlDriverCompileError, ReqlDriverError, T
 
 pTerm = ql2_pb2.Term.TermType
 

@@ -14,7 +14,7 @@
 
 .PHONY: default help clean prepare package publish
 
-PACKAGE_NAME = rethinkdb
+PACKAGE_NAME = rebirthdb
 
 BUILD_DIR = ./build
 PACKAGE_DIR = ${BUILD_DIR}/package

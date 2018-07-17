@@ -18,9 +18,9 @@
 import socket
 import struct
 
-from rethinkdb import ql2_pb2
-from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError
-from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
+from rebirthdb import ql2_pb2
+from rebirthdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError
+from rebirthdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
 from tornado import gen, iostream
 from tornado.concurrent import Future
 from tornado.ioloop import IOLoop

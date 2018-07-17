@@ -66,8 +66,8 @@ virtualenv/
 
 # RebirthDB
 convert_protofile.py
-rethinkdb/ql2_pb2.py
-rethinkdb/*.proto
+rebirthdb/ql2_pb2.py
+rebirthdb/*.proto
 
 # Editors
 .vscode/

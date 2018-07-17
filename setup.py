@@ -23,22 +23,22 @@ import setuptools
 
 try:
     import asyncio
-    conditional_packages = ['rethinkdb.asyncio_net']
+    conditional_packages = ['rebirthdb.asyncio_net']
 except ImportError:
     conditional_packages = []
 
-from rethinkdb.version import version
+from rebirthdb.version import version
 
 
 setuptools.setup(
-    name='rethinkdb',
+    name='rebirthdb',
     zip_safe=True,
     version=version,
     description='Python driver library for the RethinkDB database server.',
     long_description=__doc__,
     url='https://github.com/RebirthDB/rebirthdb-python',
     maintainer='RebirthDB.',
-    maintainer_email='bugs@rethinkdb.com',
+    maintainer_email='bugs@rebirthdb.com',
     classifiers=[
         'Intended Audience :: Developers',
         'Natural Language :: English',
@@ -50,23 +50,23 @@ setuptools.setup(
         'Programming Language :: Python :: 3.6',
     ],
     packages=[
-        'rethinkdb',
-        'rethinkdb.tornado_net',
-        'rethinkdb.twisted_net',
-        'rethinkdb.gevent_net',
-        'rethinkdb.backports',
-        'rethinkdb.backports.ssl_match_hostname'
+        'rebirthdb',
+        'rebirthdb.tornado_net',
+        'rebirthdb.twisted_net',
+        'rebirthdb.gevent_net',
+        'rebirthdb.backports',
+        'rebirthdb.backports.ssl_match_hostname'
     ] + conditional_packages,
-    package_dir={'rethinkdb':'rethinkdb'},
-    package_data={ 'rethinkdb':['backports/ssl_match_hostname/*.txt'] },
+    package_dir={'rebirthdb':'rebirthdb'},
+    package_data={ 'rebirthdb':['backports/ssl_match_hostname/*.txt'] },
     entry_points={
         'console_scripts':[
-            'rethinkdb-import = rethinkdb._import:main',
-            'rethinkdb-dump = rethinkdb._dump:main',
-            'rethinkdb-export = rethinkdb._export:main',
-            'rethinkdb-restore = rethinkdb._restore:main',
-            'rethinkdb-index-rebuild = rethinkdb._index_rebuild:main',
-            'rethinkdb-repl = rethinkdb.__main__:startInterpreter'
+            'rebirthdb-import = rebirthdb._import:main',
+            'rebirthdb-dump = rebirthdb._dump:main',
+            'rebirthdb-export = rebirthdb._export:main',
+            'rebirthdb-restore = rebirthdb._restore:main',
+            'rebirthdb-index-rebuild = rebirthdb._index_rebuild:main',
+            'rebirthdb-repl = rebirthdb.__main__:startInterpreter'
         ]
     },
     setup_requires=['pytest-runner'],

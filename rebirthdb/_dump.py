@@ -18,7 +18,7 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
 
-'''`rethinkdb dump` creates an archive of data from a RethinkDB cluster'''
+'''`rebirthdb dump` creates an archive of data from a RethinkDB cluster'''
 
 from __future__ import print_function
 
@@ -32,19 +32,19 @@ import tempfile
 import time
 import traceback
 
-from rethinkdb import _export, utils_common
+from rebirthdb import _export, utils_common
 
-usage = "rethinkdb dump [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert FILENAME] [-f FILE] " \
+usage = "rebirthdb dump [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert FILENAME] [-f FILE] " \
         "[--clients NUM] [-e (DB | DB.TABLE)]..."
 help_epilog = '''
 EXAMPLES:
-rethinkdb dump -c mnemosyne:39500
+rebirthdb dump -c mnemosyne:39500
   Archive all data from a cluster running on host 'mnemosyne' with a client port at 39500.
 
-rethinkdb dump -e test -f rdb_dump.tar.gz
+rebirthdb dump -e test -f rdb_dump.tar.gz
   Archive only the 'test' database from a local cluster into a named file.
 
-rethinkdb dump -c hades -e test.subscribers -p
+rebirthdb dump -c hades -e test.subscribers -p
   Archive a specific table from a cluster running on host 'hades' which requires a password.'''
 
 
@@ -144,9 +144,9 @@ def main(argv=None, prog=None):
         if not options.quiet:
             # Print a warning about the capabilities of dump, so no one is confused (hopefully)
             print("""\
-            NOTE: 'rethinkdb-dump' saves data, secondary indexes, and write hooks, but does *not* save
+            NOTE: 'rebirthdb-dump' saves data, secondary indexes, and write hooks, but does *not* save
             cluster metadata.  You will need to recreate your cluster setup yourself after
-            you run 'rethinkdb-restore'.""")
+            you run 'rebirthdb-restore'.""")
 
         try:
             start_time = time.time()

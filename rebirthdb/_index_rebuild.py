@@ -18,8 +18,8 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
 
-"""'rethinkdb index-rebuild' recreates outdated secondary indexes in a cluster.
-  This should be used after upgrading to a newer version of rethinkdb.  There
+"""'rebirthdb index-rebuild' recreates outdated secondary indexes in a cluster.
+  This should be used after upgrading to a newer version of rebirthdb.  There
   will be a notification in the web UI if any secondary indexes are out-of-date."""
 
 from __future__ import print_function
@@ -28,19 +28,19 @@ import sys
 import time
 import traceback
 
-from rethinkdb import query, utils_common
+from rebirthdb import query, utils_common
 
-usage = "rethinkdb index-rebuild [-c HOST:PORT] [-n NUM] [-r (DB | DB.TABLE)] [--tls-cert FILENAME] [-p] " \
+usage = "rebirthdb index-rebuild [-c HOST:PORT] [-n NUM] [-r (DB | DB.TABLE)] [--tls-cert FILENAME] [-p] " \
         "[--password-file FILENAME]..."
 help_epilog = '''
 FILE: the archive file to restore data from
 
 EXAMPLES:
-rethinkdb index-rebuild -c mnemosyne:39500
+rebirthdb index-rebuild -c mnemosyne:39500
   rebuild all outdated secondary indexes from the cluster through the host 'mnemosyne',
   one at a time
 
-rethinkdb index-rebuild -r test -r production.users -n 5
+rebirthdb index-rebuild -r test -r production.users -n 5
   rebuild all outdated secondary indexes from a local cluster on all tables in the
   'test' database as well as the 'production.users' table, five at a time
 '''
@@ -85,7 +85,7 @@ def rebuild_indexes(options):
     if not options.db_table:
         options.db_table = [
             utils_common.DbTable(x['db'], x['name']) for x in
-            options.retryQuery('all tables', query.db('rethinkdb').table('table_config').pluck(['db', 'name']))
+            options.retryQuery('all tables', query.db('rebirthdb').table('table_config').pluck(['db', 'name']))
         ]
     else:
         for db_table in options.db_table[:]:  # work from a copy

@@ -25,8 +25,8 @@ import struct
 import sys
 import threading
 
-from rethinkdb import ql2_pb2
-from rethinkdb.errors import ReqlAuthError, ReqlDriverError
+from rebirthdb import ql2_pb2
+from rebirthdb.errors import ReqlAuthError, ReqlDriverError
 
 
 try:
