@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from rethinkdb import errors, version
+from rebirthdb import errors, version
 
 
 try:
@@ -21,18 +21,18 @@ except ImportError:
     import builtins  # Python 3
 
 
-__all__ = ['r', 'rethinkdb'] + errors.__all__
+__all__ = ['r', 'rebirthdb'] + errors.__all__
 __version__ = version.version
 
 
 # The builtins here defends against re-importing something obscuring `object`.
 
 
-class R(builtins.object):
+class RebirthDB(builtins.object):
     def __init__(self):
-        super(R, self).__init__()
+        super(RebirthDB, self).__init__()
 
-        from rethinkdb import _dump, _export, _import, _index_rebuild, _restore, ast, query, net
+        from rebirthdb import _dump, _export, _import, _index_rebuild, _restore, ast, query, net
 
         self._dump = _dump
         self._export = _export
@@ -45,5 +45,3 @@ class R(builtins.object):
         for module in (net, query, ast, errors):
             for functionName in module.__all__:
                 setattr(self, functionName, getattr(module, functionName))
-
-    pass

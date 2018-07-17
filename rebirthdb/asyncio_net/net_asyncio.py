@@ -21,9 +21,9 @@ import socket
 import ssl
 import struct
 
-from rethinkdb import ql2_pb2
-from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty
-from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
+from rebirthdb import ql2_pb2
+from rebirthdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty
+from rebirthdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
 
 
 __all__ = ['Connection']

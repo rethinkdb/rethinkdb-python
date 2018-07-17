@@ -27,12 +27,12 @@ import ssl
 import struct
 import time
 
-from rethinkdb import ql2_pb2
-from rethinkdb.ast import DB, ReQLDecoder, ReQLEncoder, Repl, expr
-from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlInternalError, ReqlNonExistenceError,\
+from rebirthdb import ql2_pb2
+from rebirthdb.ast import DB, ReQLDecoder, ReQLEncoder, Repl, expr
+from rebirthdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlInternalError, ReqlNonExistenceError,\
     ReqlOpFailedError, ReqlOpIndeterminateError, ReqlPermissionError, ReqlQueryLogicError, ReqlResourceLimitError,\
     ReqlRuntimeError, ReqlServerCompileError, ReqlTimeoutError, ReqlUserError
-from rethinkdb.handshake import HandshakeV0_4, HandshakeV1_0
+from rebirthdb.handshake import HandshakeV0_4, HandshakeV1_0
 
 
 __all__ = ['connect', 'set_loop_type', 'Connection', 'Cursor', 'DEFAULT_PORT']
@@ -732,7 +732,7 @@ def set_loop_type(library):
     modulePath = manager.resource_filename(__name__, libPath)
     moduleName = 'net_%s' % library
     moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
-    module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
+    module = imp.load_module('rebirthdb.' + moduleName, moduleFile, pathName, desc)
 
     # set the connection type
     connection_type = module.Connection
