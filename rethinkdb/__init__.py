@@ -47,4 +47,3 @@ class R(builtins.object):
                 setattr(self, functionName, getattr(module, functionName))
 
     pass
-

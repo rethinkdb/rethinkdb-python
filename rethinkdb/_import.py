@@ -1420,7 +1420,7 @@ def parse_sources(options, files_ignored=None):
                         write_hook = None
                         infoPath = os.path.join(root, table + ".info")
                         if not os.path.isfile(infoPath):
-                            files_ignored.append(os.path.join(root, f))
+                            files_ignored.append(os.path.join(root, filename))
                         else:
                             primary_key, indexes, write_hook = parseInfoFile(infoPath)
 

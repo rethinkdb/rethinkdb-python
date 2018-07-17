@@ -22,7 +22,7 @@ import ssl
 import struct
 
 from rethinkdb import ql2_pb2
-from rethinkdb.errors import ReqlAuthError, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty
+from rethinkdb.errors import ReqlAuthError, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty, ReqlCursorEmpty
 from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
 
 
