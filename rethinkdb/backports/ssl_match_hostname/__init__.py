@@ -1,8 +1,27 @@
+# Copyright 2018 RebirthDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
+# Copyright 2010-2016 RethinkDB, all rights reserved.
+
+
 """The match_hostname() function from Python 3.3.3, essential when using SSL."""
 
 import re
 
 __version__ = '3.4.0.2'
+
 
 class CertificateError(ValueError):
     pass
@@ -69,8 +88,10 @@ def match_hostname(cert, hostname):
     CertificateError is raised on failure. On success, the function
     returns nothing.
     """
+
     if not cert:
         raise ValueError("empty or no certificate")
+
     dnsnames = []
     san = cert.get('subjectAltName', ())
     for key, value in san:
@@ -78,6 +99,7 @@ def match_hostname(cert, hostname):
             if _dnsname_match(value, hostname):
                 return
             dnsnames.append(value)
+
     if not dnsnames:
         # The subject is only checked when there is no dNSName entry
         # in subjectAltName
@@ -89,14 +111,10 @@ def match_hostname(cert, hostname):
                     if _dnsname_match(value, hostname):
                         return
                     dnsnames.append(value)
+
     if len(dnsnames) > 1:
-        raise CertificateError("hostname %r "
-            "doesn't match either of %s"
-            % (hostname, ', '.join(map(repr, dnsnames))))
+        raise CertificateError("hostname %r doesn't match either of %s" % (hostname, ', '.join(map(repr, dnsnames))))
     elif len(dnsnames) == 1:
-        raise CertificateError("hostname %r "
-            "doesn't match %r"
-            % (hostname, dnsnames[0]))
+        raise CertificateError("hostname %r doesn't match %r" % (hostname, dnsnames[0]))
     else:
-        raise CertificateError("no appropriate commonName or "
-            "subjectAltName fields were found")
+        raise CertificateError("no appropriate commonName or subjectAltName fields were found")

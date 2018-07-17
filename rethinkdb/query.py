@@ -54,6 +54,7 @@ def random(*args, **kwargs):
 def do(*args):
     return ast.FunCall(*args)
 
+
 row = ast.ImplicitVar()
 
 
@@ -113,6 +114,8 @@ def map(*args):
         return ast.Map()
 
 # aggregation
+
+
 def group(*args):
     return ast.Group(*[ast.func_wrap(arg) for arg in args])
 
@@ -290,32 +293,33 @@ class RqlConstant(ast.RqlQuery):
         super(RqlConstant, self).__init__()
 
     def compose(self, args, optargs):
-        return 'r.'+self.st
+        return 'r.' + self.st
+
 
 # Time enum values
-monday      = RqlConstant('monday',    ql2_pb2.Term.TermType.MONDAY)
-tuesday     = RqlConstant('tuesday',   ql2_pb2.Term.TermType.TUESDAY)
-wednesday   = RqlConstant('wednesday', ql2_pb2.Term.TermType.WEDNESDAY)
-thursday    = RqlConstant('thursday',  ql2_pb2.Term.TermType.THURSDAY)
-friday      = RqlConstant('friday',    ql2_pb2.Term.TermType.FRIDAY)
-saturday    = RqlConstant('saturday',  ql2_pb2.Term.TermType.SATURDAY)
-sunday      = RqlConstant('sunday',    ql2_pb2.Term.TermType.SUNDAY)
+monday = RqlConstant('monday', ql2_pb2.Term.TermType.MONDAY)
+tuesday = RqlConstant('tuesday', ql2_pb2.Term.TermType.TUESDAY)
+wednesday = RqlConstant('wednesday', ql2_pb2.Term.TermType.WEDNESDAY)
+thursday = RqlConstant('thursday', ql2_pb2.Term.TermType.THURSDAY)
+friday = RqlConstant('friday', ql2_pb2.Term.TermType.FRIDAY)
+saturday = RqlConstant('saturday', ql2_pb2.Term.TermType.SATURDAY)
+sunday = RqlConstant('sunday', ql2_pb2.Term.TermType.SUNDAY)
 
-january     = RqlConstant('january',   ql2_pb2.Term.TermType.JANUARY)
-february    = RqlConstant('february',  ql2_pb2.Term.TermType.FEBRUARY)
-march       = RqlConstant('march',     ql2_pb2.Term.TermType.MARCH)
-april       = RqlConstant('april',     ql2_pb2.Term.TermType.APRIL)
-may         = RqlConstant('may',       ql2_pb2.Term.TermType.MAY)
-june        = RqlConstant('june',      ql2_pb2.Term.TermType.JUNE)
-july        = RqlConstant('july',      ql2_pb2.Term.TermType.JULY)
-august      = RqlConstant('august',    ql2_pb2.Term.TermType.AUGUST)
-september   = RqlConstant('september', ql2_pb2.Term.TermType.SEPTEMBER)
-october     = RqlConstant('october',   ql2_pb2.Term.TermType.OCTOBER)
-november    = RqlConstant('november',  ql2_pb2.Term.TermType.NOVEMBER)
-december    = RqlConstant('december',  ql2_pb2.Term.TermType.DECEMBER)
+january = RqlConstant('january', ql2_pb2.Term.TermType.JANUARY)
+february = RqlConstant('february', ql2_pb2.Term.TermType.FEBRUARY)
+march = RqlConstant('march', ql2_pb2.Term.TermType.MARCH)
+april = RqlConstant('april', ql2_pb2.Term.TermType.APRIL)
+may = RqlConstant('may', ql2_pb2.Term.TermType.MAY)
+june = RqlConstant('june', ql2_pb2.Term.TermType.JUNE)
+july = RqlConstant('july', ql2_pb2.Term.TermType.JULY)
+august = RqlConstant('august', ql2_pb2.Term.TermType.AUGUST)
+september = RqlConstant('september', ql2_pb2.Term.TermType.SEPTEMBER)
+october = RqlConstant('october', ql2_pb2.Term.TermType.OCTOBER)
+november = RqlConstant('november', ql2_pb2.Term.TermType.NOVEMBER)
+december = RqlConstant('december', ql2_pb2.Term.TermType.DECEMBER)
 
-minval      = RqlConstant('minval',    ql2_pb2.Term.TermType.MINVAL)
-maxval      = RqlConstant('maxval',    ql2_pb2.Term.TermType.MAXVAL)
+minval = RqlConstant('minval', ql2_pb2.Term.TermType.MINVAL)
+maxval = RqlConstant('maxval', ql2_pb2.Term.TermType.MAXVAL)
 
 
 def make_timezone(*args):

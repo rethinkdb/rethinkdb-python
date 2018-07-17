@@ -65,6 +65,7 @@ venv.bak/
 virtualenv/
 
 # RebirthDB
+convert_protofile.py
 rethinkdb/ql2_pb2.py
 rethinkdb/*.proto
 

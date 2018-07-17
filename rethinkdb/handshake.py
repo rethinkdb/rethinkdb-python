@@ -1,3 +1,21 @@
+# Copyright 2018 RebirthDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
+# Copyright 2010-2016 RethinkDB, all rights reserved.
+
+
 import base64
 import binascii
 import hashlib
@@ -7,13 +25,15 @@ import struct
 import sys
 import threading
 
-from . import ql2_pb2
-from .errors import *
+from rethinkdb import ql2_pb2
+from rethinkdb.errors import ReqlAuthError, ReqlDriverError
+
 
 try:
     xrange
 except NameError:
     xrange = range
+
 
 class HandshakeV0_4(object):
     VERSION = ql2_pb2.VersionDummy.Version.V0_4
@@ -61,6 +81,7 @@ class HandshakeV0_4(object):
             return None
         else:
             raise ReqlDriverError("Unexpected handshake state")
+
 
 class HandshakeV1_0(object):
     VERSION = ql2_pb2.VersionDummy.Version.V1_0
@@ -122,10 +143,13 @@ class HandshakeV1_0(object):
         elif self._state == 1:
             response = response.decode("utf-8")
             if response.startswith("ERROR"):
-                raise ReqlDriverError("Received an unexpected reply.  You may be attempting to connect to a RethinkDB server that is too old for this driver.  The minimum supported server version is 2.3.0.")
+                raise ReqlDriverError(
+                    "Received an unexpected reply. You may be attempting to connect to a RethinkDB server that is too "
+                    "old for this driver.  The minimum supported server version is 2.3.0."
+                )
             json = self._json_decoder.decode(response)
             try:
-                if json["success"] == False:
+                if json["success"] is False:
                     if 10 <= json["error_code"] <= 20:
                         raise ReqlAuthError(json["error"], self._host, self._port)
                     else:
@@ -148,7 +172,7 @@ class HandshakeV1_0(object):
             json = self._json_decoder.decode(response.decode("utf-8"))
             server_first_message = r = salt = i = None
             try:
-                if json["success"] == False:
+                if json["success"] is False:
                     if 10 <= json["error_code"] <= 20:
                         raise ReqlAuthError(json["error"], self._host, self._port)
                     else:
@@ -208,16 +232,16 @@ class HandshakeV1_0(object):
             self._state = 3
             return self._json_encoder.encode({
                 "authentication": (
-                        client_final_message_without_proof +
-                        b",p=" + base64.standard_b64encode(client_proof)
-                    ).decode("ascii")
+                    client_final_message_without_proof +
+                    b",p=" + base64.standard_b64encode(client_proof)
+                ).decode("ascii")
             }).encode("utf-8") + \
-            b'\0'
+                b'\0'
         elif self._state == 3:
             json = self._json_decoder.decode(response.decode("utf-8"))
             v = None
             try:
-                if json["success"] == False:
+                if json["success"] is False:
                     if 10 <= json["error_code"] <= 20:
                         raise ReqlAuthError(json["error"], self._host, self._port)
                     else:
@@ -225,7 +249,7 @@ class HandshakeV1_0(object):
 
                 authentication = dict(
                     x.split(b"=", 1)
-                        for x in json["authentication"].encode("ascii").split(b","))
+                    for x in json["authentication"].encode("ascii").split(b","))
 
                 v = base64.standard_b64decode(authentication[b"v"])
             except KeyError as key_error:
@@ -237,7 +261,7 @@ class HandshakeV1_0(object):
             self._state = 4
             return None
         else:
-            raise ReqlDriverError("Unexpected handshake state");
+            raise ReqlDriverError("Unexpected handshake state")
 
     @staticmethod
     def __compare_digest(a, b):

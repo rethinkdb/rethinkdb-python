@@ -1,24 +1,47 @@
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2018 RebirthDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
+# Copyright 2010-2016 RethinkDB, all rights reserved.
+
 
 __all__ = [
-    "ReqlCursorEmpty", "RqlCursorEmpty",
-    "ReqlError", "RqlError",
-        "ReqlCompileError", "RqlCompileError",
-            "ReqlDriverCompileError",
-            "ReqlServerCompileError",
-        "ReqlRuntimeError", "RqlRuntimeError",
-            "ReqlQueryLogicError",
-                "ReqlNonExistenceError",
-            "ReqlResourceLimitError",
-            "ReqlUserError",
-            "ReqlInternalError",
-            "ReqlTimeoutError", "RqlTimeoutError",
-            "ReqlAvailabilityError",
-                "ReqlOpFailedError",
-                "ReqlOpIndeterminateError",
-            "ReqlPermissionError",
-        "ReqlDriverError", "RqlDriverError", "RqlClientError",
-            "ReqlAuthError"
+    "ReqlAuthError",
+    "ReqlAvailabilityError",
+    "ReqlCompileError",
+    "ReqlCursorEmpty",
+    "ReqlDriverCompileError",
+    "ReqlDriverError",
+    "ReqlError",
+    "ReqlInternalError",
+    "ReqlNonExistenceError",
+    "ReqlOpFailedError",
+    "ReqlOpIndeterminateError",
+    "ReqlPermissionError",
+    "ReqlQueryLogicError",
+    "ReqlResourceLimitError",
+    "ReqlRuntimeError",
+    "ReqlServerCompileError",
+    "ReqlTimeoutError",
+    "ReqlUserError",
+    "RqlClientError",
+    "RqlCompileError",
+    "RqlCursorEmpty",
+    "RqlDriverError",
+    "RqlError",
+    "RqlRuntimeError",
+    "RqlTimeoutError",
 ]
 
 import sys
@@ -27,7 +50,7 @@ try:
     unicode
 
     def convertForPrint(inputString):
-        if type(inputString) == unicode:
+        if isinstance(inputString, unicode):  # noqa: F821
             encoding = 'utf-8'
             if hasattr(sys.stdout, 'encoding') and sys.stdout.encoding:
                 encoding = sys.stdout.encoding
@@ -40,15 +63,17 @@ except NameError:
 
 try:
     {}.iteritems
-    dict_items = lambda d: d.iteritems()
+
+    def dict_items(d): return d.iteritems()
 except AttributeError:
-    dict_items = lambda d: d.items()
+    def dict_items(d): return d.items()
 
 
 class ReqlCursorEmpty(Exception):
     def __init__(self):
         super(ReqlCursorEmpty, self).__init__("Cursor is empty.")
         self.message = "Cursor is empty."
+
 
 RqlCursorEmpty = ReqlCursorEmpty
 
@@ -69,9 +94,10 @@ class ReqlError(Exception):
                 self.message.rstrip("."),
                 self.query_printer.print_query(),
                 self.query_printer.print_carrots()))
-    
+
     def __repr__(self):
         return "<%s instance: %s >" % (self.__class__.__name__, str(self))
+
 
 RqlError = ReqlError
 
@@ -79,10 +105,13 @@ RqlError = ReqlError
 class ReqlCompileError(ReqlError):
     pass
 
+
 RqlCompileError = ReqlCompileError
+
 
 class ReqlDriverCompileError(ReqlCompileError):
     pass
+
 
 class ReqlServerCompileError(ReqlCompileError):
     pass
@@ -90,6 +119,7 @@ class ReqlServerCompileError(ReqlCompileError):
 
 class ReqlRuntimeError(ReqlError):
     pass
+
 
 RqlRuntimeError = ReqlRuntimeError
 
@@ -133,8 +163,10 @@ class ReqlPermissionError(ReqlRuntimeError):
 class ReqlDriverError(ReqlError):
     pass
 
+
 RqlClientError = ReqlDriverError
 RqlDriverError = ReqlDriverError
+
 
 class ReqlAuthError(ReqlDriverError):
     def __init__(self, msg, host=None, port=None):

@@ -1,4 +1,19 @@
-# Copyright 2015-2016 RethinkDB, all rights reserved.
+# Copyright 2018 RebirthDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 import asyncio
 import contextlib
@@ -6,27 +21,31 @@ import socket
 import ssl
 import struct
 
-from . import ql2_pb2 as p
-from .net import Query, Response, Cursor, maybe_profile
-from .net import Connection as ConnectionBase
-from .errors import *
+from rethinkdb import ql2_pb2
+from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty
+from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
+
 
 __all__ = ['Connection']
 
-pResponse = p.Response.ResponseType
-pQuery = p.Query.QueryType
+
+pResponse = ql2_pb2.Response.ResponseType
+pQuery = ql2_pb2.Query.QueryType
+
 
 @asyncio.coroutine
 def _read_until(streamreader, delimiter):
     """Naive implementation of reading until a delimiter"""
     buffer = bytearray()
+
     while True:
-        c = yield from streamreader.read(1)
+        c = (yield from streamreader.read(1))
         if c == b'':
             break  # EOF
         buffer.append(c[0])
         if c == delimiter:
             break
+
     return bytes(buffer)
 
 
@@ -53,6 +72,7 @@ def reusable_waiter(loop, timeout):
         return (yield from asyncio.wait_for(future, new_timeout, loop=loop))
 
     return wait
+
 
 @contextlib.contextmanager
 def translate_timeout_errors():
@@ -139,13 +159,13 @@ class AsyncioCursor(Cursor):
 class ConnectionInstance(object):
     _streamreader = None
     _streamwriter = None
-    _reader_task  = None
+    _reader_task = None
 
     def __init__(self, parent, io_loop=None):
         self._parent = parent
         self._closing = False
-        self._user_queries = { }
-        self._cursor_cache = { }
+        self._user_queries = {}
+        self._cursor_cache = {}
         self._ready = asyncio.Future()
         self._io_loop = io_loop
         if self._io_loop is None:
@@ -154,6 +174,7 @@ class ConnectionInstance(object):
     def client_port(self):
         if self.is_open():
             return self._streamwriter.get_extra_info('sockname')[1]
+
     def client_address(self):
         if self.is_open():
             return self._streamwriter.get_extra_info('sockname')[0]
@@ -168,10 +189,12 @@ class ConnectionInstance(object):
                     ssl_context.options |= getattr(ssl, "OP_NO_SSLv2", 0)
                     ssl_context.options |= getattr(ssl, "OP_NO_SSLv3", 0)
                 ssl_context.verify_mode = ssl.CERT_REQUIRED
-                ssl_context.check_hostname = True # redundant with match_hostname
+                ssl_context.check_hostname = True  # redundant with match_hostname
                 ssl_context.load_verify_locations(self._parent.ssl["ca_certs"])
-                
-            self._streamreader, self._streamwriter = yield from asyncio.open_connection(self._parent.host, self._parent.port, loop=self._io_loop, ssl=ssl_context)
+
+            self._streamreader, self._streamwriter = yield from asyncio.open_connection(
+                self._parent.host, self._parent.port, loop=self._io_loop, ssl=ssl_context
+            )
             self._streamwriter.get_extra_info('socket').setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self._streamwriter.get_extra_info('socket').setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         except Exception as err:
@@ -202,8 +225,10 @@ class ConnectionInstance(object):
         except ReqlTimeoutError as err:
             yield from self.close()
             raise ReqlDriverError(
-                'Connection interrupted during handshake with %s:%s. Error: %s' %
-                    (self._parent.host, self._parent.port, str(err)))
+                'Connection interrupted during handshake with %s:%s. Error: %s' % (
+                    self._parent.host, self._parent.port, str(err)
+                )
+            )
         except Exception as err:
             yield from self.close()
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
@@ -233,8 +258,8 @@ class ConnectionInstance(object):
             if not future.done():
                 future.set_exception(ReqlDriverError(err_message))
 
-        self._user_queries = { }
-        self._cursor_cache = { }
+        self._user_queries = {}
+        self._cursor_cache = {}
 
         if noreply_wait:
             noreply = Query(pQuery.NOREPLY_WAIT, token, None, None)

@@ -1,22 +1,36 @@
-# Copyright 2015 RethinkDB, all rights reserved.
+# Copyright 2018 RebirthDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
-import errno
 import socket
 import struct
-from tornado import gen, iostream
-from tornado.ioloop import IOLoop
-from tornado.concurrent import Future
-from tornado.tcpclient import TCPClient
 
-from . import ql2_pb2 as p
-from .net import Query, Response, Cursor, maybe_profile
-from .net import Connection as ConnectionBase
-from .errors import *
+from rethinkdb import ql2_pb2
+from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError
+from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
+from tornado import gen, iostream
+from tornado.concurrent import Future
+from tornado.ioloop import IOLoop
+from tornado.tcpclient import TCPClient
 
 __all__ = ['Connection']
 
-pResponse = p.Response.ResponseType
-pQuery = p.Query.QueryType
+pResponse = ql2_pb2.Response.ResponseType
+pQuery = ql2_pb2.Query.QueryType
+
 
 @gen.coroutine
 def with_absolute_timeout(deadline, generator, **kwargs):
@@ -78,8 +92,8 @@ class ConnectionInstance(object):
     def __init__(self, parent, io_loop=None):
         self._parent = parent
         self._closing = False
-        self._user_queries = { }
-        self._cursor_cache = { }
+        self._user_queries = {}
+        self._cursor_cache = {}
         self._ready = Future()
         self._io_loop = io_loop
         self._stream = None
@@ -105,7 +119,7 @@ class ConnectionInstance(object):
                 ssl_options = {}
                 if self._parent.ssl["ca_certs"]:
                     ssl_options['ca_certs'] = self._parent.ssl["ca_certs"]
-                    ssl_options['cert_reqs'] = 2 # ssl.CERT_REQUIRED
+                    ssl_options['cert_reqs'] = 2  # ssl.CERT_REQUIRED
                 stream_future = TCPClient().connect(self._parent.host, self._parent.port,
                                                     ssl_options=ssl_options)
             else:
@@ -118,7 +132,7 @@ class ConnectionInstance(object):
                 quiet_exceptions=(iostream.StreamClosedError))
         except Exception as err:
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
-                    (self._parent.host, self._parent.port, str(err)))
+                                  (self._parent.host, self._parent.port, str(err)))
 
         self._stream.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self._stream.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -160,7 +174,7 @@ class ConnectionInstance(object):
                 pass
             raise ReqlDriverError(
                 'Connection interrupted during handshake with %s:%s. Error: %s' %
-                    (self._parent.host, self._parent.port, str(err)))
+                (self._parent.host, self._parent.port, str(err)))
 
         # Start a parallel function to perform reads
         self._io_loop.add_callback(self._reader)
@@ -184,8 +198,8 @@ class ConnectionInstance(object):
         for query, future in iter(self._user_queries.values()):
             future.set_exception(ReqlDriverError(err_message))
 
-        self._user_queries = { }
-        self._cursor_cache = { }
+        self._user_queries = {}
+        self._cursor_cache = {}
 
         if noreply_wait:
             noreply = Query(pQuery.NOREPLY_WAIT, token, None, None)

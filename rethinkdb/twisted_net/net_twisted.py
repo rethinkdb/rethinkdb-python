@@ -1,25 +1,37 @@
-# Copyright 2015 RethinkDB, all rights reserved.
+# Copyright 2018 RebirthDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
-import time
 import struct
+import time
 
-from twisted.python import log
-from twisted.internet import reactor, defer
-from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
-from twisted.internet.defer import DeferredQueue, CancelledError
-from twisted.internet.protocol import ClientFactory, Protocol
+from rethinkdb import ql2_pb2
+from rethinkdb.errors import ReqlAuthError, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty
+from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
+from twisted.internet import defer, reactor
+from twisted.internet.defer import CancelledError, Deferred, DeferredQueue, inlineCallbacks, returnValue
 from twisted.internet.endpoints import clientFromString
 from twisted.internet.error import TimeoutError
-
-from . import ql2_pb2 as p
-from .net import Query, Response, Cursor, maybe_profile
-from .net import Connection as ConnectionBase
-from .errors import *
+from twisted.internet.protocol import ClientFactory, Protocol
 
 __all__ = ['Connection']
 
-pResponse = p.Response.ResponseType
-pQuery = p.Query.QueryType
+pResponse = ql2_pb2.Response.ResponseType
+pQuery = ql2_pb2.Query.QueryType
+
 
 class DatabaseProtocol(Protocol):
     WAITING_FOR_HANDSHAKE = 0
@@ -50,7 +62,7 @@ class DatabaseProtocol(Protocol):
         # wait_for_handshake. Otherwise, it will be cancelled in
         # handleHandshake.
         self._timeout_defer = reactor.callLater(self.factory.timeout,
-                self._handleHandshakeTimeout)
+                                                self._handleHandshakeTimeout)
 
     def connectionLost(self, reason):
         self._open = False
@@ -118,12 +130,12 @@ class DatabaseProtocol(Protocol):
             if self._open:
                 self._handlers[self.state](data)
         except Exception as e:
-            raise ReqlDriverError('Driver failed to handle received data.'
-                'Error: {exc}. Dropping the connection.'.format(exc=str(e)))
             self.transport.loseConnection()
+            raise ReqlDriverError('Driver failed to handle received data.'
+                                  'Error: {exc}. Dropping the connection.'.format(exc=str(e)))
+
 
 class DatabaseProtoFactory(ClientFactory):
-
     protocol = DatabaseProtocol
 
     def __init__(self, timeout, response_handler, handshake):
@@ -143,6 +155,7 @@ class DatabaseProtoFactory(ClientFactory):
 
     def clientConnectionFailed(self, connector, reason):
         pass
+
 
 class CursorItems(DeferredQueue):
     def __init__(self):
@@ -169,6 +182,7 @@ class CursorItems(DeferredQueue):
 
     def __iter__(self):
         return iter(self.pending)
+
 
 class TwistedCursor(Cursor):
     def __init__(self, *args, **kwargs):
@@ -229,7 +243,7 @@ class TwistedCursor(Cursor):
 
         if timeout is not None:
             item_defer.addErrback(raise_timeout)
-            timer = reactor.callLater(timeout, lambda: item_defer.cancel())
+            reactor.callLater(timeout, lambda: item_defer.cancel())
 
         self._maybe_fetch_batch()
         return item_defer
@@ -302,7 +316,7 @@ class ConnectionInstance(object):
     @inlineCallbacks
     def connect(self, timeout):
         factory = DatabaseProtoFactory(timeout, self._handleResponse,
-                self._parent.handshake)
+                                       self._parent.handshake)
 
         # We connect to the server, and send the handshake payload.
         pConnection = None
