@@ -44,6 +44,7 @@ help:
 
 clean:
 	@rm -rf \
+		${FILE_CONVERTER_NAME} \
 		${TARGET_PROTO_FILE} \
 		${TARGET_CONVERTED_PROTO_FILE} \
 		${BUILD_DIR}
