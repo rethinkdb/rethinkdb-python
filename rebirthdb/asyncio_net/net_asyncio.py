@@ -23,7 +23,7 @@ import struct
 
 <<<<<<< Updated upstream:rethinkdb/asyncio_net/net_asyncio.py
 from rethinkdb import ql2_pb2
-from rethinkdb.errors import ReqlAuthError, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty
+from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty
 from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
 =======
 from rebirthdb import ql2_pb2

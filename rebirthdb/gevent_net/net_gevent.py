@@ -237,7 +237,7 @@ class ConnectionInstance(object):
 
         try:
             self._socket.close()
-        except Exception:
+        except OSError:
             pass
 
     # TODO: make connection recoverable if interrupted by a user's gevent.Timeout?

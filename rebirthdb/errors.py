@@ -50,7 +50,7 @@ try:
     unicode
 
     def convertForPrint(inputString):
-        if isinstance(inputString, unicode):
+        if isinstance(inputString, unicode):  # noqa: F821
             encoding = 'utf-8'
             if hasattr(sys.stdout, 'encoding') and sys.stdout.encoding:
                 encoding = sys.stdout.encoding
