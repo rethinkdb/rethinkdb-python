@@ -149,7 +149,7 @@ class HandshakeV1_0(object):
                 )
             json = self._json_decoder.decode(response)
             try:
-                if not json["success"]:
+                if json["success"] is False:
                     if 10 <= json["error_code"] <= 20:
                         raise ReqlAuthError(json["error"], self._host, self._port)
                     else:
@@ -172,7 +172,7 @@ class HandshakeV1_0(object):
             json = self._json_decoder.decode(response.decode("utf-8"))
             server_first_message = r = salt = i = None
             try:
-                if not json["success"]:
+                if json["success"] is False:
                     if 10 <= json["error_code"] <= 20:
                         raise ReqlAuthError(json["error"], self._host, self._port)
                     else:
@@ -241,7 +241,7 @@ class HandshakeV1_0(object):
             json = self._json_decoder.decode(response.decode("utf-8"))
             v = None
             try:
-                if not json["success"]:
+                if json["success"] is False:
                     if 10 <= json["error_code"] <= 20:
                         raise ReqlAuthError(json["error"], self._host, self._port)
                     else:

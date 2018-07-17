@@ -408,23 +408,20 @@ class SocketWrapper(object):
                     raise ReqlTimeoutError(self.host, self.port)
                 except IOError as ex:
                     if ex.errno == errno.ECONNRESET:
-                        self.close()
                         raise ReqlDriverError("Connection is closed.")
                     elif ex.errno == errno.EWOULDBLOCK:
                         # This should only happen with a timeout of 0
                         raise ReqlTimeoutError(self.host, self.port)
                     elif ex.errno != errno.EINTR:
-                        self.close()
                         raise ReqlDriverError(('Connection interrupted ' +
                                                'receiving from %s:%s - %s') %
                                               (self.host, self.port, str(ex)))
                 except Exception as ex:
-                    self.close()
                     raise ReqlDriverError('Error receiving from %s:%s - %s' %
                                           (self.host, self.port, str(ex)))
-                except BaseException:
+                finally:
                     self.close()
-                    raise
+
             if len(chunk) == 0:
                 self.close()
                 raise ReqlDriverError("Connection is closed.")
