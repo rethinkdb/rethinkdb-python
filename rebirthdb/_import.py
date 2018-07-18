@@ -94,8 +94,13 @@ class SourceFile(object):
             indexes=None,
             write_hook=None,
             source_options=None):
-        assert self.format is not None, 'Subclass %s must have a format' % self.__class__.__name__
-        assert db is not 'rebirthdb', "Error: Cannot import tables into the system database: 'rebirthdb'"
+
+        if self.format is None:
+            raise AssertionError('{class_name} must have a format'.format(class_name=self.__class__.__name__))
+
+        if self.db == 'rebirthdb':
+            raise AssertionError('Can not import tables into the system database')
+
 
         # query_runner
         assert isinstance(query_runner, utils_common.RetryQuery)
@@ -322,6 +327,9 @@ class SourceFile(object):
             batch_size = int(batch_size)
         assert batch_size > 0
 
+        if batch_size <= 0:
+            raise AssertionError('Batch size can not be less than one')
+
         # setup
         self.setup_file(warning_queue=warning_queue)
 
@@ -455,9 +463,14 @@ class JsonSourceFile(SourceFile):
         readTarget = self._buffer_size - self._buffer_end + self._buffer_pos
         assert readTarget > 0
 
+        if readTarget < 1:
+            raise AssertionError('Can not set the read target and full the buffer')
+
         newChunk = self._source.read(readTarget)
+
         if len(newChunk) == 0:
             raise StopIteration()  # file ended
+
         self._buffer_str = self._buffer_str[self._buffer_pos:] + newChunk
         self._bytes_read.value += len(newChunk)
 

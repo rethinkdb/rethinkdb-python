@@ -26,6 +26,7 @@ from gevent.lock import Semaphore
 from rebirthdb import net, ql2_pb2
 from rebirthdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError, RqlDriverError, \
     RqlTimeoutError
+from rebirthdb.logger import default_logger
 
 __all__ = ['Connection']
 
@@ -142,8 +143,8 @@ class SocketWrapper(net.SocketWrapper):
             try:
                 self._socket.shutdown(socket.SHUT_RDWR)
                 self._socket.close()
-            except Exception:
-                pass
+            except Exception as ex:
+                default_logger.error(ex.message)
             finally:
                 self._socket = None
 

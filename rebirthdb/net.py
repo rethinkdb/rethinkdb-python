@@ -33,7 +33,7 @@ from rebirthdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, Re
     ReqlOpFailedError, ReqlOpIndeterminateError, ReqlPermissionError, ReqlQueryLogicError, ReqlResourceLimitError,\
     ReqlRuntimeError, ReqlServerCompileError, ReqlTimeoutError, ReqlUserError
 from rebirthdb.handshake import HandshakeV0_4, HandshakeV1_0
-
+from rebirthdb.logger import default_logger
 
 __all__ = ['connect', 'set_loop_type', 'Connection', 'Cursor', 'DEFAULT_PORT']
 
@@ -387,8 +387,8 @@ class SocketWrapper(object):
             try:
                 self._socket.shutdown(socket.SHUT_RDWR)
                 self._socket.close()
-            except Exception:
-                pass
+            except Exception as ex:
+                default_logger.error(ex.message)
             finally:
                 self._socket = None
 

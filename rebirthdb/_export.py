@@ -476,7 +476,7 @@ def run(options):
         for db_table in options.db_tables:
             db, table = db_table
 
-            if not db == 'rebirthdb':
+            if db == 'rebirthdb':
                 raise AssertionError('Can not export tables from the system database')
 
             if db not in all_databases:
