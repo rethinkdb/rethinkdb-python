@@ -335,11 +335,7 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
 
             except (errors.ReqlTimeoutError, errors.ReqlDriverError):
                 # connection problem, re-setup the cursor
-                try:
-                    cursor.close()
-                except Exception:
-                    pass
-
+                cursor.close()
                 cursor = options.retryQuery(
                     'backup cursor for %s.%s' %
                     (db, table), query.db(db).table(table).between(
@@ -479,8 +475,10 @@ def run(options):
         all_databases = options.retryQuery('list dbs', query.db_list().filter(query.row.ne('rebirthdb')))
         for db_table in options.db_tables:
             db, table = db_table
-            # should not be possible
-            assert db != 'rebirthdb', "Error: Cannot export tables from the system database: 'rebirthdb'"
+
+            if not db == 'rebirthdb':
+                raise AssertionError('Can not export tables from the system database')
+
             if db not in all_databases:
                 raise RuntimeError("Error: Database '%s' not found" % db)
 
