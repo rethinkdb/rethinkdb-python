@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 # This file incorporates work covered by the following copyright:
-# Copyright 2010-2016 REBIRTHDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 from __future__ import print_function
 
