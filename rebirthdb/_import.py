@@ -36,6 +36,7 @@ import traceback
 from multiprocessing.queues import Queue, SimpleQueue
 
 from rebirthdb import ast, errors, query, utils_common
+from rebirthdb.logger import default_logger
 
 try:
     unicode
@@ -351,8 +352,6 @@ class SourceFile(object):
                     except NeedMoreData:
                         needMoreData = True
                         break
-                    except Exception:
-                        raise
                 else:
                     yield batch
                     batch = []
@@ -1245,8 +1244,8 @@ def import_tables(options, sources, files_ignored=None):
             for reader in readers[:]:
                 try:
                     reader.join(.1)
-                except Exception:
-                    pass
+                except Exception as ex:
+                    default_logger.error(ex.message)
                 if not reader.is_alive():
                     readers.remove(reader)
 
