@@ -36,6 +36,7 @@ import traceback
 from multiprocessing.queues import SimpleQueue
 
 from rebirthdb import errors, query, utils_common
+from rebirthdb.logger import default_logger
 
 try:
     unicode
@@ -337,8 +338,8 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
                 # connection problem, re-setup the cursor
                 try:
                     cursor.close()
-                except Exception:
-                    pass
+                except errors.ReqlError as exc:
+                    default_logger.exception(exc)
 
                 cursor = options.retryQuery(
                     'backup cursor for %s.%s' %
@@ -479,8 +480,10 @@ def run(options):
         all_databases = options.retryQuery('list dbs', query.db_list().filter(query.row.ne('rebirthdb')))
         for db_table in options.db_tables:
             db, table = db_table
-            # should not be possible
-            assert db != 'rebirthdb', "Error: Cannot export tables from the system database: 'rebirthdb'"
+
+            if db == 'rebirthdb':
+                raise AssertionError('Can not export tables from the system database')
+
             if db not in all_databases:
                 raise RuntimeError("Error: Database '%s' not found" % db)
 

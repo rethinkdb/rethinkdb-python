@@ -204,8 +204,10 @@ def do_unzip(temp_dir, options):
             # write the file out
             files_found = True
             dest_path = os.path.join(temp_dir, db, file_name)
+
             if not os.path.exists(os.path.dirname(dest_path)):
                 os.makedirs(os.path.dirname(dest_path))
+
             with open(dest_path, 'wb') as dest:
                 source = archive.extractfile(tarinfo)
                 chunk = True
@@ -213,7 +215,10 @@ def do_unzip(temp_dir, options):
                     chunk = source.read(1024 * 128)
                     dest.write(chunk)
                 source.close()
-            assert os.path.isfile(os.path.join(temp_dir, db, file_name))
+
+            if not os.path.isfile(dest_path):
+                raise AssertionError('Was not able to write {destination_path}'.format(destination_path=dest_path))
+
     finally:
         if archive:
             archive.close()

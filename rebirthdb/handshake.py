@@ -300,7 +300,8 @@ class HandshakeV1_0(object):
 
     @staticmethod
     def __pbkdf2_hmac(hash_name, password, salt, iterations):
-        assert hash_name == "sha256", hash_name
+        if hash_name != 'sha256':
+            raise AssertionError('Hash name {hash_name} is not equal with "sha256"'.format(hash_name=hash_name))
 
         def from_bytes(value, hexlify=binascii.hexlify, int=int):
             return int(hexlify(value), 16)

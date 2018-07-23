@@ -153,7 +153,13 @@ def rebuild_indexes(options):
                         index['table']).index_status().pluck(
                         'index',
                         'function')))
-            assert index['name'] in existingIndexes
+
+            if index['name'] not in existingIndexes:
+                raise AssertionError('{index_name} is not part of existing indexes {indexes}'.format(
+                    index_name=index['name'],
+                    indexes=', '.join(existingIndexes)
+                ))
+
             if index['temp_name'] not in existingIndexes:
                 options.retryQuery('create temp index: %(db)s.%(table)s:%(name)s' % index, query.db(index['db']).table(
                     index['table']).index_create(index['temp_name'], existingIndexes[index['name']]))

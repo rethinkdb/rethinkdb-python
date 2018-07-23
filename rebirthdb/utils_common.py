@@ -39,10 +39,16 @@ class RetryQuery(object):
     __local = None
 
     def __init__(self, connect_options):
-        assert 'host' in connect_options
-        assert 'port' in connect_options
+        if 'host' not in connect_options:
+            raise AssertionError('Hostname is a required connection parameter')
+
+        if 'port' not in connect_options:
+            raise AssertionError('Port number is a required connection parameter')
+
         connect_options['port'] = int(connect_options['port'])
-        assert connect_options['port'] > 0
+
+        if connect_options <= 0:
+            raise AssertionError('Port number can not be less than one')
 
         self.__connectOptions = copy.deepcopy(connect_options)
 
@@ -68,17 +74,22 @@ class RetryQuery(object):
 
     def __call__(self, name, query_str, times=5, run_options=None, test_connection=True):
         # Try a query multiple times to guard against bad connections
+        if name is None:
+            raise AssertionError('Name can not be none')
 
-        assert name is not None
         name = str(name)
-        assert isinstance(query_str, ast.RqlQuery), 'query must be a ReQL query, got: %s' % query_str
-        try:
-            assert int(times) >= 1
-        except (ValueError, AssertionError):
-            raise ValueError('times must be a positive integer, got: %s' % times)
+
+        if not isinstance(query_str, ast.RqlQuery):
+            raise AssertionError('Query must be a ReQL query instead of {value}'.format(value=query_str))
+
+        if not isinstance(times, int) or times < 1:
+            raise ValueError('Times must be a positive integer instead of {value}'.format(value=times))
+
         if run_options is None:
             run_options = {}
-        assert isinstance(run_options, dict), 'run_options must be a dict, got: %s' % run_options
+
+        if not isinstance(run_options, dict):
+            raise ValueError('Run option must be a dict instead of {value}'.format(value=run_options))
 
         last_error = None
         test_connection = False
@@ -162,12 +173,10 @@ class CommonOptionsParser(optparse.OptionParser, object):
             return DbTable(res.group('db'), res.group('table'))
 
         def check_positive_int(opt_str, value):
-            try:
-                int_value = int(value)
-                assert int_value >= 1
-                return int_value
-            except (AssertionError, ValueError):
+            if not isinstance(value, int) or value < 1:
                 raise optparse.OptionValueError('%s value must be an integer greater that 1: %s' % (opt_str, value))
+
+            return int(value)
 
         def check_existing_file(opt_str, value):
             if not os.path.isfile(value):
@@ -226,12 +235,15 @@ class CommonOptionsParser(optparse.OptionParser, object):
             ALWAYS_TYPED_ACTIONS = optparse.Option.ALWAYS_TYPED_ACTIONS + ('add_key',)
 
             def take_action(self, action, dest, opt, value, values, parser):
+                if dest is None:
+                    raise AssertionError('Destination can not be none')
+
                 if action == 'add_key':
-                    assert dest is not None
-                    assert self.metavar is not None
+                    if self.metavar is None:
+                        raise AssertionError('Metavar can not be none')
+
                     values.ensure_value(dest, {})[self.metavar.lower()] = value
                 elif action == 'get_password':
-                    assert dest is not None
                     values[dest] = getpass.getpass('Password for `admin`: ')
                 else:
                     super(CommonOptionChecker, self).take_action(action, dest, opt, value, values, parser)
@@ -283,7 +295,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             help='driver port of a rebirthdb server',
             type='int',
             default=os.environ.get(
-                'RETHINKDB_DRIVER_PORT',
+                'REBIRTHDB_DRIVER_PORT',
                 net.DEFAULT_PORT))
         connection_group.add_option(
             '--host-name',
@@ -291,7 +303,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             metavar='HOST',
             help='host and driver port of a rebirthdb server',
             default=os.environ.get(
-                'RETHINKDB_HOSTNAME',
+                'REBIRTHDB_HOSTNAME',
                 'localhost'))
         connection_group.add_option(
             '-u',
@@ -300,7 +312,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             metavar='USERNAME',
             help='user name to connect as',
             default=os.environ.get(
-                'RETHINKDB_USER',
+                'REBIRTHDB_USER',
                 'admin'))
         connection_group.add_option(
             '-p',
@@ -332,13 +344,12 @@ class CommonOptionsParser(optparse.OptionParser, object):
 
         # - validate ENV variables
 
-        if 'RETHINKDB_DRIVER_PORT' in os.environ:
-            try:
-                value = int(os.environ['RETHINKDB_DRIVER_PORT'])
-                assert value > 0
-            except (ValueError, AssertionError):
-                self.error('ENV variable RETHINKDB_DRIVER_PORT is not a useable integer: %s'
-                           % os.environ['RETHINKDB_DRIVER_PORT'])
+        if 'REBIRTHDB_DRIVER_PORT' in os.environ:
+            driver_port = os.environ['REBIRTHDB_DRIVER_PORT']
+
+            if not isinstance(driver_port, int) or driver_port < 1:
+                self.error('ENV variable REBIRTHDB_DRIVER_PORT is not a useable integer: %s'
+                           % os.environ['REBIRTHDB_DRIVER_PORT'])
 
         # - parse options
 
