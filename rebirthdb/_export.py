@@ -338,8 +338,8 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
                 # connection problem, re-setup the cursor
                 try:
                     cursor.close()
-                except errors.ReqlError as e:
-                    default_logger.exception(e)
+                except errors.ReqlError as exc:
+                    default_logger.exception(exc)
 
                 cursor = options.retryQuery(
                     'backup cursor for %s.%s' %
