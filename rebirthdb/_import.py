@@ -1242,8 +1242,8 @@ def import_tables(options, sources, files_ignored=None):
             for reader in readers[:]:
                 try:
                     reader.join(.1)
-                except Exception as ex:
-                    default_logger.error(ex.message)
+                except Exception as e:
+                    default_logger.exception(e)
                 if not reader.is_alive():
                     readers.remove(reader)
 
