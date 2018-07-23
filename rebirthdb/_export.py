@@ -36,6 +36,7 @@ import traceback
 from multiprocessing.queues import SimpleQueue
 
 from rebirthdb import errors, query, utils_common
+from rebirthdb.logger import default_logger
 
 try:
     unicode
@@ -335,7 +336,11 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
 
             except (errors.ReqlTimeoutError, errors.ReqlDriverError):
                 # connection problem, re-setup the cursor
-                cursor.close()
+                try:
+                    cursor.close()
+                except errors.ReqlError as e:
+                    default_logger.exception(e)
+
                 cursor = options.retryQuery(
                     'backup cursor for %s.%s' %
                     (db, table), query.db(db).table(table).between(

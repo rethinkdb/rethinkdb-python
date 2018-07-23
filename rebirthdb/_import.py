@@ -326,7 +326,6 @@ class SourceFile(object):
             batch_size = utils_common.default_batch_size
         else:
             batch_size = int(batch_size)
-        assert batch_size > 0
 
         if batch_size <= 0:
             raise AssertionError('Batch size can not be less than one')
@@ -460,7 +459,6 @@ class JsonSourceFile(SourceFile):
 
         # add more data
         readTarget = self._buffer_size - self._buffer_end + self._buffer_pos
-        assert readTarget > 0
 
         if readTarget < 1:
             raise AssertionError('Can not set the read target and full the buffer')

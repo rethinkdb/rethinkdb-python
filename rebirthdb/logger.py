@@ -84,5 +84,16 @@ class DriverLogger(object):
 
         self.log.error(message)
 
+    def exception(self, message):
+        """
+        Log an exception with its traceback and the message if possible.
+
+        :param message: Exception message
+        :type message: str
+        :rtype: None
+        """
+
+        self.log.exception(message)
+
 
 default_logger = DriverLogger()
