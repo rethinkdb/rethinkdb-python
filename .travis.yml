@@ -16,9 +16,9 @@ jobs:
           python: "3.6"
           script: make upload-coverage
 
-        - stage: integration_test
-          if: branch = master
-          script: make test-integration
+        # - stage: integration_test
+        #  if: branch = master
+        #  script: make test-integration
 
 before_script:
     - make prepare
