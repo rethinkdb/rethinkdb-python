@@ -13,7 +13,7 @@ install:
 jobs:
     include:
         - stage: upload_coverage
-          script: make test-coverage
+          script: make upload-coverage
 
         - stage: integration_test
           if: branch = master
