@@ -47,7 +47,7 @@ help:
 test-unit:
 	pytest -m unit
 
-test-coverate:
+test-coverage:
 	pytest -m unit --cov rebirthdb --cov-report xml
 	codacy-coverage -r coverage.xml
 
