@@ -35,12 +35,24 @@ default: help
 help:
 	@echo "Usage:"
 	@echo
-	@echo "	make help	Print this help message"
-	@echo "	make test	Run unit tests"
-	@echo "	make clean	Cleanup source directory"
-	@echo "	make prepare	Prepare ${PACKAGE_NAME} for build"
-	@echo "	make package	Build ${PACKAGE_NAME} package"
-	@echo "	make publish	Publish ${PACKAGE_NAME} package on PyPi"
+	@echo "	make help				Print this help message"
+	@echo "	make test-unit			Run unit tests"
+	@echo "	make test-integration	Run integration tests"
+	@echo "	make upload-coverage	Upload unit test coverage"
+	@echo "	make clean				Cleanup source directory"
+	@echo "	make prepare			Prepare ${PACKAGE_NAME} for build"
+	@echo "	make package			Build ${PACKAGE_NAME} package"
+	@echo "	make publish			Publish ${PACKAGE_NAME} package on PyPi"
+
+test-unit:
+	pytest -m unit
+
+test-integration:
+	pytest -m integration
+
+upload-coverage:
+	pytest -m unit --cov rebirthdb --cov-report xml
+	python-codacy-coverage -r coverage.xml
 
 clean:
 	@rm -rf \

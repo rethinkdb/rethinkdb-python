@@ -1,10 +1,27 @@
 sudo: false
 language: python
+
 python:
     - "2.7"
     - "3.4"
     - "3.5"
     - "3.6"
 
-before_script: make prepare
-script: tox
+install:
+    - pip install -r requirements.txt
+
+jobs:
+    include:
+        - stage: upload_coverage
+          python: "3.6"
+          script: make upload-coverage
+
+        # - stage: integration_test
+        #  if: branch = master
+        #  script: make test-integration
+
+before_script:
+    - make prepare
+    
+script:
+    - make test-unit

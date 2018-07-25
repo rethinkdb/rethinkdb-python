@@ -1,9 +1,11 @@
 import logging
 
+import pytest
 from mock import patch
 from rebirthdb.logger import DriverLogger
 
 
+@pytest.mark.unit
 class TestDriverLogger(object):
     driver_logger = DriverLogger(logging.DEBUG)
     logger = logging.getLogger()
