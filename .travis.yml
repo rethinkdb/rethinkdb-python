@@ -24,6 +24,3 @@ before_script:
     
 script:
     - make test-unit
-    
-after_success:
-    - make upload-coverage
