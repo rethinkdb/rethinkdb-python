@@ -13,6 +13,7 @@ install:
 jobs:
     include:
         - stage: upload_coverage
+          python: "3.6"
           script: make upload-coverage
 
         - stage: integration_test
