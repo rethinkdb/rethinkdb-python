@@ -45,12 +45,13 @@ help:
 	@echo "	make publish			Publish ${PACKAGE_NAME} package on PyPi"
 
 test-unit:
-	pytest -m unit --cov rebirthdb --cov-report xml
+	pytest -m unit
 
 test-integration:
 	pytest -m integration
 
 upload-coverage:
+	pytest -m unit --cov rebirthdb --cov-report xml
 	python-codacy-coverage -r coverage.xml
 
 clean:
