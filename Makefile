@@ -51,7 +51,7 @@ test-integration:
 	pytest -m integration
 
 upload-coverage:
-	codacy-coverage -r coverage.xml
+	python-codacy-coverage -r coverage.xml
 
 clean:
 	@rm -rf \
