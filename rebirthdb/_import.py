@@ -50,9 +50,9 @@ except ImportError:
 
 
 # json parameters
-json_read_chunk_size = 128 * 1024
-json_max_buffer_size = 128 * 1024 * 1024
-max_nesting_depth = 100
+JSON_READ_CHUNK_SIZE = 128 * 1024
+JSON_MAX_BUFFER_SIZE = 128 * 1024 * 1024
+MAX_NESTING_DEPTH = 100
 
 Error = collections.namedtuple("Error", ["message", "traceback", "file"])
 
@@ -128,8 +128,9 @@ class SourceFile(object):
         else:
             try:
                 self._source = codecs.open(source, mode="r", encoding="utf-8")
-            except IOError as e:
-                raise ValueError('Unable to open source file "%s": %s' % (str(source), str(e)))
+            except IOError as exc:
+                default_logger.exception(str(exc))
+                raise ValueError('Unable to open source file "%s": %s' % (str(source), str(exc)))
 
         if hasattr(self._source, 'name') and self._source.name and os.path.isfile(self._source.name):
             self._bytes_size.value = os.path.getsize(source)
@@ -203,7 +204,7 @@ class SourceFile(object):
 
     # - percent done
     @property
-    def percentDone(self):
+    def percent_done(self):
         '''return a float between 0 and 1 for a reasonable guess of percentage complete'''
         # assume that reading takes 50% of the time and writing the other 50%
         completed = 0.0  # of 2.0
@@ -222,18 +223,18 @@ class SourceFile(object):
 
         # - add written percentage
         if self._rows_read.value or self._rows_written.value:
-            totalRows = float(self._total_rows.value)
-            if totalRows == 0:
+            total_rows = float(self._total_rows.value)
+            if total_rows == 0:
                 completed += 1.0
-            elif totalRows < 0:
+            elif total_rows < 0:
                 # a guesstimate
-                perRowSize = float(self._bytes_read.value) / float(self._rows_read.value)
-                totalRows = float(self._rows_read.value) + \
-                    (float(self._bytes_size.value - self._bytes_read.value) / perRowSize)
-                completed += float(self._rows_written.value) / totalRows
+                per_row_size = float(self._bytes_read.value) / float(self._rows_read.value)
+                total_rows = float(self._rows_read.value) + \
+                    (float(self._bytes_size.value - self._bytes_read.value) / per_row_size)
+                completed += float(self._rows_written.value) / total_rows
             else:
                 # accurate count
-                completed += float(self._rows_written.value) / totalRows
+                completed += float(self._rows_written.value) / total_rows
 
         # - return the value
         return completed * 0.5
@@ -296,8 +297,8 @@ class SourceFile(object):
                     query.db(self.db).table(self.table).index_wait(query.args(created_indexes))
                 )
             except RuntimeError:
-                ex_type, ex_class, tb = sys.exc_info()
-                warning_queue.put((ex_type, ex_class, traceback.extract_tb(tb), self._source.name))
+                exception_type, exception_class, trcback = sys.exc_info()
+                warning_queue.put((exception_type, exception_class, traceback.extract_tb(trcback), self._source.name))
 
         self.query_runner(
             "Write hook from: %s.%s" %
@@ -315,8 +316,8 @@ class SourceFile(object):
                     query.db(self.db).table(self.table).set_write_hook(self.write_hook["function"])
                 )
         except RuntimeError:
-            ex_type, ex_class, tb = sys.exec_info()
-            warning_queue.put((ex_type, ex_class, traceback.extract_tb(tb), self._source.name))
+            exception_type, exception_class, trcback = sys.exc_info()
+            warning_queue.put((exception_type, exception_class, traceback.extract_tb(trcback), self._source.name))
 
     def batches(self, batch_size=None, warning_queue=None):
 
@@ -339,11 +340,11 @@ class SourceFile(object):
 
         batch = []
         try:
-            needMoreData = False
+            need_more_data = False
             while True:
-                if needMoreData:
+                if need_more_data:
                     self.fill_buffer()
-                    needMoreData = False
+                    need_more_data = False
 
                 while len(batch) < batch_size:
                     try:
@@ -351,7 +352,7 @@ class SourceFile(object):
                         # ToDo: validate the line
                         batch.append(row)
                     except NeedMoreData:
-                        needMoreData = True
+                        need_more_data = True
                         break
                 else:
                     yield batch
@@ -421,8 +422,9 @@ class SourceFile(object):
                 timePoint = time.time()
 
         # - report relevant errors
-        except Exception as e:
-            error_queue.put(Error(str(e), traceback.format_exc(), self.name))
+        except Exception as exc:
+            default_logger.exception(str(exc))
+            error_queue.put(Error(str(exc), traceback.format_exc(), self.name))
             exit_event.set()
             raise
         finally:
@@ -440,7 +442,7 @@ class JsonSourceFile(SourceFile):
     json_array = None
     found_first = False
 
-    _buffer_size = json_read_chunk_size
+    _buffer_size = JSON_READ_CHUNK_SIZE
     _buffer_str = None
     _buffer_pos = None
     _buffer_end = None
@@ -452,26 +454,26 @@ class JsonSourceFile(SourceFile):
             self._buffer_end = 0
         elif self._buffer_pos == 0:
             # double the buffer under the assumption that the documents are too large to fit
-            if self._buffer_size == json_max_buffer_size:
+            if self._buffer_size == JSON_MAX_BUFFER_SIZE:
                 raise Exception(
                     "Error: JSON max buffer size exceeded on file %s (from position %d). Use '--max-document-size' to "
                     "extend your buffer." %
                     (self.name, self.bytes_processed))
-            self._buffer_size = min(self._buffer_size * 2, json_max_buffer_size)
+            self._buffer_size = min(self._buffer_size * 2, JSON_MAX_BUFFER_SIZE)
 
         # add more data
-        readTarget = self._buffer_size - self._buffer_end + self._buffer_pos
+        read_target = self._buffer_size - self._buffer_end + self._buffer_pos
 
-        if readTarget < 1:
+        if read_target < 1:
             raise AssertionError('Can not set the read target and full the buffer')
 
-        newChunk = self._source.read(readTarget)
+        new_chunk = self._source.read(read_target)
 
-        if len(newChunk) == 0:
+        if len(new_chunk) == 0:
             raise StopIteration()  # file ended
 
-        self._buffer_str = self._buffer_str[self._buffer_pos:] + newChunk
-        self._bytes_read.value += len(newChunk)
+        self._buffer_str = self._buffer_str[self._buffer_pos:] + new_chunk
+        self._bytes_read.value += len(new_chunk)
 
         # reset markers
         self._buffer_pos = 0
@@ -526,29 +528,29 @@ class JsonSourceFile(SourceFile):
         except IndexError:
             raise ValueError("Error: JSON file was empty of content")
 
-        def teardown(self):
+    def teardown(self):
 
-            # - check the end of the file
-            # note: fill_buffer should have guaranteed that we have only the data in the end
+        # - check the end of the file
+        # note: fill_buffer should have guaranteed that we have only the data in the end
 
-            # advance through any leading whitespace
-            self._buffer_pos = json.decoder.WHITESPACE.match(self._buffer_str, self._buffer_pos).end()
+        # advance through any leading whitespace
+        self._buffer_pos = json.decoder.WHITESPACE.match(self._buffer_str, self._buffer_pos).end()
 
-            # check the end of the array if we have it
-            if self.json_array:
-                if self._buffer_str[self._buffer_pos] != "]":
-                    snippit = self._buffer_str[self._buffer_pos:]
-                    extra = '' if len(snippit) <= 100 else ' and %d more characters' % (len(snippit) - 100)
-                    raise ValueError("Error: JSON array did not end cleanly, rather with: <<%s>>%s" %
-                                     (snippit[:100], extra))
-                self._buffer_pos += 1
-
-            # advance through any trailing whitespace
-            self._buffer_pos = json.decoder.WHITESPACE.match(self._buffer_str, self._buffer_pos).end()
-            snippit = self._buffer_str[self._buffer_pos:]
-            if len(snippit) > 0:
+        # check the end of the array if we have it
+        if self.json_array:
+            if self._buffer_str[self._buffer_pos] != "]":
+                snippit = self._buffer_str[self._buffer_pos:]
                 extra = '' if len(snippit) <= 100 else ' and %d more characters' % (len(snippit) - 100)
-                raise ValueError("Error: extra data after JSON data: <<%s>>%s" % (snippit[:100], extra))
+                raise ValueError("Error: JSON array did not end cleanly, rather with: <<%s>>%s" %
+                                 (snippit[:100], extra))
+            self._buffer_pos += 1
+
+        # advance through any trailing whitespace
+        self._buffer_pos = json.decoder.WHITESPACE.match(self._buffer_str, self._buffer_pos).end()
+        snippit = self._buffer_str[self._buffer_pos:]
+        if len(snippit) > 0:
+            extra = '' if len(snippit) <= 100 else ' and %d more characters' % (len(snippit) - 100)
+            raise ValueError("Error: extra data after JSON data: <<%s>>%s" % (snippit[:100], extra))
 
 
 class CsvSourceFile(SourceFile):
@@ -598,14 +600,14 @@ class CsvSourceFile(SourceFile):
             raise ValueError("Error: No field name information available")
 
     def get_line(self):
-        rowRaw = next(self._reader)
-        if len(self._columns) != len(rowRaw):
+        raw_row = next(self._reader)
+        if len(self._columns) != len(raw_row):
             raise Exception(
                 "Error: '%s' line %d has an inconsistent number of columns: %s" %
-                (self.name, self._reader.line_num, str(rowRaw)))
+                (self.name, self._reader.line_num, str(raw_row)))
 
         row = {}
-        for key, value in zip(self._columns, rowRaw):  # note: we import all csv fields as strings
+        for key, value in zip(self._columns, raw_row):  # note: we import all csv fields as strings
             # treat empty fields as no entry rather than empty string
             if value == '':
                 continue
@@ -623,6 +625,7 @@ usage = """rebirthdb import -d DIR [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--
       [--force] [--clients NUM] [--format (csv | json)] [--pkey PRIMARY_KEY]
       [--shards NUM_SHARDS] [--replicas NUM_REPLICAS]
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"""
+
 help_epilog = '''
 EXAMPLES:
 
@@ -667,33 +670,33 @@ def parse_options(argv, prog=None):
         type="pos_int")
 
     # Replication settings
-    replicationOptionsGroup = optparse.OptionGroup(parser, "Replication Options")
-    replicationOptionsGroup.add_option(
+    replication_options_group = optparse.OptionGroup(parser, "Replication Options")
+    replication_options_group.add_option(
         "--shards",
         dest="create_args",
         metavar="SHARDS",
         help="shards to setup on created tables (default: 1)",
         type="pos_int",
         action="add_key")
-    replicationOptionsGroup.add_option(
+    replication_options_group.add_option(
         "--replicas",
         dest="create_args",
         metavar="REPLICAS",
         help="replicas to setup on created tables (default: 1)",
         type="pos_int",
         action="add_key")
-    parser.add_option_group(replicationOptionsGroup)
+    parser.add_option_group(replication_options_group)
 
     # Directory import options
-    dirImportGroup = optparse.OptionGroup(parser, "Directory Import Options")
-    dirImportGroup.add_option(
+    dir_import_group = optparse.OptionGroup(parser, "Directory Import Options")
+    dir_import_group.add_option(
         "-d",
         "--directory",
         dest="directory",
         metavar="DIRECTORY",
         default=None,
         help="directory to import data from")
-    dirImportGroup.add_option(
+    dir_import_group.add_option(
         "-i",
         "--import",
         dest="db_tables",
@@ -702,17 +705,17 @@ def parse_options(argv, prog=None):
         help="restore only the given database or table (may be specified multiple times)",
         action="append",
         type="db_table")
-    dirImportGroup.add_option(
+    dir_import_group.add_option(
         "--no-secondary-indexes",
         dest="indexes",
         action="store_false",
         default=None,
         help="do not create secondary indexes")
-    parser.add_option_group(dirImportGroup)
+    parser.add_option_group(dir_import_group)
 
     # File import options
-    fileImportGroup = optparse.OptionGroup(parser, "File Import Options")
-    fileImportGroup.add_option(
+    file_import_group = optparse.OptionGroup(parser, "File Import Options")
+    file_import_group.add_option(
         "-f",
         "--file",
         dest="file",
@@ -720,11 +723,11 @@ def parse_options(argv, prog=None):
         default=None,
         help="file to import data from",
         type="file")
-    fileImportGroup.add_option("--table", dest="import_table", metavar="DB.TABLE",
+    file_import_group.add_option("--table", dest="import_table", metavar="DB.TABLE",
                                default=None, help="table to import the data into")
-    fileImportGroup.add_option("--fields", dest="fields", metavar="FIELD,...", default=None,
+    file_import_group.add_option("--fields", dest="fields", metavar="FIELD,...", default=None,
                                help="limit which fields to use when importing one table")
-    fileImportGroup.add_option(
+    file_import_group.add_option(
         "--format",
         dest="format",
         metavar="json|csv",
@@ -734,50 +737,50 @@ def parse_options(argv, prog=None):
         choices=[
             "json",
             "csv"])
-    fileImportGroup.add_option(
+    file_import_group.add_option(
         "--pkey",
         dest="create_args",
         metavar="PRIMARY_KEY",
         default=None,
         help="field to use as the primary key in the table",
         action="add_key")
-    parser.add_option_group(fileImportGroup)
+    parser.add_option_group(file_import_group)
 
     # CSV import options
-    csvImportGroup = optparse.OptionGroup(parser, "CSV Options")
-    csvImportGroup.add_option(
+    csv_import_group = optparse.OptionGroup(parser, "CSV Options")
+    csv_import_group.add_option(
         "--delimiter",
         dest="delimiter",
         metavar="CHARACTER",
         default=None,
         help="character separating fields, or '\\t' for tab")
-    csvImportGroup.add_option("--no-header", dest="no_header", action="store_true",
+    csv_import_group.add_option("--no-header", dest="no_header", action="store_true",
                               default=None, help="do not read in a header of field names")
-    csvImportGroup.add_option(
+    csv_import_group.add_option(
         "--custom-header",
         dest="custom_header",
         metavar="FIELD,...",
         default=None,
         help="header to use (overriding file header), must be specified if --no-header")
-    parser.add_option_group(csvImportGroup)
+    parser.add_option_group(csv_import_group)
 
     # JSON import options
-    jsonOptionsGroup = optparse.OptionGroup(parser, "JSON Options")
-    jsonOptionsGroup.add_option(
+    json_options_group = optparse.OptionGroup(parser, "JSON Options")
+    json_options_group.add_option(
         "--max-document-size",
         dest="max_document_size",
         metavar="MAX_SIZE",
         default=0,
         help="maximum allowed size (bytes) for a single JSON document (default: 128MiB)",
         type="pos_int")
-    jsonOptionsGroup.add_option(
+    json_options_group.add_option(
         "--max-nesting-depth",
         dest="max_nesting_depth",
         metavar="MAX_DEPTH",
         default=0,
         help="maximum depth of the JSON documents (default: 100)",
         type="pos_int")
-    parser.add_option_group(jsonOptionsGroup)
+    parser.add_option_group(json_options_group)
 
     options, args = parser.parse_args(argv)
 
@@ -893,8 +896,8 @@ def parse_options(argv, prog=None):
             options.format = "json"
 
             if options.max_document_size > 0:
-                global json_max_buffer_size
-                json_max_buffer_size = options.max_document_size
+                global JSON_MAX_BUFFER_SIZE
+                JSON_MAX_BUFFER_SIZE = options.max_document_size
 
             options.file = os.path.abspath(options.file)
 
@@ -908,8 +911,8 @@ def parse_options(argv, prog=None):
 
     # max_nesting_depth
     if options.max_nesting_depth > 0:
-        global max_nesting_depth
-        max_nesting_depth = options.max_nesting_depth
+        global MAX_NESTING_DEPTH
+        MAX_NESTING_DEPTH = options.max_nesting_depth
 
     # --
 
@@ -951,7 +954,7 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                     tbl.insert(
                         ast.expr(
                             batch,
-                            nesting_depth=max_nesting_depth),
+                            nesting_depth=MAX_NESTING_DEPTH),
                         durability=options.durability,
                         conflict=conflict_action,
                         ignore_write_hook=True))
@@ -985,7 +988,7 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                             tbl.insert(
                                 ast.expr(
                                     row,
-                                    nesting_depth=max_nesting_depth),
+                                    nesting_depth=MAX_NESTING_DEPTH),
                                 durability=options.durability,
                                 conflict=conflict_action,
                                 ignore_write_hook=True))
@@ -1002,7 +1005,7 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                                 tbl.insert(
                                     ast.expr(
                                         row,
-                                        nesting_depth=max_nesting_depth),
+                                        nesting_depth=MAX_NESTING_DEPTH),
                                     durability=options.durability,
                                     conflict=conflict_action,
                                     ignore_write_hook=True))
@@ -1050,7 +1053,7 @@ def update_progress(tables, debug, exit_event, sleep=0.2):
             complete = read = write = 0
             currentTime = time.time()
             for table in tables:
-                complete += table.percentDone * table.weight
+                complete += table.percent_done * table.weight
                 if debug:
                     read += table.rows_read
                     write += table.rows_written
