@@ -1093,17 +1093,17 @@ def import_tables(options, sources, files_ignored=None):
 
     errors = []
     warnings = []
-    timingSums = {}
+    timing_sums = {}
 
     pools = []
-    progressBar = None
-    progressBarSleep = 0.2
+    progress_bar = None
+    progress_bar_sleep = 0.2
 
     # - setup KeyboardInterupt handler
     signal.signal(signal.SIGINT, lambda a, b: utils_common.abort(pools, exit_event))
 
     # - queue draining
-    def drainQueues():
+    def drain_queues():
         # error_queue
         while not error_queue.empty():
             errors.append(error_queue.get())
@@ -1115,10 +1115,10 @@ def import_tables(options, sources, files_ignored=None):
         # timing_queue
         while not timing_queue.empty():
             key, value = timing_queue.get()
-            if key not in timingSums:
-                timingSums[key] = value
+            if key not in timing_sums:
+                timing_sums[key] = value
             else:
-                timingSums[key] += value
+                timing_sums[key] += value
 
     # - setup dbs and tables
 
@@ -1166,13 +1166,13 @@ def import_tables(options, sources, files_ignored=None):
     try:
         # - start the progress bar
         if not options.quiet:
-            progressBar = multiprocessing.Process(
+            progress_bar = multiprocessing.Process(
                 target=update_progress,
                 name="progress bar",
-                args=(sources, options.debug, exit_event, progressBarSleep)
+                args=(sources, options.debug, exit_event, progress_bar_sleep)
             )
-            progressBar.start()
-            pools.append([progressBar])
+            progress_bar.start()
+            pools.append([progress_bar])
 
         # - start the writers
         writers = []
@@ -1196,12 +1196,12 @@ def import_tables(options, sources, files_ignored=None):
         # - read the tables options.clients at a time
         readers = []
         pools.append(readers)
-        fileIter = iter(sources)
+        file_iter = iter(sources)
         try:
             while not exit_event.is_set():
                 # add a workers to fill up the readers pool
                 while len(readers) < options.clients:
-                    table = next(fileIter)
+                    table = next(file_iter)
                     reader = multiprocessing.Process(
                         target=table.read_to_queue,
                         name="table reader %s.%s" %
@@ -1219,7 +1219,7 @@ def import_tables(options, sources, files_ignored=None):
                     reader.start()
 
                 # drain the queues
-                drainQueues()
+                drain_queues()
 
                 # reap completed tasks
                 for reader in readers[:]:
@@ -1233,7 +1233,7 @@ def import_tables(options, sources, files_ignored=None):
         # - wait for the last batch of readers to complete
         while readers:
             # drain the queues
-            drainQueues()
+            drain_queues()
 
             # drain the work queue to prevent readers from stalling on exit
             if exit_event.is_set():
@@ -1270,15 +1270,15 @@ def import_tables(options, sources, files_ignored=None):
             writers.remove(writer)
 
         # - stop the progress bar
-        if progressBar:
-            progressBar.join(progressBarSleep * 2)
+        if progress_bar:
+            progress_bar.join(progress_bar_sleep * 2)
             if not interrupt_event.is_set():
                 utils_common.print_progress(1, indent=2)
-            if progressBar.is_alive():
-                progressBar.terminate()
+            if progress_bar.is_alive():
+                progress_bar.terminate()
 
         # - drain queues
-        drainQueues()
+        drain_queues()
 
         # - final reporting
         if not options.quiet:
@@ -1297,12 +1297,12 @@ def import_tables(options, sources, files_ignored=None):
             # report debug statistics
             if options.debug:
                 print('Debug timing:')
-                for key, value in sorted(timingSums.items(), key=lambda x: x[0]):
+                for key, value in sorted(timing_sums.items(), key=lambda x: x[0]):
                     print('  %s: %.2f' % (key, value))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    drainQueues()
+    drain_queues()
 
     for error in errors:
         print("%s" % error.message, file=sys.stderr)
@@ -1328,7 +1328,7 @@ def import_tables(options, sources, files_ignored=None):
 
 def parse_sources(options, files_ignored=None):
 
-    def parseInfoFile(path):
+    def parse_info_file(path):
         primary_key = None
         indexes = []
         with open(path, 'r') as info_file:
@@ -1349,12 +1349,12 @@ def parse_sources(options, files_ignored=None):
     elif options.file:
         db, table = options.import_table
         path, ext = os.path.splitext(options.file)
-        tableTypeOptions = None
+        table_type_options = None
         if ext == ".json":
-            tableType = JsonSourceFile
+            table_type = JsonSourceFile
         elif ext == ".csv":
-            tableType = CsvSourceFile
-            tableTypeOptions = {
+            table_type = CsvSourceFile
+            table_type_options = {
                 'no_header_row': options.no_header,
                 'custom_header': options.custom_header
             }
@@ -1365,25 +1365,25 @@ def parse_sources(options, files_ignored=None):
         primary_key = options.create_args.get('primary_key', None) if options.create_args else None
         indexes = []
         write_hook = None
-        infoPath = path + ".info"
-        if (primary_key is None or options.indexes is not False) and os.path.isfile(infoPath):
-            infoPrimaryKey, infoIndexes, infoWriteHook = parseInfoFile(infoPath)
+        info_path = path + ".info"
+        if (primary_key is None or options.indexes is not False) and os.path.isfile(info_path):
+            info_primary_key, info_indexes, info_write_hook = parse_info_file(info_path)
             if primary_key is None:
-                primary_key = infoPrimaryKey
+                primary_key = info_primary_key
             if options.indexes is not False:
-                indexes = infoIndexes
+                indexes = info_indexes
             if write_hook is None:
-                write_hook = infoWriteHook
+                write_hook = info_write_hook
 
         sources.add(
-            tableType(
+            table_type(
                 source=options.file,
                 db=db, table=table,
                 query_runner=options.retryQuery,
                 primary_key=primary_key,
                 indexes=indexes,
                 write_hook=write_hook,
-                source_options=tableTypeOptions
+                source_options=table_type_options
             )
         )
     elif options.directory:
@@ -1399,9 +1399,9 @@ def parse_sources(options, files_ignored=None):
                 # don't recurse into folders not matching our filter
                 db_filter = set([db_table[0] for db_table in options.db_tables or []])
                 if db_filter:
-                    for dirName in dirs[:]:  # iterate on a copy
-                        if dirName not in db_filter:
-                            dirs.remove(dirName)
+                    for dir_name in dirs[:]:  # iterate on a copy
+                        if dir_name not in db_filter:
+                            dirs.remove(dir_name)
             else:
                 if dirs:
                     files_ignored.extend([os.path.join(root, d) for d in dirs])
@@ -1433,20 +1433,20 @@ def parse_sources(options, files_ignored=None):
                         primary_key = None
                         indexes = []
                         write_hook = None
-                        infoPath = os.path.join(root, table + ".info")
-                        if not os.path.isfile(infoPath):
+                        info_path = os.path.join(root, table + ".info")
+                        if not os.path.isfile(info_path):
                             files_ignored.append(os.path.join(root, filename))
                         else:
-                            primary_key, indexes, write_hook = parseInfoFile(infoPath)
+                            primary_key, indexes, write_hook = parse_info_file(info_path)
 
-                        tableType = None
+                        table_type = None
                         if ext == ".json":
-                            tableType = JsonSourceFile
+                            table_type = JsonSourceFile
                         elif ext == ".csv":
-                            tableType = CsvSourceFile
+                            table_type = CsvSourceFile
                         else:
                             raise Exception("The table type is not recognised: %s" % ext)
-                        source = tableType(
+                        source = table_type(
                             source=path,
                             query_runner=options.retryQuery,
                             db=db, table=table,
@@ -1468,8 +1468,8 @@ def parse_sources(options, files_ignored=None):
             print("Unexpected files found in the specified directory.  Importing a directory expects", file=sys.stderr)
             print(" a directory from `rebirthdb export`.  If you want to import individual tables", file=sys.stderr)
             print(" import them as single files.  The following files were ignored:", file=sys.stderr)
-            for f in files_ignored:
-                print("%s" % str(f), file=sys.stderr)
+            for ignored_file in files_ignored:
+                print("%s" % str(ignored_file), file=sys.stderr)
     else:
         raise RuntimeError("Error: Neither --directory or --file specified")
 
