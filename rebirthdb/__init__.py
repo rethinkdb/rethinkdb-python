@@ -21,7 +21,7 @@ except ImportError:
     import builtins  # Python 3
 
 
-__all__ = ['r', 'rebirthdb'] + errors.__all__
+__all__ = ['RebirthDB'] + errors.__all__
 __version__ = version.VERSION
 
 
