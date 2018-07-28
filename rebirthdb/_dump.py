@@ -113,7 +113,7 @@ def parse_options(argv, prog=None):
     else:
         options.out_file = os.path.realpath(options.out_file)
 
-    if not (options.out_file is not sys.stdout):
+    if options.out_file is not sys.stdout:
         if os.path.exists(options.out_file) and not options.overwrite:
             parser.error("Output file already exists: %s" % options.out_file)
         if os.path.exists(options.out_file) and not os.path.isfile(options.out_file):
