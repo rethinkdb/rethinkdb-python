@@ -104,7 +104,9 @@ class SourceFile(object):
 
 
         # query_runner
-        assert isinstance(query_runner, utils_common.RetryQuery)
+        if not isinstance(query_runner, utils_common.RetryQuery):
+            raise AssertionError('Query runner is not instance of RetryQuery')
+
         self.query_runner = query_runner
 
         # reporting information
