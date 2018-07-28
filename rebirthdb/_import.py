@@ -1290,7 +1290,9 @@ def import_tables(options, sources, files_ignored=None):
             print('')
 
             # report statistics
-            def plural(num, text): return "%d %s%s" % (num, text, "" if num == 1 else "s")
+            def plural(num, text):
+                return "%d %s%s" % (num, text, "" if num == 1 else "s")
+
             print("  %s imported to %s in %.2f secs" % (plural(sum(x.rows_written for x in sources), "row"),
                                                         plural(len(sources), "table"), time.time() - start_time))
 
