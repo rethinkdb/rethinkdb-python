@@ -25,9 +25,6 @@ __all__ = ['RebirthDB'] + errors.__all__
 __version__ = version.VERSION
 
 
-# The builtins here defends against re-importing something obscuring `object`.
-
-
 class RebirthDB(builtins.object):
     def __init__(self):
         super(RebirthDB, self).__init__()
