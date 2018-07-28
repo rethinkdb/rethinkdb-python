@@ -187,10 +187,10 @@ def main(argv=None, prog=None):
                     archive = tarfile.open(name=options.out_file, mode="w:gz")
                 for curr, _, files in os.walk(os.path.realpath(options.directory)):
                     for data_file in files:
-                        fullPath = os.path.join(options.directory, curr, data_file)
-                        archivePath = os.path.join(options.dump_name, os.path.relpath(fullPath, options.directory))
-                        archive.add(fullPath, arcname=archivePath)
-                        os.unlink(fullPath)
+                        full_path = os.path.join(options.directory, curr, data_file)
+                        archive_path = os.path.join(options.dump_name, os.path.relpath(full_path, options.directory))
+                        archive.add(full_path, arcname=archive_path)
+                        os.unlink(full_path)
             finally:
                 if archive:
                     archive.close()
