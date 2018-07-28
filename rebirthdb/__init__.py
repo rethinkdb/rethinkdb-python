@@ -22,7 +22,7 @@ except ImportError:
 
 
 __all__ = ['r', 'rebirthdb'] + errors.__all__
-__version__ = version.version
+__version__ = version.VERSION
 
 
 # The builtins here defends against re-importing something obscuring `object`.

@@ -27,18 +27,18 @@ class CertificateError(ValueError):
     pass
 
 
-def _dnsname_match(dn, hostname, max_wildcards=1):
+def _dnsname_match(domain_name, hostname, max_wildcards=1):
     """Matching according to RFC 6125, section 6.4.3
 
     http://tools.ietf.org/html/rfc6125#section-6.4.3
     """
     pats = []
-    if not dn:
+    if not domain_name:
         return False
 
     # Ported from python3-syntax:
-    # leftmost, *remainder = dn.split(r'.')
-    parts = dn.split(r'.')
+    # leftmost, *remainder = domain_name.split(r'.')
+    parts = domain_name.split(r'.')
     leftmost = parts[0]
     remainder = parts[1:]
 
@@ -49,11 +49,11 @@ def _dnsname_match(dn, hostname, max_wildcards=1):
         # policy among SSL implementations showed it to be a
         # reasonable choice.
         raise CertificateError(
-            "too many wildcards in certificate DNS name: " + repr(dn))
+            "too many wildcards in certificate DNS name: " + repr(domain_name))
 
     # speed up common case w/o wildcards
     if not wildcards:
-        return dn.lower() == hostname.lower()
+        return domain_name.lower() == hostname.lower()
 
     # RFC 6125, section 6.4.3, subitem 1.
     # The client SHOULD NOT attempt to match a presented identifier in which

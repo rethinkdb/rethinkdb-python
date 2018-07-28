@@ -27,13 +27,13 @@ try:
 except ImportError:
     conditional_packages = []
 
-from rebirthdb.version import version
+from rebirthdb.version import VERSION
 
 
 setuptools.setup(
     name='rebirthdb',
     zip_safe=True,
-    version=version,
+    version=VERSION,
     description='Python driver library for the RethinkDB database server.',
     long_description=__doc__,
     url='https://github.com/RebirthDB/rebirthdb-python',

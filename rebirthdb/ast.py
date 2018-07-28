@@ -28,7 +28,7 @@ import threading
 from rebirthdb import ql2_pb2
 from rebirthdb.errors import QueryPrinter, ReqlDriverCompileError, ReqlDriverError, T
 
-p_term = ql2_pb2.Term.TermType
+P_TERM = ql2_pb2.Term.TermType
 
 try:
     unicode
@@ -851,14 +851,14 @@ class Datum(RqlQuery):
 
 
 class MakeArray(RqlQuery):
-    term_type = p_term.MAKE_ARRAY
+    term_type = P_TERM.MAKE_ARRAY
 
     def compose(self, args, optargs):
         return T('[', T(*args, intsp=', '), ']')
 
 
 class MakeObj(RqlQuery):
-    term_type = p_term.MAKE_OBJ
+    term_type = P_TERM.MAKE_OBJ
 
     # We cannot inherit from RqlQuery because of potential conflicts with
     # the `self` parameter. This is not a problem for other RqlQuery sub-
@@ -881,44 +881,44 @@ class MakeObj(RqlQuery):
 
 
 class Var(RqlQuery):
-    term_type = p_term.VAR
+    term_type = P_TERM.VAR
 
     def compose(self, args, optargs):
         return 'var_' + args[0]
 
 
 class JavaScript(RqlTopLevelQuery):
-    term_type = p_term.JAVASCRIPT
+    term_type = P_TERM.JAVASCRIPT
     statement = "js"
 
 
 class Http(RqlTopLevelQuery):
-    term_type = p_term.HTTP
+    term_type = P_TERM.HTTP
     statement = "http"
 
 
 class UserError(RqlTopLevelQuery):
-    term_type = p_term.ERROR
+    term_type = P_TERM.ERROR
     statement = "error"
 
 
 class Random(RqlTopLevelQuery):
-    term_type = p_term.RANDOM
+    term_type = P_TERM.RANDOM
     statement = "random"
 
 
 class Changes(RqlMethodQuery):
-    term_type = p_term.CHANGES
+    term_type = P_TERM.CHANGES
     statement = "changes"
 
 
 class Default(RqlMethodQuery):
-    term_type = p_term.DEFAULT
+    term_type = P_TERM.DEFAULT
     statement = "default"
 
 
 class ImplicitVar(RqlQuery):
-    term_type = p_term.IMPLICIT_VAR
+    term_type = P_TERM.IMPLICIT_VAR
 
     def __call__(self, *args, **kwargs):
         raise TypeError("'r.row' is not callable, use 'r.row[...]' instead")
@@ -928,37 +928,37 @@ class ImplicitVar(RqlQuery):
 
 
 class Eq(RqlBiCompareOperQuery):
-    term_type = p_term.EQ
+    term_type = P_TERM.EQ
     statement = "=="
 
 
 class Ne(RqlBiCompareOperQuery):
-    term_type = p_term.NE
+    term_type = P_TERM.NE
     statement = "!="
 
 
 class Lt(RqlBiCompareOperQuery):
-    term_type = p_term.LT
+    term_type = P_TERM.LT
     statement = "<"
 
 
 class Le(RqlBiCompareOperQuery):
-    term_type = p_term.LE
+    term_type = P_TERM.LE
     statement = "<="
 
 
 class Gt(RqlBiCompareOperQuery):
-    term_type = p_term.GT
+    term_type = P_TERM.GT
     statement = ">"
 
 
 class Ge(RqlBiCompareOperQuery):
-    term_type = p_term.GE
+    term_type = P_TERM.GE
     statement = ">="
 
 
 class Not(RqlQuery):
-    term_type = p_term.NOT
+    term_type = P_TERM.NOT
 
     def compose(self, args, optargs):
         if isinstance(self._args[0], Datum):
@@ -967,112 +967,112 @@ class Not(RqlQuery):
 
 
 class Add(RqlBiOperQuery):
-    term_type = p_term.ADD
+    term_type = P_TERM.ADD
     statement = "+"
 
 
 class Sub(RqlBiOperQuery):
-    term_type = p_term.SUB
+    term_type = P_TERM.SUB
     statement = "-"
 
 
 class Mul(RqlBiOperQuery):
-    term_type = p_term.MUL
+    term_type = P_TERM.MUL
     statement = "*"
 
 
 class Div(RqlBiOperQuery):
-    term_type = p_term.DIV
+    term_type = P_TERM.DIV
     statement = "/"
 
 
 class Mod(RqlBiOperQuery):
-    term_type = p_term.MOD
+    term_type = P_TERM.MOD
     statement = "%"
 
 
 class BitAnd(RqlBiOperQuery):
-    term_type = p_term.BIT_AND
+    term_type = P_TERM.BIT_AND
     statement = "bit_and"
 
 
 class BitOr(RqlBiOperQuery):
-    term_type = p_term.BIT_OR
+    term_type = P_TERM.BIT_OR
     statement = "bit_or"
 
 
 class BitXor(RqlBiOperQuery):
-    term_type = p_term.BIT_XOR
+    term_type = P_TERM.BIT_XOR
     statement = "bit_xor"
 
 
 class BitNot(RqlMethodQuery):
-    term_type = p_term.BIT_NOT
+    term_type = P_TERM.BIT_NOT
     statement = "bit_not"
 
 
 class BitSal(RqlBiOperQuery):
-    term_type = p_term.BIT_SAL
+    term_type = P_TERM.BIT_SAL
     statement = "bit_sal"
 
 
 class BitSar(RqlBiOperQuery):
-    term_type = p_term.BIT_SAR
+    term_type = P_TERM.BIT_SAR
     statement = "bit_sar"
 
 
 class Floor(RqlMethodQuery):
-    term_type = p_term.FLOOR
+    term_type = P_TERM.FLOOR
     statement = 'floor'
 
 
 class Ceil(RqlMethodQuery):
-    term_type = p_term.CEIL
+    term_type = P_TERM.CEIL
     statement = 'ceil'
 
 
 class Round(RqlMethodQuery):
-    term_type = p_term.ROUND
+    term_type = P_TERM.ROUND
     statement = 'round'
 
 
 class Append(RqlMethodQuery):
-    term_type = p_term.APPEND
+    term_type = P_TERM.APPEND
     statement = "append"
 
 
 class Prepend(RqlMethodQuery):
-    term_type = p_term.PREPEND
+    term_type = P_TERM.PREPEND
     statement = "prepend"
 
 
 class Difference(RqlMethodQuery):
-    term_type = p_term.DIFFERENCE
+    term_type = P_TERM.DIFFERENCE
     statement = "difference"
 
 
 class SetInsert(RqlMethodQuery):
-    term_type = p_term.SET_INSERT
+    term_type = P_TERM.SET_INSERT
     statement = "set_insert"
 
 
 class SetUnion(RqlMethodQuery):
-    term_type = p_term.SET_UNION
+    term_type = P_TERM.SET_UNION
     statement = "set_union"
 
 
 class SetIntersection(RqlMethodQuery):
-    term_type = p_term.SET_INTERSECTION
+    term_type = P_TERM.SET_INTERSECTION
     statement = "set_intersection"
 
 
 class SetDifference(RqlMethodQuery):
-    term_type = p_term.SET_DIFFERENCE
+    term_type = P_TERM.SET_DIFFERENCE
     statement = "set_difference"
 
 
 class Slice(RqlBracketQuery):
-    term_type = p_term.SLICE
+    term_type = P_TERM.SLICE
     statement = 'slice'
 
     # Slice has a special bracket syntax, implemented here
@@ -1086,77 +1086,77 @@ class Slice(RqlBracketQuery):
 
 
 class Skip(RqlMethodQuery):
-    term_type = p_term.SKIP
+    term_type = P_TERM.SKIP
     statement = 'skip'
 
 
 class Limit(RqlMethodQuery):
-    term_type = p_term.LIMIT
+    term_type = P_TERM.LIMIT
     statement = 'limit'
 
 
 class GetField(RqlBracketQuery):
-    term_type = p_term.GET_FIELD
+    term_type = P_TERM.GET_FIELD
     statement = 'get_field'
 
 
 class Bracket(RqlBracketQuery):
-    term_type = p_term.BRACKET
+    term_type = P_TERM.BRACKET
     statement = 'bracket'
 
 
 class Contains(RqlMethodQuery):
-    term_type = p_term.CONTAINS
+    term_type = P_TERM.CONTAINS
     statement = 'contains'
 
 
 class HasFields(RqlMethodQuery):
-    term_type = p_term.HAS_FIELDS
+    term_type = P_TERM.HAS_FIELDS
     statement = 'has_fields'
 
 
 class WithFields(RqlMethodQuery):
-    term_type = p_term.WITH_FIELDS
+    term_type = P_TERM.WITH_FIELDS
     statement = 'with_fields'
 
 
 class Keys(RqlMethodQuery):
-    term_type = p_term.KEYS
+    term_type = P_TERM.KEYS
     statement = 'keys'
 
 
 class Values(RqlMethodQuery):
-    term_type = p_term.VALUES
+    term_type = P_TERM.VALUES
     statement = 'values'
 
 
 class Object(RqlMethodQuery):
-    term_type = p_term.OBJECT
+    term_type = P_TERM.OBJECT
     statement = 'object'
 
 
 class Pluck(RqlMethodQuery):
-    term_type = p_term.PLUCK
+    term_type = P_TERM.PLUCK
     statement = 'pluck'
 
 
 class Without(RqlMethodQuery):
-    term_type = p_term.WITHOUT
+    term_type = P_TERM.WITHOUT
     statement = 'without'
 
 
 class Merge(RqlMethodQuery):
-    term_type = p_term.MERGE
+    term_type = P_TERM.MERGE
     statement = 'merge'
 
 
 class Between(RqlMethodQuery):
-    term_type = p_term.BETWEEN
+    term_type = P_TERM.BETWEEN
     statement = 'between'
 
 
 class DB(RqlTopLevelQuery):
-    term_type = p_term.DB
+    term_type = P_TERM.DB
     statement = 'db'
 
     def table_list(self, *args):
@@ -1188,7 +1188,7 @@ class DB(RqlTopLevelQuery):
 
 
 class FunCall(RqlQuery):
-    term_type = p_term.FUNCALL
+    term_type = P_TERM.FUNCALL
 
     # This object should be constructed with arguments first, and the
     # function itself as the last parameter.  This makes it easier for
@@ -1213,7 +1213,7 @@ class FunCall(RqlQuery):
 
 
 class Table(RqlQuery):
-    term_type = p_term.TABLE
+    term_type = P_TERM.TABLE
     statement = 'table'
 
     def insert(self, *args, **kwargs):
@@ -1290,379 +1290,379 @@ class Table(RqlQuery):
 
 
 class Get(RqlMethodQuery):
-    term_type = p_term.GET
+    term_type = P_TERM.GET
     statement = 'get'
 
 
 class GetAll(RqlMethodQuery):
-    term_type = p_term.GET_ALL
+    term_type = P_TERM.GET_ALL
     statement = 'get_all'
 
 
 class GetIntersecting(RqlMethodQuery):
-    term_type = p_term.GET_INTERSECTING
+    term_type = P_TERM.GET_INTERSECTING
     statement = 'get_intersecting'
 
 
 class GetNearest(RqlMethodQuery):
-    term_type = p_term.GET_NEAREST
+    term_type = P_TERM.GET_NEAREST
     statement = 'get_nearest'
 
 
 class UUID(RqlMethodQuery):
-    term_type = p_term.UUID
+    term_type = P_TERM.UUID
     statement = 'uuid'
 
 
 class Reduce(RqlMethodQuery):
-    term_type = p_term.REDUCE
+    term_type = P_TERM.REDUCE
     statement = 'reduce'
 
 
 class Sum(RqlMethodQuery):
-    term_type = p_term.SUM
+    term_type = P_TERM.SUM
     statement = 'sum'
 
 
 class Avg(RqlMethodQuery):
-    term_type = p_term.AVG
+    term_type = P_TERM.AVG
     statement = 'avg'
 
 
 class Min(RqlMethodQuery):
-    term_type = p_term.MIN
+    term_type = P_TERM.MIN
     statement = 'min'
 
 
 class Max(RqlMethodQuery):
-    term_type = p_term.MAX
+    term_type = P_TERM.MAX
     statement = 'max'
 
 
 class Map(RqlMethodQuery):
-    term_type = p_term.MAP
+    term_type = P_TERM.MAP
     statement = 'map'
 
 
 class Fold(RqlMethodQuery):
-    term_type = p_term.FOLD
+    term_type = P_TERM.FOLD
     statement = 'fold'
 
 
 class Filter(RqlMethodQuery):
-    term_type = p_term.FILTER
+    term_type = P_TERM.FILTER
     statement = 'filter'
 
 
 class ConcatMap(RqlMethodQuery):
-    term_type = p_term.CONCAT_MAP
+    term_type = P_TERM.CONCAT_MAP
     statement = 'concat_map'
 
 
 class OrderBy(RqlMethodQuery):
-    term_type = p_term.ORDER_BY
+    term_type = P_TERM.ORDER_BY
     statement = 'order_by'
 
 
 class Distinct(RqlMethodQuery):
-    term_type = p_term.DISTINCT
+    term_type = P_TERM.DISTINCT
     statement = 'distinct'
 
 
 class Count(RqlMethodQuery):
-    term_type = p_term.COUNT
+    term_type = P_TERM.COUNT
     statement = 'count'
 
 
 class Union(RqlMethodQuery):
-    term_type = p_term.UNION
+    term_type = P_TERM.UNION
     statement = 'union'
 
 
 class Nth(RqlBracketQuery):
-    term_type = p_term.NTH
+    term_type = P_TERM.NTH
     statement = 'nth'
 
 
 class Match(RqlMethodQuery):
-    term_type = p_term.MATCH
+    term_type = P_TERM.MATCH
     statement = 'match'
 
 
 class ToJsonString(RqlMethodQuery):
-    term_type = p_term.TO_JSON_STRING
+    term_type = P_TERM.TO_JSON_STRING
     statement = 'to_json_string'
 
 
 class Split(RqlMethodQuery):
-    term_type = p_term.SPLIT
+    term_type = P_TERM.SPLIT
     statement = 'split'
 
 
 class Upcase(RqlMethodQuery):
-    term_type = p_term.UPCASE
+    term_type = P_TERM.UPCASE
     statement = 'upcase'
 
 
 class Downcase(RqlMethodQuery):
-    term_type = p_term.DOWNCASE
+    term_type = P_TERM.DOWNCASE
     statement = 'downcase'
 
 
 class OffsetsOf(RqlMethodQuery):
-    term_type = p_term.OFFSETS_OF
+    term_type = P_TERM.OFFSETS_OF
     statement = 'offsets_of'
 
 
 class IsEmpty(RqlMethodQuery):
-    term_type = p_term.IS_EMPTY
+    term_type = P_TERM.IS_EMPTY
     statement = 'is_empty'
 
 
 class Group(RqlMethodQuery):
-    term_type = p_term.GROUP
+    term_type = P_TERM.GROUP
     statement = 'group'
 
 
 class InnerJoin(RqlMethodQuery):
-    term_type = p_term.INNER_JOIN
+    term_type = P_TERM.INNER_JOIN
     statement = 'inner_join'
 
 
 class OuterJoin(RqlMethodQuery):
-    term_type = p_term.OUTER_JOIN
+    term_type = P_TERM.OUTER_JOIN
     statement = 'outer_join'
 
 
 class EqJoin(RqlMethodQuery):
-    term_type = p_term.EQ_JOIN
+    term_type = P_TERM.EQ_JOIN
     statement = 'eq_join'
 
 
 class Zip(RqlMethodQuery):
-    term_type = p_term.ZIP
+    term_type = P_TERM.ZIP
     statement = 'zip'
 
 
 class CoerceTo(RqlMethodQuery):
-    term_type = p_term.COERCE_TO
+    term_type = P_TERM.COERCE_TO
     statement = 'coerce_to'
 
 
 class Ungroup(RqlMethodQuery):
-    term_type = p_term.UNGROUP
+    term_type = P_TERM.UNGROUP
     statement = 'ungroup'
 
 
 class TypeOf(RqlMethodQuery):
-    term_type = p_term.TYPE_OF
+    term_type = P_TERM.TYPE_OF
     statement = 'type_of'
 
 
 class Update(RqlMethodQuery):
-    term_type = p_term.UPDATE
+    term_type = P_TERM.UPDATE
     statement = 'update'
 
 
 class Delete(RqlMethodQuery):
-    term_type = p_term.DELETE
+    term_type = P_TERM.DELETE
     statement = 'delete'
 
 
 class Replace(RqlMethodQuery):
-    term_type = p_term.REPLACE
+    term_type = P_TERM.REPLACE
     statement = 'replace'
 
 
 class Insert(RqlMethodQuery):
-    term_type = p_term.INSERT
+    term_type = P_TERM.INSERT
     statement = 'insert'
 
 
 class DbCreate(RqlTopLevelQuery):
-    term_type = p_term.DB_CREATE
+    term_type = P_TERM.DB_CREATE
     statement = "db_create"
 
 
 class DbDrop(RqlTopLevelQuery):
-    term_type = p_term.DB_DROP
+    term_type = P_TERM.DB_DROP
     statement = "db_drop"
 
 
 class DbList(RqlTopLevelQuery):
-    term_type = p_term.DB_LIST
+    term_type = P_TERM.DB_LIST
     statement = "db_list"
 
 
 class TableCreate(RqlMethodQuery):
-    term_type = p_term.TABLE_CREATE
+    term_type = P_TERM.TABLE_CREATE
     statement = "table_create"
 
 
 class TableCreateTL(RqlTopLevelQuery):
-    term_type = p_term.TABLE_CREATE
+    term_type = P_TERM.TABLE_CREATE
     statement = "table_create"
 
 
 class TableDrop(RqlMethodQuery):
-    term_type = p_term.TABLE_DROP
+    term_type = P_TERM.TABLE_DROP
     statement = "table_drop"
 
 
 class TableDropTL(RqlTopLevelQuery):
-    term_type = p_term.TABLE_DROP
+    term_type = P_TERM.TABLE_DROP
     statement = "table_drop"
 
 
 class TableList(RqlMethodQuery):
-    term_type = p_term.TABLE_LIST
+    term_type = P_TERM.TABLE_LIST
     statement = "table_list"
 
 
 class TableListTL(RqlTopLevelQuery):
-    term_type = p_term.TABLE_LIST
+    term_type = P_TERM.TABLE_LIST
     statement = "table_list"
 
 
 class SetWriteHook(RqlMethodQuery):
-    term_type = p_term.SET_WRITE_HOOK
+    term_type = P_TERM.SET_WRITE_HOOK
     statement = 'set_write_hook'
 
 
 class GetWriteHook(RqlMethodQuery):
-    term_type = p_term.GET_WRITE_HOOK
+    term_type = P_TERM.GET_WRITE_HOOK
     statement = 'get_write_hook'
 
 
 class IndexCreate(RqlMethodQuery):
-    term_type = p_term.INDEX_CREATE
+    term_type = P_TERM.INDEX_CREATE
     statement = 'index_create'
 
 
 class IndexDrop(RqlMethodQuery):
-    term_type = p_term.INDEX_DROP
+    term_type = P_TERM.INDEX_DROP
     statement = 'index_drop'
 
 
 class IndexRename(RqlMethodQuery):
-    term_type = p_term.INDEX_RENAME
+    term_type = P_TERM.INDEX_RENAME
     statement = 'index_rename'
 
 
 class IndexList(RqlMethodQuery):
-    term_type = p_term.INDEX_LIST
+    term_type = P_TERM.INDEX_LIST
     statement = 'index_list'
 
 
 class IndexStatus(RqlMethodQuery):
-    term_type = p_term.INDEX_STATUS
+    term_type = P_TERM.INDEX_STATUS
     statement = 'index_status'
 
 
 class IndexWait(RqlMethodQuery):
-    term_type = p_term.INDEX_WAIT
+    term_type = P_TERM.INDEX_WAIT
     statement = 'index_wait'
 
 
 class Config(RqlMethodQuery):
-    term_type = p_term.CONFIG
+    term_type = P_TERM.CONFIG
     statement = "config"
 
 
 class Status(RqlMethodQuery):
-    term_type = p_term.STATUS
+    term_type = P_TERM.STATUS
     statement = "status"
 
 
 class Wait(RqlMethodQuery):
-    term_type = p_term.WAIT
+    term_type = P_TERM.WAIT
     statement = "wait"
 
 
 class Reconfigure(RqlMethodQuery):
-    term_type = p_term.RECONFIGURE
+    term_type = P_TERM.RECONFIGURE
     statement = 'reconfigure'
 
 
 class Rebalance(RqlMethodQuery):
-    term_type = p_term.REBALANCE
+    term_type = P_TERM.REBALANCE
     statement = 'rebalance'
 
 
 class Sync(RqlMethodQuery):
-    term_type = p_term.SYNC
+    term_type = P_TERM.SYNC
     statement = 'sync'
 
 
 class Grant(RqlMethodQuery):
-    term_type = p_term.GRANT
+    term_type = P_TERM.GRANT
     statement = 'grant'
 
 
 class GrantTL(RqlTopLevelQuery):
-    term_type = p_term.GRANT
+    term_type = P_TERM.GRANT
     statement = 'grant'
 
 
 class Branch(RqlTopLevelQuery):
-    term_type = p_term.BRANCH
+    term_type = P_TERM.BRANCH
     statement = "branch"
 
 
 class Or(RqlBoolOperQuery):
-    term_type = p_term.OR
+    term_type = P_TERM.OR
     statement = "or_"
     st_infix = "|"
 
 
 class And(RqlBoolOperQuery):
-    term_type = p_term.AND
+    term_type = P_TERM.AND
     statement = "and_"
     st_infix = "&"
 
 
 class ForEach(RqlMethodQuery):
-    term_type = p_term.FOR_EACH
+    term_type = P_TERM.FOR_EACH
     statement = 'for_each'
 
 
 class Info(RqlMethodQuery):
-    term_type = p_term.INFO
+    term_type = P_TERM.INFO
     statement = 'info'
 
 
 class InsertAt(RqlMethodQuery):
-    term_type = p_term.INSERT_AT
+    term_type = P_TERM.INSERT_AT
     statement = 'insert_at'
 
 
 class SpliceAt(RqlMethodQuery):
-    term_type = p_term.SPLICE_AT
+    term_type = P_TERM.SPLICE_AT
     statement = 'splice_at'
 
 
 class DeleteAt(RqlMethodQuery):
-    term_type = p_term.DELETE_AT
+    term_type = P_TERM.DELETE_AT
     statement = 'delete_at'
 
 
 class ChangeAt(RqlMethodQuery):
-    term_type = p_term.CHANGE_AT
+    term_type = P_TERM.CHANGE_AT
     statement = 'change_at'
 
 
 class Sample(RqlMethodQuery):
-    term_type = p_term.SAMPLE
+    term_type = P_TERM.SAMPLE
     statement = 'sample'
 
 
 class Json(RqlTopLevelQuery):
-    term_type = p_term.JSON
+    term_type = P_TERM.JSON
     statement = 'json'
 
 
 class Args(RqlTopLevelQuery):
-    term_type = p_term.ARGS
+    term_type = P_TERM.ARGS
     statement = 'args'
 
 
@@ -1685,7 +1685,7 @@ class RqlBinary(bytes):
 class Binary(RqlTopLevelQuery):
     # Note: this term isn't actually serialized, it should exist only
     # in the client
-    term_type = p_term.BINARY
+    term_type = P_TERM.BINARY
     statement = 'binary'
 
     def __init__(self, data):
@@ -1724,157 +1724,157 @@ class Binary(RqlTopLevelQuery):
 
 
 class Range(RqlTopLevelQuery):
-    term_type = p_term.RANGE
+    term_type = P_TERM.RANGE
     statement = 'range'
 
 
 class ToISO8601(RqlMethodQuery):
-    term_type = p_term.TO_ISO8601
+    term_type = P_TERM.TO_ISO8601
     statement = 'to_iso8601'
 
 
 class During(RqlMethodQuery):
-    term_type = p_term.DURING
+    term_type = P_TERM.DURING
     statement = 'during'
 
 
 class Date(RqlMethodQuery):
-    term_type = p_term.DATE
+    term_type = P_TERM.DATE
     statement = 'date'
 
 
 class TimeOfDay(RqlMethodQuery):
-    term_type = p_term.TIME_OF_DAY
+    term_type = P_TERM.TIME_OF_DAY
     statement = 'time_of_day'
 
 
 class Timezone(RqlMethodQuery):
-    term_type = p_term.TIMEZONE
+    term_type = P_TERM.TIMEZONE
     statement = 'timezone'
 
 
 class Year(RqlMethodQuery):
-    term_type = p_term.YEAR
+    term_type = P_TERM.YEAR
     statement = 'year'
 
 
 class Month(RqlMethodQuery):
-    term_type = p_term.MONTH
+    term_type = P_TERM.MONTH
     statement = 'month'
 
 
 class Day(RqlMethodQuery):
-    term_type = p_term.DAY
+    term_type = P_TERM.DAY
     statement = 'day'
 
 
 class DayOfWeek(RqlMethodQuery):
-    term_type = p_term.DAY_OF_WEEK
+    term_type = P_TERM.DAY_OF_WEEK
     statement = 'day_of_week'
 
 
 class DayOfYear(RqlMethodQuery):
-    term_type = p_term.DAY_OF_YEAR
+    term_type = P_TERM.DAY_OF_YEAR
     statement = 'day_of_year'
 
 
 class Hours(RqlMethodQuery):
-    term_type = p_term.HOURS
+    term_type = P_TERM.HOURS
     statement = 'hours'
 
 
 class Minutes(RqlMethodQuery):
-    term_type = p_term.MINUTES
+    term_type = P_TERM.MINUTES
     statement = 'minutes'
 
 
 class Seconds(RqlMethodQuery):
-    term_type = p_term.SECONDS
+    term_type = P_TERM.SECONDS
     statement = 'seconds'
 
 
 class Time(RqlTopLevelQuery):
-    term_type = p_term.TIME
+    term_type = P_TERM.TIME
     statement = 'time'
 
 
 class ISO8601(RqlTopLevelQuery):
-    term_type = p_term.ISO8601
+    term_type = P_TERM.ISO8601
     statement = 'iso8601'
 
 
 class EpochTime(RqlTopLevelQuery):
-    term_type = p_term.EPOCH_TIME
+    term_type = P_TERM.EPOCH_TIME
     statement = 'epoch_time'
 
 
 class Now(RqlTopLevelQuery):
-    term_type = p_term.NOW
+    term_type = P_TERM.NOW
     statement = 'now'
 
 
 class InTimezone(RqlMethodQuery):
-    term_type = p_term.IN_TIMEZONE
+    term_type = P_TERM.IN_TIMEZONE
     statement = 'in_timezone'
 
 
 class ToEpochTime(RqlMethodQuery):
-    term_type = p_term.TO_EPOCH_TIME
+    term_type = P_TERM.TO_EPOCH_TIME
     statement = 'to_epoch_time'
 
 
 class GeoJson(RqlTopLevelQuery):
-    term_type = p_term.GEOJSON
+    term_type = P_TERM.GEOJSON
     statement = 'geojson'
 
 
 class ToGeoJson(RqlMethodQuery):
-    term_type = p_term.TO_GEOJSON
+    term_type = P_TERM.TO_GEOJSON
     statement = 'to_geojson'
 
 
 class Point(RqlTopLevelQuery):
-    term_type = p_term.POINT
+    term_type = P_TERM.POINT
     statement = 'point'
 
 
 class Line(RqlTopLevelQuery):
-    term_type = p_term.LINE
+    term_type = P_TERM.LINE
     statement = 'line'
 
 
 class Polygon(RqlTopLevelQuery):
-    term_type = p_term.POLYGON
+    term_type = P_TERM.POLYGON
     statement = 'polygon'
 
 
 class Distance(RqlMethodQuery):
-    term_type = p_term.DISTANCE
+    term_type = P_TERM.DISTANCE
     statement = 'distance'
 
 
 class Intersects(RqlMethodQuery):
-    term_type = p_term.INTERSECTS
+    term_type = P_TERM.INTERSECTS
     statement = 'intersects'
 
 
 class Includes(RqlMethodQuery):
-    term_type = p_term.INCLUDES
+    term_type = P_TERM.INCLUDES
     statement = 'includes'
 
 
 class Circle(RqlTopLevelQuery):
-    term_type = p_term.CIRCLE
+    term_type = P_TERM.CIRCLE
     statement = 'circle'
 
 
 class Fill(RqlMethodQuery):
-    term_type = p_term.FILL
+    term_type = P_TERM.FILL
     statement = 'fill'
 
 
 class PolygonSub(RqlMethodQuery):
-    term_type = p_term.POLYGON_SUB
+    term_type = P_TERM.POLYGON_SUB
     statement = 'polygon_sub'
 
 
@@ -1900,7 +1900,7 @@ def func_wrap(val):
 
 
 class Func(RqlQuery):
-    term_type = p_term.FUNC
+    term_type = P_TERM.FUNC
     lock = threading.Lock()
     nextVarId = 1
 
@@ -1930,15 +1930,15 @@ class Func(RqlQuery):
 
 
 class Asc(RqlTopLevelQuery):
-    term_type = p_term.ASC
+    term_type = P_TERM.ASC
     statement = 'asc'
 
 
 class Desc(RqlTopLevelQuery):
-    term_type = p_term.DESC
+    term_type = P_TERM.DESC
     statement = 'desc'
 
 
 class Literal(RqlTopLevelQuery):
-    term_type = p_term.LITERAL
+    term_type = P_TERM.LITERAL
     statement = 'literal'

@@ -260,7 +260,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
         # -- add version
 
         if 'version' not in kwargs:
-            kwargs['version'] = "%%prog %s" % version.version
+            kwargs['version'] = "%%prog %s" % version.VERSION
 
         # -- call super
 
