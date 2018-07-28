@@ -40,5 +40,5 @@ class RebirthDB(builtins.object):
         net.Connection._r = self
 
         for module in (net, query, ast, errors):
-            for functionName in module.__all__:
-                setattr(self, functionName, getattr(module, functionName))
+            for function_name in module.__all__:
+                setattr(self, function_name, getattr(module, function_name))
