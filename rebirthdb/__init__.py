@@ -15,6 +15,7 @@
 from rebirthdb import errors, version
 
 
+# The builtins here defends against re-importing something obscuring `object`.
 try:
     import __builtin__ as builtins  # Python 2
 except ImportError:
