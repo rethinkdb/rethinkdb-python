@@ -33,6 +33,7 @@ import time
 import traceback
 
 from rebirthdb import _export, utils_common
+from rebirthdb.logger import default_logger
 
 usage = "rebirthdb dump [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert FILENAME] [-f FILE] " \
         "[--clients NUM] [-e (DB | DB.TABLE)]..."
@@ -166,10 +167,13 @@ def main(argv=None, prog=None):
 
             try:
                 _export.run(options)
-            except Exception as e:
+            except Exception as exc:
+                default_logger.exception(str(exc))
+
                 if options.debug:
                     sys.stderr.write('\n%s\n' % traceback.format_exc())
-                raise Exception("Error: export failed, %s" % e)
+
+                raise Exception("Error: export failed, %s" % exc)
 
             # -- zip directory
 
