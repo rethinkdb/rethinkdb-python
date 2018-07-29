@@ -42,7 +42,7 @@ except NameError:
 
 
 def dict_items(dictionary):
-    return dictionary.items()
+    return list(dictionary.items())
 
 
 class Repl(object):
