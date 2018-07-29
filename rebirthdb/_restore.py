@@ -101,22 +101,22 @@ def parse_options(argv, prog=None):
         type="pos_int")
 
     # Replication settings
-    replicationOptionsGroup = optparse.OptionGroup(parser, 'Replication Options')
-    replicationOptionsGroup.add_option(
+    replication_options_group = optparse.OptionGroup(parser, 'Replication Options')
+    replication_options_group.add_option(
         "--shards",
         dest="create_args",
         metavar="SHARDS",
         help="shards to setup on created tables (default: 1)",
         type="pos_int",
         action="add_key")
-    replicationOptionsGroup.add_option(
+    replication_options_group.add_option(
         "--replicas",
         dest="create_args",
         metavar="REPLICAS",
         help="replicas to setup on created tables (default: 1)",
         type="pos_int",
         action="add_key")
-    parser.add_option_group(replicationOptionsGroup)
+    parser.add_option_group(replication_options_group)
 
     options, args = parser.parse_args(argv)
 
@@ -159,12 +159,12 @@ def do_unzip(temp_dir, options):
     files_ignored = []
     files_found = False
     archive = None
-    tarfileOptions = {
+    tarfile_options = {
         "mode": "r|*",
         "fileobj" if hasattr(options.in_file, "read") else "name": options.in_file
     }
     try:
-        archive = tarfile.open(**tarfileOptions)
+        archive = tarfile.open(**tarfile_options)
         for tarinfo in archive:
             # skip without comment anything but files
             if not tarinfo.isfile():
@@ -266,10 +266,10 @@ def do_restore(options):
             if str(ex) == "Warnings occurred during import":
                 raise RuntimeError("Warning: import did not create some secondary indexes.")
             else:
-                errorString = str(ex)
-                if errorString.startswith('Error: '):
-                    errorString = errorString[len('Error: '):]
-                raise RuntimeError("Error: import failed: %s" % errorString)
+                error_string = str(ex)
+                if error_string.startswith('Error: '):
+                    error_string = error_string[len('Error: '):]
+                raise RuntimeError("Error: import failed: %s" % error_string)
         # 'Done' message will be printed by the import script
     finally:
         shutil.rmtree(temp_dir)

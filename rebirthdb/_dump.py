@@ -33,6 +33,7 @@ import time
 import traceback
 
 from rebirthdb import _export, utils_common
+from rebirthdb.logger import default_logger
 
 usage = "rebirthdb dump [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert FILENAME] [-f FILE] " \
         "[--clients NUM] [-e (DB | DB.TABLE)]..."
@@ -113,7 +114,7 @@ def parse_options(argv, prog=None):
     else:
         options.out_file = os.path.realpath(options.out_file)
 
-    if not (options.out_file is not sys.stdout):
+    if options.out_file is not sys.stdout:
         if os.path.exists(options.out_file) and not options.overwrite:
             parser.error("Output file already exists: %s" % options.out_file)
         if os.path.exists(options.out_file) and not os.path.isfile(options.out_file):
@@ -166,10 +167,13 @@ def main(argv=None, prog=None):
 
             try:
                 _export.run(options)
-            except Exception as e:
+            except Exception as exc:
+                default_logger.exception(str(exc))
+
                 if options.debug:
                     sys.stderr.write('\n%s\n' % traceback.format_exc())
-                raise Exception("Error: export failed, %s" % e)
+
+                raise Exception("Error: export failed, %s" % exc)
 
             # -- zip directory
 
@@ -183,10 +187,10 @@ def main(argv=None, prog=None):
                     archive = tarfile.open(name=options.out_file, mode="w:gz")
                 for curr, _, files in os.walk(os.path.realpath(options.directory)):
                     for data_file in files:
-                        fullPath = os.path.join(options.directory, curr, data_file)
-                        archivePath = os.path.join(options.dump_name, os.path.relpath(fullPath, options.directory))
-                        archive.add(fullPath, arcname=archivePath)
-                        os.unlink(fullPath)
+                        full_path = os.path.join(options.directory, curr, data_file)
+                        archive_path = os.path.join(options.dump_name, os.path.relpath(full_path, options.directory))
+                        archive.add(full_path, arcname=archive_path)
+                        os.unlink(full_path)
             finally:
                 if archive:
                     archive.close()

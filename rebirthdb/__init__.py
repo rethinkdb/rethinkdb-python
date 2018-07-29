@@ -15,17 +15,15 @@
 from rebirthdb import errors, version
 
 
+# The builtins here defends against re-importing something obscuring `object`.
 try:
     import __builtin__ as builtins  # Python 2
 except ImportError:
     import builtins  # Python 3
 
 
-__all__ = ['r', 'rebirthdb'] + errors.__all__
-__version__ = version.version
-
-
-# The builtins here defends against re-importing something obscuring `object`.
+__all__ = ['RebirthDB'] + errors.__all__
+__version__ = version.VERSION
 
 
 class RebirthDB(builtins.object):
@@ -43,5 +41,5 @@ class RebirthDB(builtins.object):
         net.Connection._r = self
 
         for module in (net, query, ast, errors):
-            for functionName in module.__all__:
-                setattr(self, functionName, getattr(module, functionName))
+            for function_name in module.__all__:
+                setattr(self, function_name, getattr(module, function_name))

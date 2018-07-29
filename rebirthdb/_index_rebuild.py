@@ -46,7 +46,7 @@ rebirthdb index-rebuild -r test -r production.users -n 5
 '''
 
 # Prefix used for indexes that are being rebuilt
-temp_index_prefix = '$reql_temp_index$_'
+TMP_INDEX_PREFIX = '$reql_temp_index$_'
 
 
 def parse_options(argv, prog=None):
@@ -96,10 +96,10 @@ def rebuild_indexes(options):
                 ]
                 del options.db_table[db_table]
 
-    # wipe out any indexes with the temp_index_prefix
+    # wipe out any indexes with the TMP_INDEX_PREFIX
     for db, table in options.db_table:
         for index in options.retryQuery('list indexes on %s.%s' % (db, table), query.db(db).table(table).index_list()):
-            if index.startswith(temp_index_prefix):
+            if index.startswith(TMP_INDEX_PREFIX):
                 options.retryQuery(
                     'drop index: %s.%s:%s' %
                     (db,
@@ -140,11 +140,11 @@ def rebuild_indexes(options):
         while len(indexes_to_build) > 0 and len(indexes_in_progress) < options.concurrent:
             index = indexes_to_build.pop()
             indexes_in_progress.append(index)
-            index['temp_name'] = temp_index_prefix + index['name']
+            index['temp_name'] = TMP_INDEX_PREFIX + index['name']
             index['progress'] = 0
             index['ready'] = False
 
-            existingIndexes = dict(
+            existing_indexes = dict(
                 (x['index'],
                  x['function']) for x in options.retryQuery(
                     'existing indexes',
@@ -154,15 +154,15 @@ def rebuild_indexes(options):
                         'index',
                         'function')))
 
-            if index['name'] not in existingIndexes:
+            if index['name'] not in existing_indexes:
                 raise AssertionError('{index_name} is not part of existing indexes {indexes}'.format(
                     index_name=index['name'],
-                    indexes=', '.join(existingIndexes)
+                    indexes=', '.join(existing_indexes)
                 ))
 
-            if index['temp_name'] not in existingIndexes:
+            if index['temp_name'] not in existing_indexes:
                 options.retryQuery('create temp index: %(db)s.%(table)s:%(name)s' % index, query.db(index['db']).table(
-                    index['table']).index_create(index['temp_name'], existingIndexes[index['name']]))
+                    index['table']).index_create(index['temp_name'], existing_indexes[index['name']]))
 
         # Report progress
         highest_progress = max(highest_progress, progress_ratio)

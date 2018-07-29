@@ -28,45 +28,44 @@ import threading
 from rebirthdb import ql2_pb2
 from rebirthdb.errors import QueryPrinter, ReqlDriverCompileError, ReqlDriverError, T
 
-pTerm = ql2_pb2.Term.TermType
+P_TERM = ql2_pb2.Term.TermType
 
 try:
     unicode
 except NameError:
     unicode = str
+
 try:
     xrange
 except NameError:
     xrange = range
-try:
-    {}.iteritems
 
-    def dict_items(d): return d.iteritems()
-except AttributeError:
-    def dict_items(d): return d.items()
+
+def dict_items(dictionary):
+    return list(dictionary.items())
 
 
 class Repl(object):
-    threadData = threading.local()
-    replActive = False
+    thread_data = threading.local()
+    repl_active = False
 
     @classmethod
     def get(cls):
-        if 'repl' in cls.threadData.__dict__:
-            return cls.threadData.repl
+        if 'repl' in cls.thread_data.__dict__:
+            return cls.thread_data.repl
         else:
             return None
 
     @classmethod
     def set(cls, conn):
-        cls.threadData.repl = conn
-        cls.replActive = True
+        cls.thread_data.repl = conn
+        cls.repl_active = True
 
     @classmethod
     def clear(cls):
-        if 'repl' in cls.threadData.__dict__:
-            del cls.threadData.repl
-        cls.replActive = False
+        if 'repl' in cls.thread_data.__dict__:
+            del cls.thread_data.repl
+        cls.repl_active = False
 
 # This is both an external function and one used extensively
 # internally to convert coerce python values to RQL types
@@ -122,15 +121,15 @@ class RqlQuery(object):
         self._args = [expr(e) for e in args]
 
         self.optargs = {}
-        for k, v in dict_items(optargs):
-            self.optargs[k] = expr(v)
+        for key, value in dict_items(optargs):
+            self.optargs[key] = expr(value)
 
     # Send this query to the server to be executed
     def run(self, c=None, **global_optargs):
         if c is None:
             c = Repl.get()
             if c is None:
-                if Repl.replActive:
+                if Repl.repl_active:
                     raise ReqlDriverError(
                         "RqlQuery.run must be given a connection to run on. A default connection has been set with "
                         "`repl()` on another thread, but not this one."
@@ -141,15 +140,15 @@ class RqlQuery(object):
         return c._start(self, **global_optargs)
 
     def __str__(self):
-        qp = QueryPrinter(self)
-        return qp.print_query()
+        printer = QueryPrinter(self)
+        return printer.print_query()
 
     def __repr__(self):
         return "<RqlQuery instance: %s >" % str(self)
 
     # Compile this query to a json-serializable object
     def build(self):
-        res = [self.tt, self._args]
+        res = [self.term_type, self._args]
         if len(self.optargs) > 0:
             res.append(self.optargs)
         return res
@@ -629,9 +628,9 @@ class RqlBoolOperQuery(RqlQuery):
                   for i in xrange(len(args))]
 
         if self.infix:
-            return T('(', T(*t_args, intsp=[' ', self.st_infix, ' ']), ')')
+            return T('(', T(*t_args, intsp=[' ', self.statement_infix, ' ']), ')')
         else:
-            return T('r.', self.st, '(', T(*t_args, intsp=', '), ')')
+            return T('r.', self.statement, '(', T(*t_args, intsp=', '), ')')
 
 
 class RqlBiOperQuery(RqlQuery):
@@ -639,7 +638,7 @@ class RqlBiOperQuery(RqlQuery):
         t_args = [T('r.expr(', args[i], ')')
                   if needs_wrap(self._args[i]) else args[i]
                   for i in xrange(len(args))]
-        return T('(', T(*t_args, intsp=[' ', self.st, ' ']), ')')
+        return T('(', T(*t_args, intsp=[' ', self.statement, ' ']), ')')
 
 
 class RqlBiCompareOperQuery(RqlBiOperQuery):
@@ -657,7 +656,7 @@ class RqlBiCompareOperQuery(RqlBiOperQuery):
                         "If you really want this behavior, use `.or_` or "
                         "`.and_` instead.")
                     raise ReqlDriverCompileError(err %
-                                                 (self.st,
+                                                 (self.statement,
                                                   QueryPrinter(self).print_query()))
             except AttributeError:
                 pass  # No infix attribute, so not possible to be an infix bool operator
@@ -665,14 +664,14 @@ class RqlBiCompareOperQuery(RqlBiOperQuery):
 
 class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, optargs):
-        args.extend([T(k, '=', v) for k, v in dict_items(optargs)])
-        return T('r.', self.st, '(', T(*(args), intsp=', '), ')')
+        args.extend([T(key, '=', value) for key, value in dict_items(optargs)])
+        return T('r.', self.statement, '(', T(*(args), intsp=', '), ')')
 
 
 class RqlMethodQuery(RqlQuery):
     def compose(self, args, optargs):
         if len(args) == 0:
-            return T('r.', self.st, '()')
+            return T('r.', self.statement, '()')
 
         if needs_wrap(self._args[0]):
             args[0] = T('r.expr(', args[0], ')')
@@ -681,7 +680,7 @@ class RqlMethodQuery(RqlQuery):
         restargs.extend([T(k, '=', v) for k, v in dict_items(optargs)])
         restargs = T(*restargs, intsp=', ')
 
-        return T(args[0], '.', self.st, '(', restargs, ')')
+        return T(args[0], '.', self.statement, '(', restargs, ')')
 
 
 class RqlBracketQuery(RqlMethodQuery):
@@ -781,14 +780,16 @@ class ReQLDecoder(json.JSONDecoder):
         else:
             return datetime.datetime.utcfromtimestamp(obj['epoch_time'])
 
-    def convert_grouped_data(self, obj):
+    @staticmethod
+    def convert_grouped_data(obj):
         if 'data' not in obj:
             raise ReqlDriverError(('pseudo-type GROUPED_DATA object' +
                                    ' %s does not have the expected field "data".')
                                   % json.dumps(obj))
         return dict([(recursively_make_hashable(k), v) for k, v in obj['data']])
 
-    def convert_binary(self, obj):
+    @staticmethod
+    def convert_binary(obj):
         if 'data' not in obj:
             raise ReqlDriverError(('pseudo-type BINARY object %s does not have ' +
                                    'the expected field "data".')
@@ -838,10 +839,8 @@ class ReQLDecoder(json.JSONDecoder):
 # R_ARRAYs and R_OBJECTs would require verifying that at all nested levels
 # our arrays and objects are composed only of basic types.
 class Datum(RqlQuery):
-    _args = []
-    optargs = {}
-
     def __init__(self, val):
+        super(Datum, self).__init__()
         self.data = val
 
     def build(self):
@@ -852,75 +851,74 @@ class Datum(RqlQuery):
 
 
 class MakeArray(RqlQuery):
-    tt = pTerm.MAKE_ARRAY
+    term_type = P_TERM.MAKE_ARRAY
 
     def compose(self, args, optargs):
         return T('[', T(*args, intsp=', '), ']')
 
 
 class MakeObj(RqlQuery):
-    tt = pTerm.MAKE_OBJ
+    term_type = P_TERM.MAKE_OBJ
 
     # We cannot inherit from RqlQuery because of potential conflicts with
     # the `self` parameter. This is not a problem for other RqlQuery sub-
     # classes unless we add a 'self' optional argument to one of them.
+    # TODO: @gabor-boros Figure out is the above still an issue or not.
     def __init__(self, obj_dict):
-        self._args = []
-
-        self.optargs = {}
-        for k, v in dict_items(obj_dict):
-            if not isinstance(k, (str, unicode)):
+        super(MakeObj, self).__init__()
+        for key, value in dict_items(obj_dict):
+            if not isinstance(key, (str, unicode)):
                 raise ReqlDriverCompileError("Object keys must be strings.")
-            self.optargs[k] = expr(v)
+            self.optargs[key] = expr(value)
 
     def build(self):
         return self.optargs
 
     def compose(self, args, optargs):
-        return T('r.expr({', T(*[T(repr(k), ': ', v)
-                                 for k, v in dict_items(optargs)],
+        return T('r.expr({', T(*[T(repr(key), ': ', value)
+                                 for key, value in dict_items(optargs)],
                                intsp=', '), '})')
 
 
 class Var(RqlQuery):
-    tt = pTerm.VAR
+    term_type = P_TERM.VAR
 
     def compose(self, args, optargs):
         return 'var_' + args[0]
 
 
 class JavaScript(RqlTopLevelQuery):
-    tt = pTerm.JAVASCRIPT
-    st = "js"
+    term_type = P_TERM.JAVASCRIPT
+    statement = "js"
 
 
 class Http(RqlTopLevelQuery):
-    tt = pTerm.HTTP
-    st = "http"
+    term_type = P_TERM.HTTP
+    statement = "http"
 
 
 class UserError(RqlTopLevelQuery):
-    tt = pTerm.ERROR
-    st = "error"
+    term_type = P_TERM.ERROR
+    statement = "error"
 
 
 class Random(RqlTopLevelQuery):
-    tt = pTerm.RANDOM
-    st = "random"
+    term_type = P_TERM.RANDOM
+    statement = "random"
 
 
 class Changes(RqlMethodQuery):
-    tt = pTerm.CHANGES
-    st = "changes"
+    term_type = P_TERM.CHANGES
+    statement = "changes"
 
 
 class Default(RqlMethodQuery):
-    tt = pTerm.DEFAULT
-    st = "default"
+    term_type = P_TERM.DEFAULT
+    statement = "default"
 
 
 class ImplicitVar(RqlQuery):
-    tt = pTerm.IMPLICIT_VAR
+    term_type = P_TERM.IMPLICIT_VAR
 
     def __call__(self, *args, **kwargs):
         raise TypeError("'r.row' is not callable, use 'r.row[...]' instead")
@@ -930,37 +928,37 @@ class ImplicitVar(RqlQuery):
 
 
 class Eq(RqlBiCompareOperQuery):
-    tt = pTerm.EQ
-    st = "=="
+    term_type = P_TERM.EQ
+    statement = "=="
 
 
 class Ne(RqlBiCompareOperQuery):
-    tt = pTerm.NE
-    st = "!="
+    term_type = P_TERM.NE
+    statement = "!="
 
 
 class Lt(RqlBiCompareOperQuery):
-    tt = pTerm.LT
-    st = "<"
+    term_type = P_TERM.LT
+    statement = "<"
 
 
 class Le(RqlBiCompareOperQuery):
-    tt = pTerm.LE
-    st = "<="
+    term_type = P_TERM.LE
+    statement = "<="
 
 
 class Gt(RqlBiCompareOperQuery):
-    tt = pTerm.GT
-    st = ">"
+    term_type = P_TERM.GT
+    statement = ">"
 
 
 class Ge(RqlBiCompareOperQuery):
-    tt = pTerm.GE
-    st = ">="
+    term_type = P_TERM.GE
+    statement = ">="
 
 
 class Not(RqlQuery):
-    tt = pTerm.NOT
+    term_type = P_TERM.NOT
 
     def compose(self, args, optargs):
         if isinstance(self._args[0], Datum):
@@ -969,113 +967,113 @@ class Not(RqlQuery):
 
 
 class Add(RqlBiOperQuery):
-    tt = pTerm.ADD
-    st = "+"
+    term_type = P_TERM.ADD
+    statement = "+"
 
 
 class Sub(RqlBiOperQuery):
-    tt = pTerm.SUB
-    st = "-"
+    term_type = P_TERM.SUB
+    statement = "-"
 
 
 class Mul(RqlBiOperQuery):
-    tt = pTerm.MUL
-    st = "*"
+    term_type = P_TERM.MUL
+    statement = "*"
 
 
 class Div(RqlBiOperQuery):
-    tt = pTerm.DIV
-    st = "/"
+    term_type = P_TERM.DIV
+    statement = "/"
 
 
 class Mod(RqlBiOperQuery):
-    tt = pTerm.MOD
-    st = "%"
+    term_type = P_TERM.MOD
+    statement = "%"
 
 
 class BitAnd(RqlBiOperQuery):
-    tt = pTerm.BIT_AND
-    st = "bit_and"
+    term_type = P_TERM.BIT_AND
+    statement = "bit_and"
 
 
 class BitOr(RqlBiOperQuery):
-    tt = pTerm.BIT_OR
-    st = "bit_or"
+    term_type = P_TERM.BIT_OR
+    statement = "bit_or"
 
 
 class BitXor(RqlBiOperQuery):
-    tt = pTerm.BIT_XOR
-    st = "bit_xor"
+    term_type = P_TERM.BIT_XOR
+    statement = "bit_xor"
 
 
 class BitNot(RqlMethodQuery):
-    tt = pTerm.BIT_NOT
-    st = "bit_not"
+    term_type = P_TERM.BIT_NOT
+    statement = "bit_not"
 
 
 class BitSal(RqlBiOperQuery):
-    tt = pTerm.BIT_SAL
-    st = "bit_sal"
+    term_type = P_TERM.BIT_SAL
+    statement = "bit_sal"
 
 
 class BitSar(RqlBiOperQuery):
-    tt = pTerm.BIT_SAR
-    st = "bit_sar"
+    term_type = P_TERM.BIT_SAR
+    statement = "bit_sar"
 
 
 class Floor(RqlMethodQuery):
-    tt = pTerm.FLOOR
-    st = 'floor'
+    term_type = P_TERM.FLOOR
+    statement = 'floor'
 
 
 class Ceil(RqlMethodQuery):
-    tt = pTerm.CEIL
-    st = 'ceil'
+    term_type = P_TERM.CEIL
+    statement = 'ceil'
 
 
 class Round(RqlMethodQuery):
-    tt = pTerm.ROUND
-    st = 'round'
+    term_type = P_TERM.ROUND
+    statement = 'round'
 
 
 class Append(RqlMethodQuery):
-    tt = pTerm.APPEND
-    st = "append"
+    term_type = P_TERM.APPEND
+    statement = "append"
 
 
 class Prepend(RqlMethodQuery):
-    tt = pTerm.PREPEND
-    st = "prepend"
+    term_type = P_TERM.PREPEND
+    statement = "prepend"
 
 
 class Difference(RqlMethodQuery):
-    tt = pTerm.DIFFERENCE
-    st = "difference"
+    term_type = P_TERM.DIFFERENCE
+    statement = "difference"
 
 
 class SetInsert(RqlMethodQuery):
-    tt = pTerm.SET_INSERT
-    st = "set_insert"
+    term_type = P_TERM.SET_INSERT
+    statement = "set_insert"
 
 
 class SetUnion(RqlMethodQuery):
-    tt = pTerm.SET_UNION
-    st = "set_union"
+    term_type = P_TERM.SET_UNION
+    statement = "set_union"
 
 
 class SetIntersection(RqlMethodQuery):
-    tt = pTerm.SET_INTERSECTION
-    st = "set_intersection"
+    term_type = P_TERM.SET_INTERSECTION
+    statement = "set_intersection"
 
 
 class SetDifference(RqlMethodQuery):
-    tt = pTerm.SET_DIFFERENCE
-    st = "set_difference"
+    term_type = P_TERM.SET_DIFFERENCE
+    statement = "set_difference"
 
 
 class Slice(RqlBracketQuery):
-    tt = pTerm.SLICE
-    st = 'slice'
+    term_type = P_TERM.SLICE
+    statement = 'slice'
 
     # Slice has a special bracket syntax, implemented here
     def compose(self, args, optargs):
@@ -1088,78 +1086,78 @@ class Slice(RqlBracketQuery):
 
 
 class Skip(RqlMethodQuery):
-    tt = pTerm.SKIP
-    st = 'skip'
+    term_type = P_TERM.SKIP
+    statement = 'skip'
 
 
 class Limit(RqlMethodQuery):
-    tt = pTerm.LIMIT
-    st = 'limit'
+    term_type = P_TERM.LIMIT
+    statement = 'limit'
 
 
 class GetField(RqlBracketQuery):
-    tt = pTerm.GET_FIELD
-    st = 'get_field'
+    term_type = P_TERM.GET_FIELD
+    statement = 'get_field'
 
 
 class Bracket(RqlBracketQuery):
-    tt = pTerm.BRACKET
-    st = 'bracket'
+    term_type = P_TERM.BRACKET
+    statement = 'bracket'
 
 
 class Contains(RqlMethodQuery):
-    tt = pTerm.CONTAINS
-    st = 'contains'
+    term_type = P_TERM.CONTAINS
+    statement = 'contains'
 
 
 class HasFields(RqlMethodQuery):
-    tt = pTerm.HAS_FIELDS
-    st = 'has_fields'
+    term_type = P_TERM.HAS_FIELDS
+    statement = 'has_fields'
 
 
 class WithFields(RqlMethodQuery):
-    tt = pTerm.WITH_FIELDS
-    st = 'with_fields'
+    term_type = P_TERM.WITH_FIELDS
+    statement = 'with_fields'
 
 
 class Keys(RqlMethodQuery):
-    tt = pTerm.KEYS
-    st = 'keys'
+    term_type = P_TERM.KEYS
+    statement = 'keys'
 
 
 class Values(RqlMethodQuery):
-    tt = pTerm.VALUES
-    st = 'values'
+    term_type = P_TERM.VALUES
+    statement = 'values'
 
 
 class Object(RqlMethodQuery):
-    tt = pTerm.OBJECT
-    st = 'object'
+    term_type = P_TERM.OBJECT
+    statement = 'object'
 
 
 class Pluck(RqlMethodQuery):
-    tt = pTerm.PLUCK
-    st = 'pluck'
+    term_type = P_TERM.PLUCK
+    statement = 'pluck'
 
 
 class Without(RqlMethodQuery):
-    tt = pTerm.WITHOUT
-    st = 'without'
+    term_type = P_TERM.WITHOUT
+    statement = 'without'
 
 
 class Merge(RqlMethodQuery):
-    tt = pTerm.MERGE
-    st = 'merge'
+    term_type = P_TERM.MERGE
+    statement = 'merge'
 
 
 class Between(RqlMethodQuery):
-    tt = pTerm.BETWEEN
-    st = 'between'
+    term_type = P_TERM.BETWEEN
+    statement = 'between'
 
 
 class DB(RqlTopLevelQuery):
-    tt = pTerm.DB
-    st = 'db'
+    term_type = P_TERM.DB
+    statement = 'db'
 
     def table_list(self, *args):
         return TableList(self, *args)
@@ -1190,7 +1188,7 @@ class DB(RqlTopLevelQuery):
 
 
 class FunCall(RqlQuery):
-    tt = pTerm.FUNCALL
+    term_type = P_TERM.FUNCALL
 
     # This object should be constructed with arguments first, and the
     # function itself as the last parameter.  This makes it easier for
@@ -1215,8 +1213,8 @@ class FunCall(RqlQuery):
 
 
 class Table(RqlQuery):
-    tt = pTerm.TABLE
-    st = 'table'
+    term_type = P_TERM.TABLE
+    statement = 'table'
 
     def insert(self, *args, **kwargs):
         return Insert(self, *[expr(arg) for arg in args], **kwargs)
@@ -1292,380 +1290,380 @@ class Table(RqlQuery):
 
 
 class Get(RqlMethodQuery):
-    tt = pTerm.GET
-    st = 'get'
+    term_type = P_TERM.GET
+    statement = 'get'
 
 
 class GetAll(RqlMethodQuery):
-    tt = pTerm.GET_ALL
-    st = 'get_all'
+    term_type = P_TERM.GET_ALL
+    statement = 'get_all'
 
 
 class GetIntersecting(RqlMethodQuery):
-    tt = pTerm.GET_INTERSECTING
-    st = 'get_intersecting'
+    term_type = P_TERM.GET_INTERSECTING
+    statement = 'get_intersecting'
 
 
 class GetNearest(RqlMethodQuery):
-    tt = pTerm.GET_NEAREST
-    st = 'get_nearest'
+    term_type = P_TERM.GET_NEAREST
+    statement = 'get_nearest'
 
 
 class UUID(RqlMethodQuery):
-    tt = pTerm.UUID
-    st = 'uuid'
+    term_type = P_TERM.UUID
+    statement = 'uuid'
 
 
 class Reduce(RqlMethodQuery):
-    tt = pTerm.REDUCE
-    st = 'reduce'
+    term_type = P_TERM.REDUCE
+    statement = 'reduce'
 
 
 class Sum(RqlMethodQuery):
-    tt = pTerm.SUM
-    st = 'sum'
+    term_type = P_TERM.SUM
+    statement = 'sum'
 
 
 class Avg(RqlMethodQuery):
-    tt = pTerm.AVG
-    st = 'avg'
+    term_type = P_TERM.AVG
+    statement = 'avg'
 
 
 class Min(RqlMethodQuery):
-    tt = pTerm.MIN
-    st = 'min'
+    term_type = P_TERM.MIN
+    statement = 'min'
 
 
 class Max(RqlMethodQuery):
-    tt = pTerm.MAX
-    st = 'max'
+    term_type = P_TERM.MAX
+    statement = 'max'
 
 
 class Map(RqlMethodQuery):
-    tt = pTerm.MAP
-    st = 'map'
+    term_type = P_TERM.MAP
+    statement = 'map'
 
 
 class Fold(RqlMethodQuery):
-    tt = pTerm.FOLD
-    st = 'fold'
+    term_type = P_TERM.FOLD
+    statement = 'fold'
 
 
 class Filter(RqlMethodQuery):
-    tt = pTerm.FILTER
-    st = 'filter'
+    term_type = P_TERM.FILTER
+    statement = 'filter'
 
 
 class ConcatMap(RqlMethodQuery):
-    tt = pTerm.CONCAT_MAP
-    st = 'concat_map'
+    term_type = P_TERM.CONCAT_MAP
+    statement = 'concat_map'
 
 
 class OrderBy(RqlMethodQuery):
-    tt = pTerm.ORDER_BY
-    st = 'order_by'
+    term_type = P_TERM.ORDER_BY
+    statement = 'order_by'
 
 
 class Distinct(RqlMethodQuery):
-    tt = pTerm.DISTINCT
-    st = 'distinct'
+    term_type = P_TERM.DISTINCT
+    statement = 'distinct'
 
 
 class Count(RqlMethodQuery):
-    tt = pTerm.COUNT
-    st = 'count'
+    term_type = P_TERM.COUNT
+    statement = 'count'
 
 
 class Union(RqlMethodQuery):
-    tt = pTerm.UNION
-    st = 'union'
+    term_type = P_TERM.UNION
+    statement = 'union'
 
 
 class Nth(RqlBracketQuery):
-    tt = pTerm.NTH
-    st = 'nth'
+    term_type = P_TERM.NTH
+    statement = 'nth'
 
 
 class Match(RqlMethodQuery):
-    tt = pTerm.MATCH
-    st = 'match'
+    term_type = P_TERM.MATCH
+    statement = 'match'
 
 
 class ToJsonString(RqlMethodQuery):
-    tt = pTerm.TO_JSON_STRING
-    st = 'to_json_string'
+    term_type = P_TERM.TO_JSON_STRING
+    statement = 'to_json_string'
 
 
 class Split(RqlMethodQuery):
-    tt = pTerm.SPLIT
-    st = 'split'
+    term_type = P_TERM.SPLIT
+    statement = 'split'
 
 
 class Upcase(RqlMethodQuery):
-    tt = pTerm.UPCASE
-    st = 'upcase'
+    term_type = P_TERM.UPCASE
+    statement = 'upcase'
 
 
 class Downcase(RqlMethodQuery):
-    tt = pTerm.DOWNCASE
-    st = 'downcase'
+    term_type = P_TERM.DOWNCASE
+    statement = 'downcase'
 
 
 class OffsetsOf(RqlMethodQuery):
-    tt = pTerm.OFFSETS_OF
-    st = 'offsets_of'
+    term_type = P_TERM.OFFSETS_OF
+    statement = 'offsets_of'
 
 
 class IsEmpty(RqlMethodQuery):
-    tt = pTerm.IS_EMPTY
-    st = 'is_empty'
+    term_type = P_TERM.IS_EMPTY
+    statement = 'is_empty'
 
 
 class Group(RqlMethodQuery):
-    tt = pTerm.GROUP
-    st = 'group'
+    term_type = P_TERM.GROUP
+    statement = 'group'
 
 
 class InnerJoin(RqlMethodQuery):
-    tt = pTerm.INNER_JOIN
-    st = 'inner_join'
+    term_type = P_TERM.INNER_JOIN
+    statement = 'inner_join'
 
 
 class OuterJoin(RqlMethodQuery):
-    tt = pTerm.OUTER_JOIN
-    st = 'outer_join'
+    term_type = P_TERM.OUTER_JOIN
+    statement = 'outer_join'
 
 
 class EqJoin(RqlMethodQuery):
-    tt = pTerm.EQ_JOIN
-    st = 'eq_join'
+    term_type = P_TERM.EQ_JOIN
+    statement = 'eq_join'
 
 
 class Zip(RqlMethodQuery):
-    tt = pTerm.ZIP
-    st = 'zip'
+    term_type = P_TERM.ZIP
+    statement = 'zip'
 
 
 class CoerceTo(RqlMethodQuery):
-    tt = pTerm.COERCE_TO
-    st = 'coerce_to'
+    term_type = P_TERM.COERCE_TO
+    statement = 'coerce_to'
 
 
 class Ungroup(RqlMethodQuery):
-    tt = pTerm.UNGROUP
-    st = 'ungroup'
+    term_type = P_TERM.UNGROUP
+    statement = 'ungroup'
 
 
 class TypeOf(RqlMethodQuery):
-    tt = pTerm.TYPE_OF
-    st = 'type_of'
+    term_type = P_TERM.TYPE_OF
+    statement = 'type_of'
 
 
 class Update(RqlMethodQuery):
-    tt = pTerm.UPDATE
-    st = 'update'
+    term_type = P_TERM.UPDATE
+    statement = 'update'
 
 
 class Delete(RqlMethodQuery):
-    tt = pTerm.DELETE
-    st = 'delete'
+    term_type = P_TERM.DELETE
+    statement = 'delete'
 
 
 class Replace(RqlMethodQuery):
-    tt = pTerm.REPLACE
-    st = 'replace'
+    term_type = P_TERM.REPLACE
+    statement = 'replace'
 
 
 class Insert(RqlMethodQuery):
-    tt = pTerm.INSERT
-    st = 'insert'
+    term_type = P_TERM.INSERT
+    statement = 'insert'
 
 
 class DbCreate(RqlTopLevelQuery):
-    tt = pTerm.DB_CREATE
-    st = "db_create"
+    term_type = P_TERM.DB_CREATE
+    statement = "db_create"
 
 
 class DbDrop(RqlTopLevelQuery):
-    tt = pTerm.DB_DROP
-    st = "db_drop"
+    term_type = P_TERM.DB_DROP
+    statement = "db_drop"
 
 
 class DbList(RqlTopLevelQuery):
-    tt = pTerm.DB_LIST
-    st = "db_list"
+    term_type = P_TERM.DB_LIST
+    statement = "db_list"
 
 
 class TableCreate(RqlMethodQuery):
-    tt = pTerm.TABLE_CREATE
-    st = "table_create"
+    term_type = P_TERM.TABLE_CREATE
+    statement = "table_create"
 
 
 class TableCreateTL(RqlTopLevelQuery):
-    tt = pTerm.TABLE_CREATE
-    st = "table_create"
+    term_type = P_TERM.TABLE_CREATE
+    statement = "table_create"
 
 
 class TableDrop(RqlMethodQuery):
-    tt = pTerm.TABLE_DROP
-    st = "table_drop"
+    term_type = P_TERM.TABLE_DROP
+    statement = "table_drop"
 
 
 class TableDropTL(RqlTopLevelQuery):
-    tt = pTerm.TABLE_DROP
-    st = "table_drop"
+    term_type = P_TERM.TABLE_DROP
+    statement = "table_drop"
 
 
 class TableList(RqlMethodQuery):
-    tt = pTerm.TABLE_LIST
-    st = "table_list"
+    term_type = P_TERM.TABLE_LIST
+    statement = "table_list"
 
 
 class TableListTL(RqlTopLevelQuery):
-    tt = pTerm.TABLE_LIST
-    st = "table_list"
+    term_type = P_TERM.TABLE_LIST
+    statement = "table_list"
 
 
 class SetWriteHook(RqlMethodQuery):
-    tt = pTerm.SET_WRITE_HOOK
-    st = 'set_write_hook'
+    term_type = P_TERM.SET_WRITE_HOOK
+    statement = 'set_write_hook'
 
 
 class GetWriteHook(RqlMethodQuery):
-    tt = pTerm.GET_WRITE_HOOK
-    st = 'get_write_hook'
+    term_type = P_TERM.GET_WRITE_HOOK
+    statement = 'get_write_hook'
 
 
 class IndexCreate(RqlMethodQuery):
-    tt = pTerm.INDEX_CREATE
-    st = 'index_create'
+    term_type = P_TERM.INDEX_CREATE
+    statement = 'index_create'
 
 
 class IndexDrop(RqlMethodQuery):
-    tt = pTerm.INDEX_DROP
-    st = 'index_drop'
+    term_type = P_TERM.INDEX_DROP
+    statement = 'index_drop'
 
 
 class IndexRename(RqlMethodQuery):
-    tt = pTerm.INDEX_RENAME
-    st = 'index_rename'
+    term_type = P_TERM.INDEX_RENAME
+    statement = 'index_rename'
 
 
 class IndexList(RqlMethodQuery):
-    tt = pTerm.INDEX_LIST
-    st = 'index_list'
+    term_type = P_TERM.INDEX_LIST
+    statement = 'index_list'
 
 
 class IndexStatus(RqlMethodQuery):
-    tt = pTerm.INDEX_STATUS
-    st = 'index_status'
+    term_type = P_TERM.INDEX_STATUS
+    statement = 'index_status'
 
 
 class IndexWait(RqlMethodQuery):
-    tt = pTerm.INDEX_WAIT
-    st = 'index_wait'
+    term_type = P_TERM.INDEX_WAIT
+    statement = 'index_wait'
 
 
 class Config(RqlMethodQuery):
-    tt = pTerm.CONFIG
-    st = "config"
+    term_type = P_TERM.CONFIG
+    statement = "config"
 
 
 class Status(RqlMethodQuery):
-    tt = pTerm.STATUS
-    st = "status"
+    term_type = P_TERM.STATUS
+    statement = "status"
 
 
 class Wait(RqlMethodQuery):
-    tt = pTerm.WAIT
-    st = "wait"
+    term_type = P_TERM.WAIT
+    statement = "wait"
 
 
 class Reconfigure(RqlMethodQuery):
-    tt = pTerm.RECONFIGURE
-    st = 'reconfigure'
+    term_type = P_TERM.RECONFIGURE
+    statement = 'reconfigure'
 
 
 class Rebalance(RqlMethodQuery):
-    tt = pTerm.REBALANCE
-    st = 'rebalance'
+    term_type = P_TERM.REBALANCE
+    statement = 'rebalance'
 
 
 class Sync(RqlMethodQuery):
-    tt = pTerm.SYNC
-    st = 'sync'
+    term_type = P_TERM.SYNC
+    statement = 'sync'
 
 
 class Grant(RqlMethodQuery):
-    tt = pTerm.GRANT
-    st = 'grant'
+    term_type = P_TERM.GRANT
+    statement = 'grant'
 
 
 class GrantTL(RqlTopLevelQuery):
-    tt = pTerm.GRANT
-    st = 'grant'
+    term_type = P_TERM.GRANT
+    statement = 'grant'
 
 
 class Branch(RqlTopLevelQuery):
-    tt = pTerm.BRANCH
-    st = "branch"
+    term_type = P_TERM.BRANCH
+    statement = "branch"
 
 
 class Or(RqlBoolOperQuery):
-    tt = pTerm.OR
-    st = "or_"
+    term_type = P_TERM.OR
+    statement = "or_"
     st_infix = "|"
 
 
 class And(RqlBoolOperQuery):
-    tt = pTerm.AND
-    st = "and_"
+    term_type = P_TERM.AND
+    statement = "and_"
     st_infix = "&"
 
 
 class ForEach(RqlMethodQuery):
-    tt = pTerm.FOR_EACH
-    st = 'for_each'
+    term_type = P_TERM.FOR_EACH
+    statement = 'for_each'
 
 
 class Info(RqlMethodQuery):
-    tt = pTerm.INFO
-    st = 'info'
+    term_type = P_TERM.INFO
+    statement = 'info'
 
 
 class InsertAt(RqlMethodQuery):
-    tt = pTerm.INSERT_AT
-    st = 'insert_at'
+    term_type = P_TERM.INSERT_AT
+    statement = 'insert_at'
 
 
 class SpliceAt(RqlMethodQuery):
-    tt = pTerm.SPLICE_AT
-    st = 'splice_at'
+    term_type = P_TERM.SPLICE_AT
+    statement = 'splice_at'
 
 
 class DeleteAt(RqlMethodQuery):
-    tt = pTerm.DELETE_AT
-    st = 'delete_at'
+    term_type = P_TERM.DELETE_AT
+    statement = 'delete_at'
 
 
 class ChangeAt(RqlMethodQuery):
-    tt = pTerm.CHANGE_AT
-    st = 'change_at'
+    term_type = P_TERM.CHANGE_AT
+    statement = 'change_at'
 
 
 class Sample(RqlMethodQuery):
-    tt = pTerm.SAMPLE
-    st = 'sample'
+    term_type = P_TERM.SAMPLE
+    statement = 'sample'
 
 
 class Json(RqlTopLevelQuery):
-    tt = pTerm.JSON
-    st = 'json'
+    term_type = P_TERM.JSON
+    statement = 'json'
 
 
 class Args(RqlTopLevelQuery):
-    tt = pTerm.ARGS
-    st = 'args'
+    term_type = P_TERM.ARGS
+    statement = 'args'
 
 
 # Use this class as a wrapper to 'bytes' so we can tell the difference
@@ -1687,8 +1685,8 @@ class RqlBinary(bytes):
 class Binary(RqlTopLevelQuery):
     # Note: this term isn't actually serialized, it should exist only
     # in the client
-    tt = pTerm.BINARY
-    st = 'binary'
+    term_type = P_TERM.BINARY
+    statement = 'binary'
 
     def __init__(self, data):
         # We only allow 'bytes' objects to be serialized as binary
@@ -1713,7 +1711,7 @@ class Binary(RqlTopLevelQuery):
 
     def compose(self, args, optargs):
         if len(self._args) == 0:
-            return T('r.', self.st, '(bytes(<data>))')
+            return T('r.', self.statement, '(bytes(<data>))')
         else:
             return RqlTopLevelQuery.compose(self, args, optargs)
 
@@ -1726,158 +1724,158 @@ class Binary(RqlTopLevelQuery):
 
 
 class Range(RqlTopLevelQuery):
-    tt = pTerm.RANGE
-    st = 'range'
+    term_type = P_TERM.RANGE
+    statement = 'range'
 
 
 class ToISO8601(RqlMethodQuery):
-    tt = pTerm.TO_ISO8601
-    st = 'to_iso8601'
+    term_type = P_TERM.TO_ISO8601
+    statement = 'to_iso8601'
 
 
 class During(RqlMethodQuery):
-    tt = pTerm.DURING
-    st = 'during'
+    term_type = P_TERM.DURING
+    statement = 'during'
 
 
 class Date(RqlMethodQuery):
-    tt = pTerm.DATE
-    st = 'date'
+    term_type = P_TERM.DATE
+    statement = 'date'
 
 
 class TimeOfDay(RqlMethodQuery):
-    tt = pTerm.TIME_OF_DAY
-    st = 'time_of_day'
+    term_type = P_TERM.TIME_OF_DAY
+    statement = 'time_of_day'
 
 
 class Timezone(RqlMethodQuery):
-    tt = pTerm.TIMEZONE
-    st = 'timezone'
+    term_type = P_TERM.TIMEZONE
+    statement = 'timezone'
 
 
 class Year(RqlMethodQuery):
-    tt = pTerm.YEAR
-    st = 'year'
+    term_type = P_TERM.YEAR
+    statement = 'year'
 
 
 class Month(RqlMethodQuery):
-    tt = pTerm.MONTH
-    st = 'month'
+    term_type = P_TERM.MONTH
+    statement = 'month'
 
 
 class Day(RqlMethodQuery):
-    tt = pTerm.DAY
-    st = 'day'
+    term_type = P_TERM.DAY
+    statement = 'day'
 
 
 class DayOfWeek(RqlMethodQuery):
-    tt = pTerm.DAY_OF_WEEK
-    st = 'day_of_week'
+    term_type = P_TERM.DAY_OF_WEEK
+    statement = 'day_of_week'
 
 
 class DayOfYear(RqlMethodQuery):
-    tt = pTerm.DAY_OF_YEAR
-    st = 'day_of_year'
+    term_type = P_TERM.DAY_OF_YEAR
+    statement = 'day_of_year'
 
 
 class Hours(RqlMethodQuery):
-    tt = pTerm.HOURS
-    st = 'hours'
+    term_type = P_TERM.HOURS
+    statement = 'hours'
 
 
 class Minutes(RqlMethodQuery):
-    tt = pTerm.MINUTES
-    st = 'minutes'
+    term_type = P_TERM.MINUTES
+    statement = 'minutes'
 
 
 class Seconds(RqlMethodQuery):
-    tt = pTerm.SECONDS
-    st = 'seconds'
+    term_type = P_TERM.SECONDS
+    statement = 'seconds'
 
 
 class Time(RqlTopLevelQuery):
-    tt = pTerm.TIME
-    st = 'time'
+    term_type = P_TERM.TIME
+    statement = 'time'
 
 
 class ISO8601(RqlTopLevelQuery):
-    tt = pTerm.ISO8601
-    st = 'iso8601'
+    term_type = P_TERM.ISO8601
+    statement = 'iso8601'
 
 
 class EpochTime(RqlTopLevelQuery):
-    tt = pTerm.EPOCH_TIME
-    st = 'epoch_time'
+    term_type = P_TERM.EPOCH_TIME
+    statement = 'epoch_time'
 
 
 class Now(RqlTopLevelQuery):
-    tt = pTerm.NOW
-    st = 'now'
+    term_type = P_TERM.NOW
+    statement = 'now'
 
 
 class InTimezone(RqlMethodQuery):
-    tt = pTerm.IN_TIMEZONE
-    st = 'in_timezone'
+    term_type = P_TERM.IN_TIMEZONE
+    statement = 'in_timezone'
 
 
 class ToEpochTime(RqlMethodQuery):
-    tt = pTerm.TO_EPOCH_TIME
-    st = 'to_epoch_time'
+    term_type = P_TERM.TO_EPOCH_TIME
+    statement = 'to_epoch_time'
 
 
 class GeoJson(RqlTopLevelQuery):
-    tt = pTerm.GEOJSON
-    st = 'geojson'
+    term_type = P_TERM.GEOJSON
+    statement = 'geojson'
 
 
 class ToGeoJson(RqlMethodQuery):
-    tt = pTerm.TO_GEOJSON
-    st = 'to_geojson'
+    term_type = P_TERM.TO_GEOJSON
+    statement = 'to_geojson'
 
 
 class Point(RqlTopLevelQuery):
-    tt = pTerm.POINT
-    st = 'point'
+    term_type = P_TERM.POINT
+    statement = 'point'
 
 
 class Line(RqlTopLevelQuery):
-    tt = pTerm.LINE
-    st = 'line'
+    term_type = P_TERM.LINE
+    statement = 'line'
 
 
 class Polygon(RqlTopLevelQuery):
-    tt = pTerm.POLYGON
-    st = 'polygon'
+    term_type = P_TERM.POLYGON
+    statement = 'polygon'
 
 
 class Distance(RqlMethodQuery):
-    tt = pTerm.DISTANCE
-    st = 'distance'
+    term_type = P_TERM.DISTANCE
+    statement = 'distance'
 
 
 class Intersects(RqlMethodQuery):
-    tt = pTerm.INTERSECTS
-    st = 'intersects'
+    term_type = P_TERM.INTERSECTS
+    statement = 'intersects'
 
 
 class Includes(RqlMethodQuery):
-    tt = pTerm.INCLUDES
-    st = 'includes'
+    term_type = P_TERM.INCLUDES
+    statement = 'includes'
 
 
 class Circle(RqlTopLevelQuery):
-    tt = pTerm.CIRCLE
-    st = 'circle'
+    term_type = P_TERM.CIRCLE
+    statement = 'circle'
 
 
 class Fill(RqlMethodQuery):
-    tt = pTerm.FILL
-    st = 'fill'
+    term_type = P_TERM.FILL
+    statement = 'fill'
 
 
 class PolygonSub(RqlMethodQuery):
-    tt = pTerm.POLYGON_SUB
-    st = 'polygon_sub'
+    term_type = P_TERM.POLYGON_SUB
+    statement = 'polygon_sub'
 
 
 # Returns True if IMPLICIT_VAR is found in the subquery
@@ -1902,7 +1900,7 @@ def func_wrap(val):
 
 
 class Func(RqlQuery):
-    tt = pTerm.FUNC
+    term_type = P_TERM.FUNC
     lock = threading.Lock()
     nextVarId = 1
 
@@ -1932,15 +1930,15 @@ class Func(RqlQuery):
 
 
 class Asc(RqlTopLevelQuery):
-    tt = pTerm.ASC
-    st = 'asc'
+    term_type = P_TERM.ASC
+    statement = 'asc'
 
 
 class Desc(RqlTopLevelQuery):
-    tt = pTerm.DESC
-    st = 'desc'
+    term_type = P_TERM.DESC
+    statement = 'desc'
 
 
 class Literal(RqlTopLevelQuery):
-    tt = pTerm.LITERAL
-    st = 'literal'
+    term_type = P_TERM.LITERAL
+    statement = 'literal'

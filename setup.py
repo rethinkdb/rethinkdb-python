@@ -15,25 +15,23 @@
 # This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-'''
-
-'''
 
 import setuptools
 
 try:
     import asyncio
-    conditional_packages = ['rebirthdb.asyncio_net']
-except ImportError:
-    conditional_packages = []
 
-from rebirthdb.version import version
+    CONDITIONAL_PACKAGES = ['rebirthdb.asyncio_net']
+except ImportError:
+    CONDITIONAL_PACKAGES = []
+
+from rebirthdb.version import VERSION
 
 
 setuptools.setup(
     name='rebirthdb',
     zip_safe=True,
-    version=version,
+    version=VERSION,
     description='Python driver library for the RethinkDB database server.',
     long_description=__doc__,
     url='https://github.com/RebirthDB/rebirthdb-python',
@@ -56,11 +54,11 @@ setuptools.setup(
         'rebirthdb.gevent_net',
         'rebirthdb.backports',
         'rebirthdb.backports.ssl_match_hostname'
-    ] + conditional_packages,
-    package_dir={'rebirthdb':'rebirthdb'},
-    package_data={ 'rebirthdb':['backports/ssl_match_hostname/*.txt'] },
+    ] + CONDITIONAL_PACKAGES,
+    package_dir={'rebirthdb': 'rebirthdb'},
+    package_data={'rebirthdb': ['backports/ssl_match_hostname/*.txt']},
     entry_points={
-        'console_scripts':[
+        'console_scripts': [
             'rebirthdb-import = rebirthdb._import:main',
             'rebirthdb-dump = rebirthdb._dump:main',
             'rebirthdb-export = rebirthdb._export:main',
