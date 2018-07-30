@@ -991,17 +991,17 @@ class Mod(RqlBiOperQuery):
     statement = "%"
 
 
-class BitAnd(RqlBiOperQuery):
+class BitAnd(RqlBoolOperQuery):
     term_type = P_TERM.BIT_AND
     statement = "bit_and"
 
 
-class BitOr(RqlBiOperQuery):
+class BitOr(RqlBoolOperQuery):
     term_type = P_TERM.BIT_OR
     statement = "bit_or"
 
 
-class BitXor(RqlBiOperQuery):
+class BitXor(RqlBoolOperQuery):
     term_type = P_TERM.BIT_XOR
     statement = "bit_xor"
 
@@ -1011,12 +1011,12 @@ class BitNot(RqlMethodQuery):
     statement = "bit_not"
 
 
-class BitSal(RqlBiOperQuery):
+class BitSal(RqlBoolOperQuery):
     term_type = P_TERM.BIT_SAL
     statement = "bit_sal"
 
 
-class BitSar(RqlBiOperQuery):
+class BitSar(RqlBoolOperQuery):
     term_type = P_TERM.BIT_SAR
     statement = "bit_sar"
 
