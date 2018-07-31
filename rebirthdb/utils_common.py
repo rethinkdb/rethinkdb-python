@@ -106,7 +106,7 @@ class RetryQuery(object):
                 last_error = RuntimeError("Connection error during '%s': %s" % (name, str(e)))
             # other errors immediately bubble up
 
-        else:
+        if last_error is not None:
             raise last_error
 
 
