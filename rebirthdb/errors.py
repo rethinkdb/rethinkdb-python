@@ -178,22 +178,20 @@ class ReqlAuthError(ReqlDriverError):
                 (host, port, msg))
 
 
+class _ReqlTimeoutError(ReqlDriverError):
+    def __init__(self, host=None, port=None):
+        msg = "Operation timed out."
+        if host is not None and port is not None:
+            msg = "Could not connect to {}:{}, {}".format(host, port, msg)
+        super(_ReqlTimeoutError, self).__init__(msg)
+
+
 try:
-    class ReqlTimeoutError(ReqlDriverError, TimeoutError):
-        def __init__(self, host=None, port=None):
-            if host is None or port is None:
-                super(ReqlDriverError, self).__init__("Operation timed out.")
-            else:
-                super(ReqlDriverError, self).__init__(
-                    "Could not connect to %s:%d, operation timed out." % (host, port))
+    class ReqlTimeoutError(_ReqlTimeoutError, TimeoutError):
+        pass
 except NameError:
-    class ReqlTimeoutError(ReqlDriverError):
-        def __init__(self, host=None, port=None):
-            if host is None or port is None:
-                super(ReqlDriverError, self).__init__("Operation timed out.")
-            else:
-                super(ReqlDriverError, self).__init__(
-                    "Could not connect to %s:%d, operation timed out." % (host, port))
+    class ReqlTimeoutError(_ReqlTimeoutError):
+        pass
 
 RqlTimeoutError = ReqlTimeoutError
 
