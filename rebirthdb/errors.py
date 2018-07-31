@@ -199,9 +199,9 @@ RqlTimeoutError = ReqlTimeoutError
 
 
 class QueryPrinter(object):
-    def __init__(self, root, frames=[]):
+    def __init__(self, root, frames=None):
         self.root = root
-        self.frames = frames
+        self.frames = list(frames or ())
 
     def print_query(self):
         return ''.join(self.compose_term(self.root))
