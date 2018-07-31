@@ -170,12 +170,9 @@ RqlDriverError = ReqlDriverError
 
 class ReqlAuthError(ReqlDriverError):
     def __init__(self, msg, host=None, port=None):
-        if host is None or port is None:
-            super(ReqlDriverError, self).__init__(msg)
-        else:
-            super(ReqlDriverError, self).__init__(
-                "Could not connect to %s:%d: %s" %
-                (host, port, msg))
+        if host is not None and port is not None:
+            msg = "Could not connect to {}:{}, {}".format(host, port, msg)
+        super(ReqlAuthError, self).__init__(msg)
 
 
 class _ReqlTimeoutError(ReqlDriverError):
