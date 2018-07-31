@@ -111,6 +111,9 @@ class HandshakeV1_0(object):
 
         self._protocol_version = 0
         self._random = random.SystemRandom()
+        self._r = None
+        self._client_first_message_bare = None
+        self._server_signature = None
         self._state = 0
 
     def reset(self):
