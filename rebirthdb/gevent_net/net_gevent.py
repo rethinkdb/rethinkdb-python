@@ -69,6 +69,8 @@ class GeventCursor(net.Cursor):
 
 
 # TODO: would be nice to share this code with net.py
+# TODO(grandquista): code seems to already be a duplicate of superclass
+# revisit this after testing is inplace.
 class SocketWrapper(net.SocketWrapper):
     def __init__(self, parent):
         self.host = parent._parent.host
