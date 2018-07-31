@@ -54,8 +54,8 @@ class TornadoCursor(Cursor):
         Cursor.__init__(self, *args, **kwargs)
         self.new_response = Future()
 
-    def _extend(self, res):
-        Cursor._extend(self, res)
+    def _extend(self, res_buf):
+        Cursor._extend(self, res_buf)
         self.new_response.set_result(True)
         self.new_response = Future()
 
@@ -288,26 +288,26 @@ class Connection(ConnectionBase):
         raise gen.Return(res)
 
     @gen.coroutine
-    def noreply_wait(self, *args, **kwargs):
-        res = yield ConnectionBase.noreply_wait(self, *args, **kwargs)
+    def noreply_wait(self):
+        res = yield ConnectionBase.noreply_wait(self)
         raise gen.Return(res)
 
     @gen.coroutine
-    def server(self, *args, **kwargs):
-        res = yield ConnectionBase.server(self, *args, **kwargs)
+    def server(self):
+        res = yield ConnectionBase.server(self)
         raise gen.Return(res)
 
     @gen.coroutine
-    def _start(self, *args, **kwargs):
-        res = yield ConnectionBase._start(self, *args, **kwargs)
+    def _start(self, term, **global_optargs):
+        res = yield ConnectionBase._start(self, term, **global_optargs)
         raise gen.Return(res)
 
     @gen.coroutine
-    def _continue(self, *args, **kwargs):
-        res = yield ConnectionBase._continue(self, *args, **kwargs)
+    def _continue(self, cursor):
+        res = yield ConnectionBase._continue(self, cursor)
         raise gen.Return(res)
 
     @gen.coroutine
-    def _stop(self, *args, **kwargs):
-        res = yield ConnectionBase._stop(self, *args, **kwargs)
+    def _stop(self, cursor):
+        res = yield ConnectionBase._stop(self, cursor)
         raise gen.Return(res)

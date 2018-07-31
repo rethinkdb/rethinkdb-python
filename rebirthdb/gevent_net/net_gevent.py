@@ -53,8 +53,8 @@ class GeventCursor(net.Cursor):
     def _empty_error(self):
         return GeventCursorEmpty()
 
-    def _extend(self, res):
-        super(GeventCursor, self)._extend(res)
+    def _extend(self, res_buf):
+        super(GeventCursor, self)._extend(res_buf)
         self.new_response.set()
         self.new_response.clear()
 
