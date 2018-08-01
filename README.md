@@ -1,5 +1,5 @@
 # RebirthDB Python driver
-[![Build Status](https://travis-ci.org/RebirthDB/rebirthdb-python.svg?branch=master)](https://travis-ci.org/RebirthDB/rebirthdb-python) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/2b5231a6f90a4a1ba2fc795f8466bbe4)](https://www.codacy.com/app/RebirthDB/rebirthdb-python?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=RebirthDB/rebirthdb-python&amp;utm_campaign=Badge_Grade)
+[![Build Status](https://travis-ci.org/RebirthDB/rebirthdb-python.svg?branch=master)](https://travis-ci.org/RebirthDB/rebirthdb-python) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/2b5231a6f90a4a1ba2fc795f8466bbe4)](https://www.codacy.com/app/RebirthDB/rebirthdb-python?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=RebirthDB/rebirthdb-python&amp;utm_campaign=Badge_Grade) [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/2b5231a6f90a4a1ba2fc795f8466bbe4)](https://www.codacy.com/app/RebirthDB/rebirthdb-python?utm_source=github.com&utm_medium=referral&utm_content=RebirthDB/rebirthdb-python&utm_campaign=Badge_Coverage)
 
 ## Overview
 
