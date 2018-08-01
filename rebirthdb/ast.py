@@ -1905,6 +1905,7 @@ class Func(RqlQuery):
     nextVarId = 1
 
     def __init__(self, lmbd):
+        super(Func, self).__init__()
         vrs = []
         vrids = []
         try:
@@ -1920,8 +1921,7 @@ class Func(RqlQuery):
             vrids.append(var_id)
 
         self.vrs = vrs
-        self._args = [MakeArray(*vrids), expr(lmbd(*vrs))]
-        self.optargs = {}
+        self._args.extend([MakeArray(*vrids), expr(lmbd(*vrs))])
 
     def compose(self, args, optargs):
         return T('lambda ', T(*[v.compose([v._args[0].compose(None, None)],

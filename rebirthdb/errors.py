@@ -170,38 +170,33 @@ RqlDriverError = ReqlDriverError
 
 class ReqlAuthError(ReqlDriverError):
     def __init__(self, msg, host=None, port=None):
-        if host is None or port is None:
-            super(ReqlDriverError, self).__init__(msg)
-        else:
-            super(ReqlDriverError, self).__init__(
-                "Could not connect to %s:%d: %s" %
-                (host, port, msg))
+        if host is not None and port is not None:
+            msg = "Could not connect to {}:{}, {}".format(host, port, msg)
+        super(ReqlAuthError, self).__init__(msg)
+
+
+class _ReqlTimeoutError(ReqlDriverError):
+    def __init__(self, host=None, port=None):
+        msg = "Operation timed out."
+        if host is not None and port is not None:
+            msg = "Could not connect to {}:{}, {}".format(host, port, msg)
+        super(_ReqlTimeoutError, self).__init__(msg)
 
 
 try:
-    class ReqlTimeoutError(ReqlDriverError, TimeoutError):
-        def __init__(self, host=None, port=None):
-            if host is None or port is None:
-                super(ReqlDriverError, self).__init__("Operation timed out.")
-            else:
-                super(ReqlDriverError, self).__init__(
-                    "Could not connect to %s:%d, operation timed out." % (host, port))
+    class ReqlTimeoutError(_ReqlTimeoutError, TimeoutError):
+        pass
 except NameError:
-    class ReqlTimeoutError(ReqlDriverError):
-        def __init__(self, host=None, port=None):
-            if host is None or port is None:
-                super(ReqlDriverError, self).__init__("Operation timed out.")
-            else:
-                super(ReqlDriverError, self).__init__(
-                    "Could not connect to %s:%d, operation timed out." % (host, port))
+    class ReqlTimeoutError(_ReqlTimeoutError):
+        pass
 
 RqlTimeoutError = ReqlTimeoutError
 
 
 class QueryPrinter(object):
-    def __init__(self, root, frames=[]):
+    def __init__(self, root, frames=None):
         self.root = root
-        self.frames = frames
+        self.frames = list(frames or ())
 
     def print_query(self):
         return ''.join(self.compose_term(self.root))

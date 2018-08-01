@@ -53,8 +53,8 @@ class GeventCursor(net.Cursor):
     def _empty_error(self):
         return GeventCursorEmpty()
 
-    def _extend(self, res):
-        super(GeventCursor, self)._extend(res)
+    def _extend(self, res_buf):
+        super(GeventCursor, self)._extend(res_buf)
         self.new_response.set()
         self.new_response.clear()
 
@@ -69,6 +69,8 @@ class GeventCursor(net.Cursor):
 
 
 # TODO: would be nice to share this code with net.py
+# TODO(grandquista): code seems to already be a duplicate of superclass
+# revisit this after testing is inplace.
 class SocketWrapper(net.SocketWrapper):
     def __init__(self, parent):
         self.host = parent._parent.host

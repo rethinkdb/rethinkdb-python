@@ -190,8 +190,8 @@ class TwistedCursor(Cursor):
         super(TwistedCursor, self).__init__(*args, **kwargs)
         self.waiting = list()
 
-    def _extend(self, res):
-        Cursor._extend(self, res)
+    def _extend(self, res_buf):
+        Cursor._extend(self, res_buf)
 
         if self.error is not None:
             self.items.cancel_getters(self.error)
@@ -403,26 +403,26 @@ class Connection(ConnectionBase):
         returnValue(res)
 
     @inlineCallbacks
-    def noreply_wait(self, *args, **kwargs):
-        res = yield super(Connection, self).noreply_wait(*args, **kwargs)
+    def noreply_wait(self):
+        res = yield super(Connection, self).noreply_wait()
         returnValue(res)
 
     @inlineCallbacks
-    def server(self, *args, **kwargs):
-        res = yield super(Connection, self).server(*args, **kwargs)
+    def server(self):
+        res = yield super(Connection, self).server()
         returnValue(res)
 
     @inlineCallbacks
-    def _start(self, *args, **kwargs):
-        res = yield super(Connection, self)._start(*args, **kwargs)
+    def _start(self, term, **global_optargs):
+        res = yield super(Connection, self)._start(term, **global_optargs)
         returnValue(res)
 
     @inlineCallbacks
-    def _continue(self, *args, **kwargs):
-        res = yield super(Connection, self)._continue(*args, **kwargs)
+    def _continue(self, cursor):
+        res = yield super(Connection, self)._continue(cursor)
         returnValue(res)
 
     @inlineCallbacks
-    def _stop(self, *args, **kwargs):
-        res = yield super(Connection, self)._stop(*args, **kwargs)
+    def _stop(self, cursor):
+        res = yield super(Connection, self)._stop(cursor)
         returnValue(res)

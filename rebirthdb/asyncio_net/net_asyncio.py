@@ -111,8 +111,8 @@ class AsyncioCursor(Cursor):
                 self.outstanding_requests += 1
                 yield from self.conn._parent._stop(self)
 
-    def _extend(self, res):
-        Cursor._extend(self, res)
+    def _extend(self, res_buf):
+        Cursor._extend(self, res_buf)
         self.new_response.set_result(True)
         self.new_response = asyncio.Future()
 
@@ -356,7 +356,7 @@ class Connection(ConnectionBase):
         return (yield from self._instance.connect(timeout))
 
     @asyncio.coroutine
-    def close(self, *args, **kwargs):
+    def close(self, noreply_wait=True):
         if self._instance is None:
             return None
-        return (yield from ConnectionBase.close(self, *args, **kwargs))
+        return (yield from ConnectionBase.close(self, noreply_wait=noreply_wait))
