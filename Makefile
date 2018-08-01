@@ -51,8 +51,7 @@ test-integration:
 	pytest -m integration
 
 upload-coverage:
-	pytest -m unit --cov rebirthdb --cov-report xml
-	python-codacy-coverage -r coverage.xml
+	@sh scripts/upload-coverage.sh
 
 clean:
 	@rm -rf \
@@ -77,4 +76,3 @@ package: prepare
 
 publish:
 	cd ${BUILD_DIR} && python ./setup.py register upload
-
