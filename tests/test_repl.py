@@ -8,7 +8,7 @@ class TestREPL(IntegrationTestCaseBase):
 
     def setup_method(self):
         super(TestREPL, self).setup_method()
-        self.conn = self.r.connect().repl()
+        self.conn = self.conn.repl()
 
     def test_repl_does_not_require_conn(self):
         databases = self.r.db_list().run()
