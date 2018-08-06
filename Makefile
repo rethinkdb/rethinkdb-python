@@ -26,6 +26,9 @@ TARGET_PROTO_FILE = ${PACKAGE_NAME}/${PROTO_FILE_NAME}
 FILE_CONVERTER_NAME = convert_protofile.py
 FILE_CONVERTER_URL = https://raw.githubusercontent.com/RebirthDB/rebirthdb/next/scripts/${FILE_CONVERTER_NAME}
 
+REMOTE_TEST_SETUP_NAME = prepare_remote_test.py
+REMOTE_TEST_SETUP_URL = https://raw.githubusercontent.com/RebirthDB/rebirthdb/next/scripts/${REMOTE_TEST_SETUP_NAME}
+
 CONVERTED_PROTO_FILE_NAME = ql2_pb2.py
 TARGET_CONVERTED_PROTO_FILE = ${PACKAGE_NAME}/${CONVERTED_PROTO_FILE_NAME}
 
@@ -48,7 +51,8 @@ test-unit:
 	pytest -m unit
 
 test-integration:
-	pytest -m integration
+	curl -qo ${REMOTE_TEST_SETUP_NAME} ${REMOTE_TEST_SETUP_URL}
+	python ${REMOTE_TEST_SETUP_NAME} pytest -m integration
 
 upload-coverage:
 	@sh scripts/upload-coverage.sh
