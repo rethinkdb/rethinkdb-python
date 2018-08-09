@@ -32,6 +32,7 @@ r = RebirthDB()
 connection = r.connect(db='test')
 
 r.table_create('marvel').run(connection)
+
 marvel_heroes = r.table('marvel')
 marvel_heroes.insert({
     'id': 1,
@@ -44,7 +45,40 @@ for hero in marvel_heroes.run(connection):
 ```
 
 ## Run tests
-To ensure python driver works with python 2.7, 3.4, 3.5, 3.6 we are using `tox` and `pytest`. For testing (depending on what you would like to test) you can run `tox` or `pytest`.
+In the `Makefile` you can find three different test commands: `test-unit`, `test-integration` and `test-remote`. As RebirthDB dropping the support of Windows, we would like to ensure that those of us who are using Windows for development can still contribute. Because of this, we support running integration tests against Digital Ocean Droplets as well.
+
+Before you run any test, make sure that you install the requirements.
+```bash
+$ pip install -r requirements.txt
+```
+
+### Running unit tests
+```bash
+$ make test-unit
+```
+
+### Running integration tests
+*To run integration tests locally, make sure you intstalled RebirthDB*
+```bash
+$ make test-integration
+```
+
+### Running remote integration tests
+*To run the remote tests, you need to have a Digital Ocean account and an API key.*
+
+Remote test will create a new temporary SSH key and a Droplet for you until the tests are finished.
+
+**Available environment variables**
+| Variable name | Default value |
+|---------------|---------------|
+| DO_TOKEN      | N/A           |
+| DO_SIZE       | 512MB         |
+| DO_REGION     | sfo2          |
+
+```bash
+$ export DO_TOKEN=<YOUR_TOKEN>
+$ make test-remote
+```
 
 ## New features
 Github's Issue tracker is **ONLY** used for reporting bugs. NO NEW FEATURE ACCEPTED! Use [spectrum](https://spectrum.chat/rebirthdb) for supporting features.
