@@ -41,6 +41,7 @@ help:
 	@echo "	make help				Print this help message"
 	@echo "	make test-unit			Run unit tests"
 	@echo "	make test-integration	Run integration tests"
+	@echo "	make test-remote		Run tests on digital ocean"
 	@echo "	make upload-coverage	Upload unit test coverage"
 	@echo "	make clean				Cleanup source directory"
 	@echo "	make prepare			Prepare ${PACKAGE_NAME} for build"
@@ -51,7 +52,9 @@ test-unit:
 	pytest -m unit
 
 test-integration:
-	curl -qo ${REMOTE_TEST_SETUP_NAME} ${REMOTE_TEST_SETUP_URL}
+	pytest -m integration
+
+test-remote: prepare
 	python ${REMOTE_TEST_SETUP_NAME} pytest -m integration
 
 upload-coverage:
@@ -71,6 +74,7 @@ clean:
 prepare:
 	curl -qo ${TARGET_PROTO_FILE} ${PROTO_FILE_URL}
 	curl -qo ${FILE_CONVERTER_NAME} ${FILE_CONVERTER_URL}
+	curl -qo ${REMOTE_TEST_SETUP_NAME} ${REMOTE_TEST_SETUP_URL}
 	python ./${FILE_CONVERTER_NAME} -l python -i ${TARGET_PROTO_FILE} -o ${TARGET_CONVERTED_PROTO_FILE}
 	rsync -av ./ ${BUILD_DIR} --filter=':- .gitignore'
 	cp ${TARGET_PROTO_FILE} ${BUILD_DIR}/${PACKAGE_NAME}
