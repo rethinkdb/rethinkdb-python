@@ -52,7 +52,7 @@ test-unit:
 	pytest -m unit
 
 test-integration:
-	python pytest -m integration
+	pytest -m integration
 
 test-remote: prepare
 	python ${REMOTE_TEST_SETUP_NAME} pytest -m integration

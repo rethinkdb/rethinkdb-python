@@ -45,7 +45,7 @@ for hero in marvel_heroes.run(connection):
 ```
 
 ## Run tests
-In the `Makefile` you can find three different test commands: `test-unit`, `test-integration` and `test-remote`. As RebirthDB dropping the support of Windows, we would like to ensure that those of us who are using Windows for development can still contribute. Because of this, we support running integration tests against Digital Ocean Droplets as well.
+In the `Makefile` you can find three different test commands: `test-unit`, `test-integration` and `test-remote`. As RebirthDB has dropped the support of Windows, we would like to ensure that those of us who are using Windows for development can still contribute. Because of this, we support running integration tests against Digital Ocean Droplets as well.
 
 Before you run any test, make sure that you install the requirements.
 ```bash
