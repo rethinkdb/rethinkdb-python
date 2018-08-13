@@ -69,6 +69,7 @@ $ make test-integration
 Remote test will create a new temporary SSH key and a Droplet for you until the tests are finished.
 
 **Available environment variables**
+
 | Variable name | Default value |
 |---------------|---------------|
 | DO_TOKEN      | N/A           |
