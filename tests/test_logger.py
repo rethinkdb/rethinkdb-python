@@ -10,6 +10,18 @@ class TestDriverLogger(object):
     driver_logger = DriverLogger(logging.DEBUG)
     logger = logging.getLogger()
 
+    def test_converter(self):
+        expected_message = 'converted message'
+
+        message_types = [
+            Exception(expected_message),
+            expected_message
+        ]
+
+        for message in message_types:
+            converted_message = self.driver_logger._convert_message(message)
+            assert converted_message == expected_message
+
     def test_log_debug(self):
         expected_message = 'debug message'
 
@@ -38,13 +50,16 @@ class TestDriverLogger(object):
             self.driver_logger.error(expected_message)
             mock_error.assert_called_once_with(expected_message)
 
-    def test_log_exception(self):
+    @patch('rebirthdb.logger.DriverLogger._convert_message')
+    def test_log_exception(self, mock_converter):
         expected_message = 'exception message'
+        mock_converter.return_value = expected_message
 
         with patch.object(self.logger, 'exception') as mock_exception:
             try:
                 raise Exception(expected_message)
-            except Exception as e:
-                self.driver_logger.exception(str(e))
+            except Exception as exc:
+                self.driver_logger.exception(exc)
 
+            mock_converter.assert_called_once_with(exc)
             mock_exception.assert_called_once_with(expected_message)

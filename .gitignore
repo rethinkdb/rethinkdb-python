@@ -66,6 +66,7 @@ virtualenv/
 
 # RebirthDB
 convert_protofile.py
+prepare_remote_test.py
 rebirthdb/ql2_pb2.py
 rebirthdb/*.proto
 
