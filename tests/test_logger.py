@@ -53,13 +53,14 @@ class TestDriverLogger(object):
     @patch('rebirthdb.logger.DriverLogger._convert_message')
     def test_log_exception(self, mock_converter):
         expected_message = 'exception message'
+        expected_exception = Exception(expected_message)
         mock_converter.return_value = expected_message
 
         with patch.object(self.logger, 'exception') as mock_exception:
             try:
-                raise Exception(expected_message)
+                raise expected_exception
             except Exception as exc:
                 self.driver_logger.exception(exc)
 
-            mock_converter.assert_called_once_with(exc)
+            mock_converter.assert_called_once_with(expected_exception)
             mock_exception.assert_called_once_with(expected_message)
