@@ -40,6 +40,19 @@ class DriverLogger(object):
         self.log = logging.getLogger()
         self.log.setLevel(level)
 
+    @staticmethod
+    def _convert_message(message):
+        """
+        Convert any message to string.
+
+        :param message: Message to log
+        :type message: any
+        :return: String representation of the message
+        :rtype: str
+        """
+
+        return str(message)
+
     def debug(self, message):
         """
         Log debug messages.
@@ -93,7 +106,7 @@ class DriverLogger(object):
         :rtype: None
         """
 
-        self.log.exception(message)
+        self.log.exception(self._convert_message(message))
 
 
 default_logger = DriverLogger()
