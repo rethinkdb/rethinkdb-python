@@ -143,6 +143,8 @@ class Response(object):
 #     Exception - an error has occurred in the cursor and should be raised
 #         to the user once all results in `items` have been returned.  This
 #         will be a ReqlCursorEmpty exception if the cursor completed successfully.
+#         TODO @gabor-boros: We should not set the `errors` to ReqlCursorEmpty, due
+#         to it is not an error but a success state.
 #
 # A class that derives from this should implement the following functions:
 #     def _get_next(self, timeout):
