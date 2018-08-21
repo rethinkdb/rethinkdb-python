@@ -4,6 +4,9 @@ import pytest
 from tests.helpers import IntegrationTestCaseBase
 
 
+BAD_PASSWORD = "0xDEADBEEF"
+
+
 @pytest.mark.integration
 class TestPing(IntegrationTestCaseBase):
     def teardown_method(self):
@@ -15,12 +18,13 @@ class TestPing(IntegrationTestCaseBase):
 
     def test_bad_password(self):
         with pytest.raises(self.r.ReqlAuthError):
-            self.r.connect(password="0xDEADBEEF", host=self.rebirthdb_host)
+            self.r.connect(password=BAD_PASSWORD, host=self.rebirthdb_host)
 
     def test_password_connect(self):
+        new_user = "user"
         with self.r.connect(user="admin", password="", host=self.rebirthdb_host) as conn:
             curr = self.r.db("rethinkdb").table("users").insert(
-                {"id": "user", "password": "0xDEADBEEF"}
+                {"id": new_user, "password": BAD_PASSWORD}
             ).run(conn)
             assert curr == {
                 'deleted': 0,
