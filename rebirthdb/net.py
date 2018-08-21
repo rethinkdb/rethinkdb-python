@@ -400,10 +400,10 @@ class SocketWrapper(object):
             try:
                 self._socket.shutdown(socket.SHUT_RDWR)
                 self._socket.close()
-            except ReqlError as ex:
-                default_logger.error(ex.message)
-            except Exception as ex:
-                default_logger.error(ex)
+            except ReqlError as exc:
+                default_logger.error(exc.message)
+            except Exception as exc:
+                default_logger.error(exc)
             finally:
                 self._socket = None
 
