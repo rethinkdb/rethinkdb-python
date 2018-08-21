@@ -6,10 +6,6 @@ from tests.helpers import IntegrationTestCaseBase
 
 @pytest.mark.integration
 class TestPing(IntegrationTestCaseBase):
-    def setup_method(self):
-        super(TestPing, self).setup_method()
-        self.rebirthdb_host=os.getenv('REBIRTHDB_HOST')
-
     def teardown_method(self):
         with self.r.connect(host=self.rebirthdb_host) as conn:
             curr = self.r.db("rethinkdb").table("users").filter(
