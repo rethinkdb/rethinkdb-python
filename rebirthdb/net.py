@@ -29,9 +29,22 @@ import time
 
 from rebirthdb import ql2_pb2
 from rebirthdb.ast import DB, ReQLDecoder, ReQLEncoder, Repl, expr
-from rebirthdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlInternalError, ReqlNonExistenceError,\
-    ReqlOpFailedError, ReqlOpIndeterminateError, ReqlPermissionError, ReqlQueryLogicError, ReqlResourceLimitError,\
-    ReqlRuntimeError, ReqlServerCompileError, ReqlTimeoutError, ReqlUserError
+from rebirthdb.errors import (
+    ReqlAuthError,
+    ReqlCursorEmpty,
+    ReqlDriverError,
+    ReqlError,
+    ReqlInternalError,
+    ReqlNonExistenceError,
+    ReqlOpFailedError,
+    ReqlOpIndeterminateError,
+    ReqlPermissionError,
+    ReqlQueryLogicError,
+    ReqlResourceLimitError,
+    ReqlRuntimeError,
+    ReqlServerCompileError,
+    ReqlTimeoutError,
+    ReqlUserError)
 from rebirthdb.handshake import HandshakeV0_4, HandshakeV1_0
 from rebirthdb.logger import default_logger
 
@@ -389,8 +402,10 @@ class SocketWrapper(object):
             try:
                 self._socket.shutdown(socket.SHUT_RDWR)
                 self._socket.close()
-            except Exception as ex:
-                default_logger.error(ex.message)
+            except ReqlError as exc:
+                default_logger.error(exc.message)
+            except Exception as exc:
+                default_logger.error(exc)
             finally:
                 self._socket = None
 

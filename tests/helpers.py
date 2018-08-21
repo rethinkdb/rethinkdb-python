@@ -11,10 +11,12 @@ class IntegrationTestCaseBase(object):
 
     def connect(self):
         self.conn = self.r.connect(
-            host=os.getenv('REBIRTHDB_HOST')
+            host=self.rebirthdb_host
         )
 
     def setup_method(self):
+        self.rebirthdb_host=os.getenv('REBIRTHDB_HOST')
+
         self.connect()
 
         if INTEGRATION_TEST_DB not in self.r.db_list().run(self.conn):
