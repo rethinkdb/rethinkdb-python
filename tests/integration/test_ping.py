@@ -8,10 +8,9 @@ from tests.helpers import IntegrationTestCaseBase
 class TestPing(IntegrationTestCaseBase):
     def teardown_method(self):
         with self.r.connect(host=self.rebirthdb_host) as conn:
-            curr = self.r.db("rethinkdb").table("users").filter(
+            self.r.db("rethinkdb").table("users").filter(
                 self.r.row["id"].ne("admin")
             ).delete().run(conn)
-            assert list(curr)
         super(TestPing, self).teardown_method()
 
     def test_bad_password(self):
@@ -30,21 +29,20 @@ class TestPing(IntegrationTestCaseBase):
                 'replaced': 0,
                 'skipped': 0,
                 'unchanged': 0}
-            curr = self.r.db("rethinkdb").grant("user", {"read": True}).run(conn)
+            curr = self.r.db("rethinkdb").grant(new_user, {"read": True}).run(conn)
             assert curr == {
                 'granted': 1,
                 'permissions_changes': [
                     {
                         'new_val': {'read': True},
                         'old_val': None}]}
-        with self.r.connect(user="user", password="0xDEADBEEF", host=self.rebirthdb_host) as conn:
+        with self.r.connect(user=new_user, password=BAD_PASSWORD, host=self.rebirthdb_host) as conn:
             curr = self.r.db("rethinkdb").table("users").get("admin").run(conn)
             assert curr == {'id': 'admin', 'password': False}
             with pytest.raises(self.r.ReqlPermissionError):
-                curr = self.r.db("rethinkdb").table("users").insert(
+                self.r.db("rethinkdb").table("users").insert(
                     {"id": "bob", "password": ""}
                 ).run(conn)
-                assert curr is False
 
     def test_context_manager(self):
         with self.r.connect(host=self.rebirthdb_host) as conn:
