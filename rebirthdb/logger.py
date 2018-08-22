@@ -18,6 +18,7 @@ Wrap logging package to not repeat general logging steps.
 
 
 import logging
+import sys
 
 
 class DriverLogger(object):
@@ -37,8 +38,10 @@ class DriverLogger(object):
         log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         logging.basicConfig(format=log_format)
 
-        self.log = logging.getLogger()
-        self.log.setLevel(level)
+        self.logger = logging.getLogger()
+        self.logger.setLevel(level)
+
+        self.write_to_console = False
 
     @staticmethod
     def _convert_message(message):
@@ -53,6 +56,17 @@ class DriverLogger(object):
 
         return str(message)
 
+    def _print_message(self, level, message):
+        if self.write_to_console:
+            if level <= logging.WARNING:
+                sys.stdout.write(message)
+            else:
+                sys.stderr.write(message)
+
+    def _log(self, level, message, *args, **kwargs):
+        self._print_message(level, message)
+        self.logger.log(level, message, args, kwargs)
+
     def debug(self, message):
         """
         Log debug messages.
@@ -62,7 +76,7 @@ class DriverLogger(object):
         :rtype: None
         """
 
-        self.log.debug(message)
+        self._log(logging.DEBUG, message)
 
     def info(self, message):
         """
@@ -73,7 +87,7 @@ class DriverLogger(object):
         :rtype: None
         """
 
-        self.log.info(message)
+        self._log(logging.INFO, message)
 
     def warning(self, message):
         """
@@ -84,7 +98,7 @@ class DriverLogger(object):
         :rtype: None
         """
 
-        self.log.warning(message)
+        self._log(logging.WARNING, message)
 
     def error(self, message):
         """
@@ -95,7 +109,7 @@ class DriverLogger(object):
         :rtype: None
         """
 
-        self.log.error(message)
+        self._log(logging.ERROR, message)
 
     def exception(self, message):
         """
@@ -106,7 +120,7 @@ class DriverLogger(object):
         :rtype: None
         """
 
-        self.log.exception(self._convert_message(message))
+        self._log(logging.ERROR, self._convert_message(message), exc_info=1)
 
 
 default_logger = DriverLogger()
