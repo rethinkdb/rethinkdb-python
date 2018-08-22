@@ -47,3 +47,14 @@ class TestCursorFor(IntegrationTestCaseBase):
 
         with pytest.raises(ReqlRuntimeError):
             self.r.db_drop(self.test_db_name).run(self.conn)
+
+    def test_db_list(self):
+        expected_result = [
+            INTEGRATION_TEST_DB,
+            'rethinkdb',
+            'test'
+        ]
+
+        result = self.r.db_list().run(self.conn)
+
+        assert sorted(result) == sorted(expected_result)
