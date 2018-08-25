@@ -56,13 +56,15 @@ class DriverLogger(object):
 
         return str(message)
 
-    def _log(self, level, message, *args, **kwargs):
+    def _print_message(self, level, message):
         if self.write_to_console:
             if level <= logging.WARNING:
                 sys.stdout.write(message)
             else:
                 sys.stderr.write(message)
 
+    def _log(self, level, message, *args, **kwargs):
+        self._print_message(level, message)
         self.logger.log(level, message, args, kwargs)
 
     def debug(self, message):
