@@ -12,7 +12,6 @@ class TestTable(IntegrationTestCaseBase):
 
     def test_table_create(self):
         result = self.r.table_create(self.test_table_name).run(self.conn)
-        self.r.table_drop(self.test_table_name).run(self.conn)
 
         assert result['tables_created'] == 1
         assert len(result['config_changes']) == 1
@@ -28,7 +27,6 @@ class TestTable(IntegrationTestCaseBase):
         expected_primary_key = 'bazinga'
 
         result = self.r.table_create(self.test_table_name, primary_key=expected_primary_key).run(self.conn)
-        self.r.table_drop(self.test_table_name).run(self.conn)
 
         assert result['tables_created'] == 1
         assert len(result['config_changes']) == 1
@@ -38,7 +36,6 @@ class TestTable(IntegrationTestCaseBase):
         expected_shards = 2
 
         result = self.r.table_create(self.test_table_name, shards=expected_shards).run(self.conn)
-        self.r.table_drop(self.test_table_name).run(self.conn)
 
         assert result['tables_created'] == 1
         assert len(result['config_changes']) == 1
@@ -48,7 +45,6 @@ class TestTable(IntegrationTestCaseBase):
         expected_replicas = 1
 
         result = self.r.table_create(self.test_table_name, replicas=expected_replicas).run(self.conn)
-        self.r.table_drop(self.test_table_name).run(self.conn)
 
         assert result['tables_created'] == 1
         assert len(result['config_changes']) == 1
@@ -66,8 +62,6 @@ class TestTable(IntegrationTestCaseBase):
 
         with pytest.raises(ReqlRuntimeError):
             self.r.table_create(self.test_table_name).run(self.conn)
-
-        self.r.table_drop(self.test_table_name).run(self.conn)
 
     def test_table_drop(self):
         self.r.table_create(self.test_table_name).run(self.conn)

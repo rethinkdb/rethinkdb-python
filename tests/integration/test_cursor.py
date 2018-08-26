@@ -1,7 +1,7 @@
 import pytest
 
 from rebirthdb.errors import ReqlCursorEmpty
-from tests.helpers import IntegrationTestCaseBase, INTEGRATION_TEST_DB
+from tests.helpers import IntegrationTestCaseBase
 
 
 @pytest.mark.integration
@@ -17,10 +17,6 @@ class TestCursor(IntegrationTestCaseBase):
             {'id': 4, 'name': 'Testing Cursor/Next 4'},
             {'id': 5, 'name': 'Testing Cursor/Next 5'},
         ]
-
-    def teardown_method(self):
-        self.r.table_drop(self.table_name).run(self.conn)
-        super(TestCursor, self).teardown_method()
 
     def test_get_next_document(self):
         self.r.table(self.table_name).insert(self.documents).run(self.conn)
