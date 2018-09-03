@@ -10,9 +10,6 @@ class TestDatabase(IntegrationTestCaseBase):
         super(TestDatabase, self).setup_method()
         self.test_db_name = 'test_database'
 
-    def teardown_method(self):
-        self.conn.close()
-
     def test_db_create(self):
         result = self.r.db_create(self.test_db_name).run(self.conn)
         self.r.db_drop(self.test_db_name).run(self.conn)
