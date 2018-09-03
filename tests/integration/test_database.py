@@ -5,9 +5,9 @@ from tests.helpers import IntegrationTestCaseBase, INTEGRATION_TEST_DB
 
 
 @pytest.mark.integration
-class TestCursorFor(IntegrationTestCaseBase):
+class TestDatabase(IntegrationTestCaseBase):
     def setup_method(self):
-        super(TestCursorFor, self).setup_method()
+        super(TestDatabase, self).setup_method()
         self.test_db_name = 'test_database'
 
     def test_db_create(self):
