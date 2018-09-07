@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -23,11 +23,11 @@ import code
 import sys
 import traceback
 
-from rebirthdb import errors, net, utils_common
+from rethinkdb import errors, net, utils_common
 
 
 def startInterpreter(argv=None, prog=None):
-    repl_variables = {'r': net.Connection._r, 'rebirthdb': net.Connection._r}
+    repl_variables = {'r': net.Connection._r, 'rethinkdb': net.Connection._r}
     banner = 'The RethinkDB driver has been imported as `r`.'
 
     # -- get host/port setup
@@ -60,7 +60,7 @@ def startInterpreter(argv=None, prog=None):
 
 if __name__ == '__main__':
     if __package__ is None:
-        __package__ = 'rebirthdb'
+        __package__ = 'rethinkdb'
 
     # -- figure out which mode we are in
     modes = ['dump', 'export', 'import', 'index_rebuild', 'repl', 'restore']
@@ -69,7 +69,7 @@ if __name__ == '__main__':
         sys.exit('ERROR: Must be called with one of the following verbs: %s' % ', '.join(modes))
 
     verb = sys.argv[1]
-    prog = 'python -m rebirthdb'
+    prog = 'python -m rethinkdb'
     if sys.version_info < (2, 7) or (sys.version_info >= (3, 0) and sys.version_info < (3, 4)):
         prog += '.__main__'  # Python versions 2.6, 3.0, 3.1 and 3.3 do not support running packages
     prog += ' ' + verb

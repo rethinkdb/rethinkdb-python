@@ -1,4 +1,4 @@
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -27,9 +27,9 @@ import ssl
 import struct
 import time
 
-from rebirthdb import ql2_pb2
-from rebirthdb.ast import DB, ReQLDecoder, ReQLEncoder, Repl, expr
-from rebirthdb.errors import (
+from rethinkdb import ql2_pb2
+from rethinkdb.ast import DB, ReQLDecoder, ReQLEncoder, Repl, expr
+from rethinkdb.errors import (
     ReqlAuthError,
     ReqlCursorEmpty,
     ReqlDriverError,
@@ -45,8 +45,8 @@ from rebirthdb.errors import (
     ReqlServerCompileError,
     ReqlTimeoutError,
     ReqlUserError)
-from rebirthdb.handshake import HandshakeV0_4, HandshakeV1_0
-from rebirthdb.logger import default_logger
+from rethinkdb.handshake import HandshakeV0_4, HandshakeV1_0
+from rethinkdb.logger import default_logger
 
 __all__ = ['connect', 'set_loop_type', 'Connection', 'Cursor', 'DEFAULT_PORT']
 
@@ -750,7 +750,7 @@ def set_loop_type(library):
     modulePath = manager.resource_filename(__name__, libPath)
     moduleName = 'net_%s' % library
     moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
-    module = imp.load_module('rebirthdb.' + moduleName, moduleFile, pathName, desc)
+    module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
 
     # set the connection type
     connection_type = module.Connection

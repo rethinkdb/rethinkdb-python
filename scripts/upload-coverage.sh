@@ -4,5 +4,5 @@ if [ "${TRAVIS_PULL_REQUEST}" != "" ]; then
         exit;
     fi
 fi
-pytest -m unit --cov rebirthdb --cov-report xml
+pytest -m unit --cov rethinkdb --cov-report xml
 python-codacy-coverage -r coverage.xml

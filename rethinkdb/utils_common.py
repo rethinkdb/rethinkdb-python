@@ -1,4 +1,4 @@
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import re
 import sys
 import threading
 
-from rebirthdb import ast, errors, net, query, version
+from rethinkdb import ast, errors, net, query, version
 
 default_batch_size = 200
 
@@ -127,9 +127,9 @@ def print_progress(ratio, indent=0, read=None, write=None):
 def check_minimum_version(options, minimum_version='1.6'):
     minimum_version = distutils.version.LooseVersion(minimum_version)
     version_string = options.retryQuery('get server version', query.db(
-        'rebirthdb').table('server_status')[0]['process']['version'])
+        'rethinkdb').table('server_status')[0]['process']['version'])
 
-    matches = re.match(r'rebirthdb (?P<version>(\d+)\.(\d+)\.(\d+)).*', version_string)
+    matches = re.match(r'rethinkdb (?P<version>(\d+)\.(\d+)\.(\d+)).*', version_string)
 
     if not matches:
         raise RuntimeError("invalid version string format: %s" % version_string)
@@ -167,8 +167,8 @@ class CommonOptionsParser(optparse.OptionParser, object):
 
             if not res:
                 raise optparse.OptionValueError('Invalid db or db.table name: %s' % value)
-            if res.group('db') == 'rebirthdb':
-                raise optparse.OptionValueError('The `rebirthdb` database is special and cannot be used here')
+            if res.group('db') == 'rethinkdb':
+                raise optparse.OptionValueError('The `rethinkdb` database is special and cannot be used here')
 
             return DbTable(res.group('db'), res.group('table'))
 
@@ -283,7 +283,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             '--connect',
             dest='driver_port',
             metavar='HOST:PORT',
-            help='host and client port of a rebirthdb node to connect (default: localhost:%d)' %
+            help='host and client port of a rethinkdb node to connect (default: localhost:%d)' %
             net.DEFAULT_PORT,
             action='callback',
             callback=combined_connect_action,
@@ -292,7 +292,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             '--driver-port',
             dest='driver_port',
             metavar='PORT',
-            help='driver port of a rebirthdb server',
+            help='driver port of a rethinkdb server',
             type='int',
             default=os.environ.get(
                 'REBIRTHDB_DRIVER_PORT',
@@ -301,7 +301,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             '--host-name',
             dest='hostname',
             metavar='HOST',
-            help='host and driver port of a rebirthdb server',
+            help='host and driver port of a rethinkdb server',
             default=os.environ.get(
                 'REBIRTHDB_HOSTNAME',
                 'localhost'))

@@ -1,4 +1,4 @@
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from rebirthdb import errors, version
+from rethinkdb import errors, version
 
 
 # The builtins here defends against re-importing something obscuring `object`.
@@ -22,15 +22,15 @@ except ImportError:
     import builtins  # Python 3
 
 
-__all__ = ['RebirthDB'] + errors.__all__
+__all__ = ['RethinkDB'] + errors.__all__
 __version__ = version.VERSION
 
 
-class RebirthDB(builtins.object):
+class RethinkDB(builtins.object):
     def __init__(self):
-        super(RebirthDB, self).__init__()
+        super(RethinkDB, self).__init__()
 
-        from rebirthdb import _dump, _export, _import, _index_rebuild, _restore, ast, query, net
+        from rethinkdb import _dump, _export, _import, _index_rebuild, _restore, ast, query, net
 
         self._dump = _dump
         self._export = _export

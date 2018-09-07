@@ -1,12 +1,12 @@
 import os
-from rebirthdb import RebirthDB
+from rethinkdb import RethinkDB
 
 
 INTEGRATION_TEST_DB = 'integration_test'
 
 
 class IntegrationTestCaseBase(object):
-    r = RebirthDB()
+    r = RethinkDB()
     conn = None
 
     def connect(self):

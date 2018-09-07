@@ -64,11 +64,11 @@ env.bak/
 venv.bak/
 virtualenv/
 
-# RebirthDB
+# RethinkDB
 convert_protofile.py
 prepare_remote_test.py
-rebirthdb/ql2_pb2.py
-rebirthdb/*.proto
+rethinkdb/ql2_pb2.py
+rethinkdb/*.proto
 
 # Editors
 .vscode/

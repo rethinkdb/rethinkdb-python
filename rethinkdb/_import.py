@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 # This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-'''`rebirthdb import` loads data into a RethinkDB cluster'''
+'''`rethinkdb import` loads data into a RethinkDB cluster'''
 
 from __future__ import print_function
 
@@ -35,8 +35,8 @@ import time
 import traceback
 from multiprocessing.queues import Queue, SimpleQueue
 
-from rebirthdb import ast, errors, query, utils_common
-from rebirthdb.logger import default_logger
+from rethinkdb import ast, errors, query, utils_common
+from rethinkdb.logger import default_logger
 
 try:
     unicode
@@ -99,7 +99,7 @@ class SourceFile(object):
         if self.format is None:
             raise AssertionError('{class_name} must have a format'.format(class_name=self.__class__.__name__))
 
-        if self.db == 'rebirthdb':
+        if self.db == 'rethinkdb':
             raise AssertionError('Can not import tables into the system database')
 
 
@@ -618,10 +618,10 @@ class CsvSourceFile(SourceFile):
 # ==
 
 
-usage = """rebirthdb import -d DIR [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME]
+usage = """rethinkdb import -d DIR [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME]
       [--force] [-i (DB | DB.TABLE)] [--clients NUM]
       [--shards NUM_SHARDS] [--replicas NUM_REPLICAS]
-  rebirthdb import -f FILE --table DB.TABLE [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME]
+  rethinkdb import -f FILE --table DB.TABLE [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME]
       [--force] [--clients NUM] [--format (csv | json)] [--pkey PRIMARY_KEY]
       [--shards NUM_SHARDS] [--replicas NUM_REPLICAS]
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"""
@@ -629,23 +629,23 @@ usage = """rebirthdb import -d DIR [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--
 help_epilog = '''
 EXAMPLES:
 
-rebirthdb import -d rdb_export -c mnemosyne:39500 --clients 128
+rethinkdb import -d rdb_export -c mnemosyne:39500 --clients 128
   Import data into a cluster running on host 'mnemosyne' with a client port at 39500,
   using 128 client connections and the named export directory.
 
-rebirthdb import -f site_history.csv --format csv --table test.history --pkey count
+rethinkdb import -f site_history.csv --format csv --table test.history --pkey count
   Import data into a local cluster and the table 'history' in the 'test' database,
   using the named CSV file, and using the 'count' field as the primary key.
 
-rebirthdb import -d rdb_export -c hades -p -i test
+rethinkdb import -d rdb_export -c hades -p -i test
   Import data into a cluster running on host 'hades' which requires a password,
   using only the database 'test' from the named export directory.
 
-rebirthdb import -f subscriber_info.json --fields id,name,hashtag --force
+rethinkdb import -f subscriber_info.json --fields id,name,hashtag --force
   Import data into a local cluster using the named JSON file, and only the fields
   'id', 'name', and 'hashtag', overwriting any existing rows with the same primary key.
 
-rebirthdb import -f user_data.csv --delimiter ';' --no-header --custom-header id,name,number
+rethinkdb import -f user_data.csv --delimiter ';' --no-header --custom-header id,name,number
   Import data into a local cluster using the named CSV file with no header and instead
   use the fields 'id', 'name', and 'number', the delimiter is a semicolon (rather than
   a comma).
@@ -1076,7 +1076,7 @@ def update_progress(tables, debug, exit_event, sleep=0.2):
 
 def import_tables(options, sources, files_ignored=None):
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
-    # if the user has a database named 'rebirthdb'
+    # if the user has a database named 'rethinkdb'
     utils_common.check_minimum_version(options, "1.6")
 
     start_time = time.time()
@@ -1124,8 +1124,8 @@ def import_tables(options, sources, files_ignored=None):
 
     # create missing dbs
     needed_dbs = set([x.db for x in sources])
-    if "rebirthdb" in needed_dbs:
-        raise RuntimeError("Error: Cannot import tables into the system database: 'rebirthdb'")
+    if "rethinkdb" in needed_dbs:
+        raise RuntimeError("Error: Cannot import tables into the system database: 'rethinkdb'")
     options.retryQuery(
         "ensure dbs: %s" %
         ", ".join(needed_dbs),
@@ -1136,7 +1136,7 @@ def import_tables(options, sources, files_ignored=None):
 
     # check for existing tables, or if --force is enabled ones with mis-matched primary keys
     existing_tables = dict([((x["db"], x["name"]), x["primary_key"]) for x in options.retryQuery(
-        "list tables", query.db("rebirthdb").table("table_config").pluck(["db", "name", "primary_key"]))])
+        "list tables", query.db("rethinkdb").table("table_config").pluck(["db", "name", "primary_key"]))])
     already_exist = []
     for source in sources:
         if (source.db, source.table) in existing_tables:
@@ -1468,7 +1468,7 @@ def parse_sources(options, files_ignored=None):
         # Warn the user about the files that were ignored
         if len(files_ignored) > 0:
             print("Unexpected files found in the specified directory.  Importing a directory expects", file=sys.stderr)
-            print(" a directory from `rebirthdb export`.  If you want to import individual tables", file=sys.stderr)
+            print(" a directory from `rethinkdb export`.  If you want to import individual tables", file=sys.stderr)
             print(" import them as single files.  The following files were ignored:", file=sys.stderr)
             for ignored_file in files_ignored:
                 print("%s" % str(ignored_file), file=sys.stderr)
