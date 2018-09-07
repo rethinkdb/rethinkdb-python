@@ -1,4 +1,4 @@
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -21,22 +21,22 @@ import setuptools
 try:
     import asyncio
 
-    CONDITIONAL_PACKAGES = ['rebirthdb.asyncio_net']
+    CONDITIONAL_PACKAGES = ['rethinkdb.asyncio_net']
 except ImportError:
     CONDITIONAL_PACKAGES = []
 
-from rebirthdb.version import VERSION
+from rethinkdb.version import VERSION
 
 
 setuptools.setup(
-    name='rebirthdb',
+    name='rethinkdb',
     zip_safe=True,
     version=VERSION,
     description='Python driver library for the RethinkDB database server.',
     long_description=__doc__,
-    url='https://github.com/RebirthDB/rebirthdb-python',
-    maintainer='RebirthDB.',
-    maintainer_email='bugs@rebirthdb.com',
+    url='https://github.com/RethinkDB/rethinkdb-python',
+    maintainer='RethinkDB.',
+    maintainer_email='bugs@rethinkdb.com',
     classifiers=[
         'Intended Audience :: Developers',
         'Natural Language :: English',
@@ -48,23 +48,23 @@ setuptools.setup(
         'Programming Language :: Python :: 3.6',
     ],
     packages=[
-        'rebirthdb',
-        'rebirthdb.tornado_net',
-        'rebirthdb.twisted_net',
-        'rebirthdb.gevent_net',
-        'rebirthdb.backports',
-        'rebirthdb.backports.ssl_match_hostname'
+        'rethinkdb',
+        'rethinkdb.tornado_net',
+        'rethinkdb.twisted_net',
+        'rethinkdb.gevent_net',
+        'rethinkdb.backports',
+        'rethinkdb.backports.ssl_match_hostname'
     ] + CONDITIONAL_PACKAGES,
-    package_dir={'rebirthdb': 'rebirthdb'},
-    package_data={'rebirthdb': ['backports/ssl_match_hostname/*.txt']},
+    package_dir={'rethinkdb': 'rethinkdb'},
+    package_data={'rethinkdb': ['backports/ssl_match_hostname/*.txt']},
     entry_points={
         'console_scripts': [
-            'rebirthdb-import = rebirthdb._import:main',
-            'rebirthdb-dump = rebirthdb._dump:main',
-            'rebirthdb-export = rebirthdb._export:main',
-            'rebirthdb-restore = rebirthdb._restore:main',
-            'rebirthdb-index-rebuild = rebirthdb._index_rebuild:main',
-            'rebirthdb-repl = rebirthdb.__main__:startInterpreter'
+            'rethinkdb-import = rethinkdb._import:main',
+            'rethinkdb-dump = rethinkdb._dump:main',
+            'rethinkdb-export = rethinkdb._export:main',
+            'rethinkdb-restore = rethinkdb._restore:main',
+            'rethinkdb-index-rebuild = rethinkdb._index_rebuild:main',
+            'rethinkdb-repl = rethinkdb.__main__:startInterpreter'
         ]
     },
     setup_requires=['pytest-runner'],

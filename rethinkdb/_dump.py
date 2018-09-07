@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
 
-'''`rebirthdb dump` creates an archive of data from a RethinkDB cluster'''
+'''`rethinkdb dump` creates an archive of data from a RethinkDB cluster'''
 
 from __future__ import print_function
 
@@ -32,20 +32,20 @@ import tempfile
 import time
 import traceback
 
-from rebirthdb import _export, utils_common
-from rebirthdb.logger import default_logger
+from rethinkdb import _export, utils_common
+from rethinkdb.logger import default_logger
 
-usage = "rebirthdb dump [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert FILENAME] [-f FILE] " \
+usage = "rethinkdb dump [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert FILENAME] [-f FILE] " \
         "[--clients NUM] [-e (DB | DB.TABLE)]..."
 help_epilog = '''
 EXAMPLES:
-rebirthdb dump -c mnemosyne:39500
+rethinkdb dump -c mnemosyne:39500
   Archive all data from a cluster running on host 'mnemosyne' with a client port at 39500.
 
-rebirthdb dump -e test -f rdb_dump.tar.gz
+rethinkdb dump -e test -f rdb_dump.tar.gz
   Archive only the 'test' database from a local cluster into a named file.
 
-rebirthdb dump -c hades -e test.subscribers -p
+rethinkdb dump -c hades -e test.subscribers -p
   Archive a specific table from a cluster running on host 'hades' which requires a password.'''
 
 
@@ -145,9 +145,9 @@ def main(argv=None, prog=None):
         if not options.quiet:
             # Print a warning about the capabilities of dump, so no one is confused (hopefully)
             print("""\
-            NOTE: 'rebirthdb-dump' saves data, secondary indexes, and write hooks, but does *not* save
+            NOTE: 'rethinkdb-dump' saves data, secondary indexes, and write hooks, but does *not* save
             cluster metadata.  You will need to recreate your cluster setup yourself after
-            you run 'rebirthdb-restore'.""")
+            you run 'rethinkdb-restore'.""")
 
         try:
             start_time = time.time()

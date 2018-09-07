@@ -1,4 +1,4 @@
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@
 import struct
 import time
 
-from rebirthdb import ql2_pb2
-from rebirthdb.errors import ReqlAuthError, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty
-from rebirthdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
+from rethinkdb import ql2_pb2
+from rethinkdb.errors import ReqlAuthError, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty
+from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
 from twisted.internet import defer, reactor
 from twisted.internet.defer import CancelledError, Deferred, DeferredQueue, inlineCallbacks, returnValue
 from twisted.internet.endpoints import clientFromString

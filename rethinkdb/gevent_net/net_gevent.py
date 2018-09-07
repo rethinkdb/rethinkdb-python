@@ -1,4 +1,4 @@
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ import gevent
 import gevent.socket as socket
 from gevent.event import AsyncResult, Event
 from gevent.lock import Semaphore
-from rebirthdb import net, ql2_pb2
-from rebirthdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError, RqlDriverError, \
+from rethinkdb import net, ql2_pb2
+from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError, RqlDriverError, \
     RqlTimeoutError
-from rebirthdb.logger import default_logger
+from rethinkdb.logger import default_logger
 
 __all__ = ['Connection']
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -35,8 +35,8 @@ import time
 import traceback
 from multiprocessing.queues import SimpleQueue
 
-from rebirthdb import errors, query, utils_common
-from rebirthdb.logger import default_logger
+from rethinkdb import errors, query, utils_common
+from rethinkdb.logger import default_logger
 
 try:
     unicode
@@ -44,27 +44,27 @@ except NameError:
     unicode = str
 
 
-usage = """rebirthdb export [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert filename] [-d DIR]
+usage = """rethinkdb export [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert filename] [-d DIR]
       [-e (DB | DB.TABLE)]...
       [--format (csv | json | ndjson)] [--fields FIELD,FIELD...] [--delimiter CHARACTER]
       [--clients NUM]"""
-help_description = '`rebirthdb export` exports data from a RethinkDB cluster into a directory'
+help_description = '`rethinkdb export` exports data from a RethinkDB cluster into a directory'
 help_epilog = '''
 EXAMPLES:
-rebirthdb export -c mnemosyne:39500
+rethinkdb export -c mnemosyne:39500
   Export all data from a cluster running on host 'mnemosyne' with a client port at 39500.
 
-rebirthdb export -e test -d rdb_export
+rethinkdb export -e test -d rdb_export
   Export only the 'test' database on a local cluster into a named directory.
 
-rebirthdb export -c hades -e test.subscribers -p
+rethinkdb export -c hades -e test.subscribers -p
   Export a specific table from a cluster running on host 'hades' which requires a password.
 
-rebirthdb export --format csv -e test.history --fields time,message --delimiter ';'
+rethinkdb export --format csv -e test.history --fields time,message --delimiter ';'
   Export a specific table from a local cluster in CSV format with the fields 'time' and 'message',
   using a semicolon as field delimiter (rather than a comma).
 
-rebirthdb export --fields id,value -e test.data
+rethinkdb export --fields id,value -e test.data
   Export a specific table from a local cluster in JSON format with only the fields 'id' and 'value'.
 '''
 
@@ -467,21 +467,21 @@ def run_clients(options, workingDir, db_table_set):
 
 def run(options):
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
-    # if the user has a database named 'rebirthdb'
+    # if the user has a database named 'rethinkdb'
     utils_common.check_minimum_version(options, '1.6')
 
     # get the complete list of tables
     db_table_set = set()
     all_tables = [utils_common.DbTable(x['db'], x['name']) for x in options.retryQuery(
-        'list tables', query.db('rebirthdb').table('table_config').pluck(['db', 'name']))]
+        'list tables', query.db('rethinkdb').table('table_config').pluck(['db', 'name']))]
     if not options.db_tables:
         db_table_set = all_tables  # default to all tables
     else:
-        all_databases = options.retryQuery('list dbs', query.db_list().filter(query.row.ne('rebirthdb')))
+        all_databases = options.retryQuery('list dbs', query.db_list().filter(query.row.ne('rethinkdb')))
         for db_table in options.db_tables:
             db, table = db_table
 
-            if db == 'rebirthdb':
+            if db == 'rethinkdb':
                 raise AssertionError('Can not export tables from the system database')
 
             if db not in all_databases:

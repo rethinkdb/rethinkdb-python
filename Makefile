@@ -1,4 +1,4 @@
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 .PHONY: default help clean prepare package publish
 
-PACKAGE_NAME = rebirthdb
+PACKAGE_NAME = rethinkdb
 
 BUILD_DIR = ./build
 PACKAGE_DIR = ${BUILD_DIR}/package

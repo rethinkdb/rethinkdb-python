@@ -1,4 +1,4 @@
-Issue tracker is **ONLY** used for reporting bugs. NO NEW FEATURE ACCEPTED! Use [spectrum](https://spectrum.chat/rebirthdb) for supporting issues.
+Issue tracker is **ONLY** used for reporting bugs. NO NEW FEATURE ACCEPTED! Use [spectrum](https://spectrum.chat/rethinkdb) for supporting issues.
 
 <!--- Provide a general summary of the issue in the Title above -->
 

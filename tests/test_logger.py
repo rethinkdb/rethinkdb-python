@@ -2,7 +2,7 @@ import logging
 
 import pytest
 from mock import call, patch, ANY
-from rebirthdb.logger import DriverLogger
+from rethinkdb.logger import DriverLogger
 
 
 @pytest.mark.unit
@@ -22,7 +22,7 @@ class TestDriverLogger(object):
             converted_message = self.driver_logger._convert_message(message)
             assert converted_message == expected_message
 
-    @patch('rebirthdb.logger.sys.stdout')
+    @patch('rethinkdb.logger.sys.stdout')
     def test_log_write_to_stdout(self, mock_stdout):
         expected_message = 'message'
         log_levels = [logging.DEBUG, logging.INFO, logging.WARNING]
@@ -35,7 +35,7 @@ class TestDriverLogger(object):
                     call(expected_message)
                 ])
 
-    @patch('rebirthdb.logger.sys.stderr')
+    @patch('rethinkdb.logger.sys.stderr')
     def test_log_write_to_stderr(self, mock_stderr):
         expected_message = 'message'
         self.driver_logger.write_to_console = True
@@ -74,7 +74,7 @@ class TestDriverLogger(object):
             self.driver_logger.error(expected_message)
             mock_log.assert_called_once_with(logging.ERROR, expected_message, ANY, ANY)
 
-    @patch('rebirthdb.logger.DriverLogger._convert_message')
+    @patch('rethinkdb.logger.DriverLogger._convert_message')
     def test_log_exception(self, mock_converter):
         expected_message = 'exception message'
         expected_exception = Exception(expected_message)

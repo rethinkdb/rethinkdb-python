@@ -1,6 +1,6 @@
 import pytest
 
-from rebirthdb.errors import ReqlRuntimeError, ReqlOpFailedError
+from rethinkdb.errors import ReqlRuntimeError, ReqlOpFailedError
 from tests.helpers import IntegrationTestCaseBase, INTEGRATION_TEST_DB
 
 

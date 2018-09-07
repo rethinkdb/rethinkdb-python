@@ -1,4 +1,4 @@
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -25,8 +25,8 @@ import struct
 import sys
 import threading
 
-from rebirthdb import ql2_pb2
-from rebirthdb.errors import ReqlAuthError, ReqlDriverError
+from rethinkdb import ql2_pb2
+from rethinkdb.errors import ReqlAuthError, ReqlDriverError
 
 
 try:

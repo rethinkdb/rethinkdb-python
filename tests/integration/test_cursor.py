@@ -1,6 +1,6 @@
 import pytest
 
-from rebirthdb.errors import ReqlCursorEmpty
+from rethinkdb.errors import ReqlCursorEmpty
 from tests.helpers import IntegrationTestCaseBase
 
 

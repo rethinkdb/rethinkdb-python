@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2018 RebirthDB
+# Copyright 2018 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
 
-'''`rebirthdb restore` loads data into a RethinkDB cluster from an archive'''
+'''`rethinkdb restore` loads data into a RethinkDB cluster from an archive'''
 
 from __future__ import print_function
 
@@ -33,9 +33,9 @@ import tempfile
 import time
 import traceback
 
-from rebirthdb import _import, utils_common
+from rethinkdb import _import, utils_common
 
-usage = "rebirthdb restore FILE [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME] [--clients NUM] " \
+usage = "rethinkdb restore FILE [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME] [--clients NUM] " \
         "[--shards NUM_SHARDS] [--replicas NUM_REPLICAS] [--force] [-i (DB | DB.TABLE)]..."
 help_epilog = '''
 FILE:
@@ -46,18 +46,18 @@ FILE:
 
 EXAMPLES:
 
-rebirthdb restore rdb_dump.tar.gz -c mnemosyne:39500
+rethinkdb restore rdb_dump.tar.gz -c mnemosyne:39500
   Import data into a cluster running on host 'mnemosyne' with a client port at 39500 using
   the named archive file.
 
-rebirthdb restore rdb_dump.tar.gz -i test
+rethinkdb restore rdb_dump.tar.gz -i test
   Import data into a local cluster from only the 'test' database in the named archive file.
 
-rebirthdb restore rdb_dump.tar.gz -i test.subscribers -c hades -p
+rethinkdb restore rdb_dump.tar.gz -i test.subscribers -c hades -p
   Import data into a cluster running on host 'hades' which requires a password from only
   a specific table from the named archive file.
 
-rebirthdb restore rdb_dump.tar.gz --clients 4 --force
+rethinkdb restore rdb_dump.tar.gz --clients 4 --force
   Import data to a local cluster from the named archive file using only 4 client connections
   and overwriting any existing rows with the same primary key.
 '''
@@ -124,7 +124,7 @@ def parse_options(argv, prog=None):
 
     # - archive
     if len(args) == 0:
-        parser.error("Archive to import not specified. Provide an archive file created by rebirthdb-dump.")
+        parser.error("Archive to import not specified. Provide an archive file created by rethinkdb-dump.")
     elif len(args) != 1:
         parser.error("Only one positional argument supported")
     options.in_file = args[0]
