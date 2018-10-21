@@ -27,7 +27,7 @@ class TestCursor(IntegrationTestCaseBase):
         for document in reversed(self.documents):
             documents.append(cursor.next())
 
-        assert sorted(documents) == sorted(self.documents)
+        assert sorted(documents, key=lambda doc: doc.get('id')) == self.documents
 
     def test_cursor_empty_no_document(self):
         cursor = self.r.table(self.table_name).run(self.conn)
@@ -63,7 +63,7 @@ class TestCursor(IntegrationTestCaseBase):
         for document in self.r.table(self.table_name).run(self.conn):
             documents.append(document)
 
-        assert sorted(documents) == sorted(self.documents)
+        assert sorted(documents, key=lambda doc: doc.get('id')) == self.documents
 
     def test_next(self):
         self.r.table(self.table_name).insert(self.documents).run(self.conn)

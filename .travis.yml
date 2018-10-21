@@ -17,11 +17,21 @@ jobs:
           python: "3.7"
 
         - stage: upload_coverage
+          python: "2.7"
+          script: make upload-coverage
+
+        - stage: upload_coverage
           python: "3.6"
           script: make upload-coverage
 
         - stage: integration_test
           if: branch = master
+          python: "2.7"
+          script: make test-remote
+
+        - stage: integration_test
+          if: branch = master
+          python: "3.6"
           script: make test-remote
 
 before_script:
