@@ -1,6 +1,5 @@
 [run]
 include = rethinkdb/*
-exclude = *.md
 
 [report]
 exclude_lines =
