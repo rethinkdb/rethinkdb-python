@@ -1,0 +1,14 @@
+[run]
+include = rethinkdb/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+
+    def __unicode__
+    def __repr__
+
+omit =
+    rethinkdb/version.py
+
+show_missing = True
