@@ -45,7 +45,7 @@ from rethinkdb.errors import (
     ReqlServerCompileError,
     ReqlTimeoutError,
     ReqlUserError)
-from rethinkdb.handshake import HandshakeV0_4, HandshakeV1_0
+from rethinkdb.handshake import HandshakeV1_0
 from rethinkdb.logger import default_logger
 
 __all__ = ['connect', 'set_loop_type', 'Connection', 'Cursor', 'DEFAULT_PORT']
@@ -608,10 +608,10 @@ class Connection(object):
             raise ReqlDriverError("`auth_key` and `password` are both set.")
 
         if _handshake_version == 4:
-            self.handshake = HandshakeV0_4(self.host, self.port, auth_key)
-        else:
-            self.handshake = HandshakeV1_0(
-                self._json_decoder(), self._json_encoder(), self.host, self.port, user, password)
+            raise NotImplementedError("The v0.4 handshake was removed.")
+
+        self.handshake = HandshakeV1_0(
+            self._json_decoder(), self._json_encoder(), self.host, self.port, user, password)
 
     def client_port(self):
         if self.is_open():
