@@ -27,6 +27,7 @@ import threading
 from random import SystemRandom
 from rethinkdb import ql2_pb2
 from rethinkdb.errors import ReqlAuthError, ReqlDriverError
+from rethinkdb.helpers import decode_utf8
 
 
 try:
@@ -177,7 +178,7 @@ class HandshakeV1_0(object):
         """
 
         if with_utf8:
-            response = response.decode('utf-8')
+            response = decode_utf8(response)
 
         json_response = self._json_decoder.decode(response)
 
