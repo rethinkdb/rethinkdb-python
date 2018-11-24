@@ -15,7 +15,6 @@
 # This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-
 import base64
 import binascii
 import hashlib
@@ -47,21 +46,21 @@ class LocalThreadCache(threading.local):
         return self._cache.get(key)
 
 
-def compare_digest(a, b):
+def compare_digest(digest_a, digest_b):
     if sys.version_info[0] == 3:
-        def xor_bytes(a, b):
-            return a ^ b
+        def xor_bytes(digest_a, digest_b):
+            return digest_a ^ digest_b
     else:
-        def xor_bytes(a, b, _ord=ord):
-            return _ord(a) ^ _ord(b)
+        def xor_bytes(digest_a, digest_b, _ord=ord):
+            return _ord(digest_a) ^ _ord(digest_b)
 
     left = None
-    right = b
-    if len(a) == len(b):
-        left = a
+    right = digest_b
+    if len(digest_a) == len(digest_b):
+        left = digest_a
         result = 0
-    if len(a) != len(b):
-        left = b
+    if len(digest_a) != len(digest_b):
+        left = digest_b
         result = 1
 
     for l, r in zip(left, right):
@@ -71,41 +70,41 @@ def compare_digest(a, b):
 
 
 def pbkdf2_hmac(hash_name, password, salt, iterations):
-        if hash_name != 'sha256':
-            raise AssertionError('Hash name {hash_name} is not equal with "sha256"'.format(hash_name=hash_name))
+    if hash_name != 'sha256':
+        raise AssertionError('Hash name {hash_name} is not equal with "sha256"'.format(hash_name=hash_name))
 
-        def from_bytes(value, hexlify=binascii.hexlify, int=int):
-            return int(hexlify(value), 16)
+    def from_bytes(value, hexlify=binascii.hexlify, int=int):
+        return int(hexlify(value), 16)
 
-        def to_bytes(value, unhexlify=binascii.unhexlify):
-            try:
-                return unhexlify(bytes('%064x' % value, 'ascii'))
-            except TypeError:
-                return unhexlify(bytes('%064x' % value))
+    def to_bytes(value, unhexlify=binascii.unhexlify):
+        try:
+            return unhexlify(bytes('%064x' % value, 'ascii'))
+        except TypeError:
+            return unhexlify(bytes('%064x' % value))
 
-        cache_key = (password, salt, iterations)
+    cache_key = (password, salt, iterations)
 
-        cache_result = HandshakeV1_0.PBKDF2_CACHE.get(cache_key)
+    cache_result = HandshakeV1_0.PBKDF2_CACHE.get(cache_key)
 
-        if cache_result is not None:
-            return cache_result
+    if cache_result is not None:
+        return cache_result
 
-        mac = hmac.new(password, None, hashlib.sha256)
+    mac = hmac.new(password, None, hashlib.sha256)
 
-        def digest(msg, mac=mac):
-            mac_copy = mac.copy()
-            mac_copy.update(msg)
-            return mac_copy.digest()
+    def digest(msg, mac=mac):
+        mac_copy = mac.copy()
+        mac_copy.update(msg)
+        return mac_copy.digest()
 
-        t = digest(salt + b'\x00\x00\x00\x01')
-        u = from_bytes(t)
-        for c in xrange(iterations - 1):
-            t = digest(t)
-            u ^= from_bytes(t)
+    t = digest(salt + b'\x00\x00\x00\x01')
+    u = from_bytes(t)
+    for c in xrange(iterations - 1):
+        t = digest(t)
+        u ^= from_bytes(t)
 
-        u = to_bytes(u)
-        HandshakeV1_0.PBKDF2_CACHE.set(cache_key, u)
-        return u
+    u = to_bytes(u)
+    HandshakeV1_0.PBKDF2_CACHE.set(cache_key, u)
+    return u
 
 
 class HandshakeV1_0(object):
@@ -142,7 +141,8 @@ class HandshakeV1_0(object):
         self._server_signature = None
         self._state = 0
 
-    def _get_compare_digest(self):
+    @staticmethod
+    def _get_compare_digest():
         """
         Get the compare_digest function from hashlib if package contains it, else get
         our own function. Please note that hashlib contains this function only for
@@ -151,7 +151,8 @@ class HandshakeV1_0(object):
 
         return getattr(hmac, 'compare_digest', compare_digest)
 
-    def _get_pbkdf2_hmac(self):
+    @staticmethod
+    def _get_pbkdf2_hmac():
         """
         Get the pbkdf2_hmac function from hashlib if package contains it, else get
         our own function. Please note that hashlib contains this function only for
@@ -267,8 +268,12 @@ class HandshakeV1_0(object):
         if not r.startswith(self._r):
             raise ReqlAuthError('Invalid nonce from server', self._host, self._port)
 
-        salt = base64.standard_b64decode(authentication[b's'])
-        salted_password = self._pbkdf2_hmac('sha256', self._password, salt, int(authentication[b'i']))
+        salted_password = self._pbkdf2_hmac(
+            'sha256',
+            self._password,
+            base64.standard_b64decode(authentication[b's']),
+            int(authentication[b'i'])
+        )
 
         message_without_proof = b'c=biws,r={r}'.format(r=r)
         auth_message = b','.join((
@@ -277,13 +282,14 @@ class HandshakeV1_0(object):
             message_without_proof
         ))
 
-        server_key = hmac.new(salted_password, b'Server Key', hashlib.sha256).digest()
-        self._server_signature = hmac.new(server_key, auth_message, hashlib.sha256).digest()
+        self._server_signature = hmac.new(
+            hmac.new(salted_password, b'Server Key', hashlib.sha256).digest(),
+            auth_message,
+            hashlib.sha256
+        ).digest()
 
         client_key = hmac.new(salted_password, b'Client Key', hashlib.sha256).digest()
-        stored_key = hashlib.sha256(client_key).digest()
-
-        client_signature = hmac.new(stored_key, auth_message, hashlib.sha256).digest()
+        client_signature = hmac.new(hashlib.sha256(client_key).digest(), auth_message, hashlib.sha256).digest()
         client_proof = struct.pack('32B', *(l ^ r for l, r in zip(
             struct.unpack('32B', client_key),
             struct.unpack('32B', client_signature)
