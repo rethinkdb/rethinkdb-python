@@ -248,9 +248,9 @@ class HandshakeV1_0(object):
         self._next_state()
         return ''
 
-    def _send_auth_request(self, response):
+    def _prepare_auth_request(self, response):
         """
-        TODO:
+        Put tohether the authentication request based on the response of the database.
 
         :param response: Response from the database
         :raises: ReqlDriverError | ReqlAuthError
@@ -298,10 +298,9 @@ class HandshakeV1_0(object):
         self._next_state()
         return authentication_request
 
-    # TODO: Refactoring needed
-    def _receive_auth_response(self, response):
-         """
-        TODO:
+    def _read_auth_response(self, response):
+        """
+        Read the authentication request's response sent by the database.
 
         :param response: Response from the database
         :raises: ReqlDriverError | ReqlAuthError
@@ -348,9 +347,9 @@ class HandshakeV1_0(object):
             return self._read_response(response)
 
         elif self._state == 2:
-            return self._send_auth_request(response)
+            return self._prepare_auth_request(response)
 
         elif self._state == 3:
-            return self._receive_auth_response(response)
+            return self._read_auth_response(response)
 
         raise ReqlDriverError('Unexpected handshake state')
