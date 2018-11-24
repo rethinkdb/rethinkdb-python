@@ -140,13 +140,13 @@ class TestHandshake(object):
         encoded_string = 'test'
         pack = struct.pack('<L', self.handshake.VERSION)
         mock_base64.standard_b64encode.return_value = encoded_string
-        first_client_message = b'n={username},r={r}'.format(username=self.handshake._username, r=encoded_string)
+        first_client_message = bytes('n={username},r={r}'.format(username=self.handshake._username, r=encoded_string))
         message = self.handshake._json_encoder.encode({
             'protocol_version': self.handshake._protocol_version,
             'authentication_method': 'SCRAM-SHA-256',
-            'authentication': b'n,,{client_message}'.format(client_message=first_client_message).decode("ascii")
+            'authentication': bytes('n,,{client_message}'.format(client_message=first_client_message).decode("ascii"))
         }).encode("utf-8")
-        expected_result = b'{pack}{message}\0'.format(pack=pack, message=message)
+        expected_result = bytes('{pack}{message}\0'.format(pack=pack, message=message))
 
         result = self.handshake._init_connection(response=None)
 

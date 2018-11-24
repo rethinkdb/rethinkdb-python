@@ -295,12 +295,12 @@ class HandshakeV1_0(object):
             struct.unpack('32B', client_signature)
         )))
 
-        authentication_request = b'{auth_request}\0'.format(auth_request=self._json_encoder.encode({
-            'authentication': b'{message_without_proof},p={proof}'.format(
+        authentication_request = bytes('{auth_request}\0'.format(auth_request=self._json_encoder.encode({
+            'authentication': bytes('{message_without_proof},p={proof}'.format(
                 message_without_proof=message_without_proof,
                 proof=base64.standard_b64encode(client_proof)
-            ).decode('ascii')
-        }).encode('utf-8'))
+            )).decode('ascii')
+        }).encode('utf-8')))
 
         self._next_state()
         return authentication_request
