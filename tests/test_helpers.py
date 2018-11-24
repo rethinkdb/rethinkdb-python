@@ -5,7 +5,7 @@ from rethinkdb.helpers import decode_utf8
 @pytest.mark.unit
 class TestDecodeUTF8Helper(object):
     def test_python2_decode_string(self):
-        string = Mock(spec=str)
+        string = Mock()
 
         decoded_string = decode_utf8(string)
 
