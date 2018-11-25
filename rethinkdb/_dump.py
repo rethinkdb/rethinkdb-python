@@ -168,7 +168,7 @@ def main(argv=None, prog=None):
             try:
                 _export.run(options)
             except Exception as exc:
-                default_logger.exception(str(exc))
+                default_logger.exception(exc)
 
                 if options.debug:
                     sys.stderr.write('\n%s\n' % traceback.format_exc())
