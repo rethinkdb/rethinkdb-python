@@ -111,16 +111,19 @@ class DriverLogger(object):
 
         self._log(logging.ERROR, message)
 
-    def exception(self, message):
+    def exception(self, exc, with_raise=False):
         """
         Log an exception with its traceback and the message if possible.
 
-        :param message: Exception message
-        :type message: str
+        :param exc: Exception
+        :type exc: str
         :rtype: None
         """
 
-        self._log(logging.ERROR, self._convert_message(message), exc_info=1)
+        self._log(logging.ERROR, self._convert_message(exc), exc_info=1)
+
+        if with_raise and type(exc) == Exception:
+            raise exc
 
 
 default_logger = DriverLogger()
