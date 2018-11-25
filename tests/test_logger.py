@@ -97,11 +97,11 @@ class TestDriverLogger(object):
     @patch('rethinkdb.logger.DriverLogger._convert_message')
     def test_log_exception_and_raise(self, mock_converter):
         expected_message = 'exception message'
-        expected_exception = Exception(expected_message)
+        expected_exception = AttributeError(expected_message)
         mock_converter.return_value = expected_message
 
         with patch.object(self.logger, 'log') as mock_log:
-            with pytest.raises(Exception):
+            with pytest.raises(AttributeError):
                 self.driver_logger.exception(expected_exception, with_raise=True)
 
         mock_converter.assert_called_once_with(expected_exception)

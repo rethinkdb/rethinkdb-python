@@ -122,7 +122,7 @@ class DriverLogger(object):
 
         self._log(logging.ERROR, self._convert_message(exc), exc_info=1)
 
-        if with_raise and type(exc) == Exception:
+        if with_raise and isinstance(exc, Exception):
             raise exc
 
 
