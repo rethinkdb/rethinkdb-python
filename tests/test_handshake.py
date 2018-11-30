@@ -5,6 +5,7 @@ from mock import call, patch, ANY, Mock
 from rethinkdb.errors import ReqlDriverError, ReqlAuthError
 from rethinkdb.ql2_pb2 import VersionDummy
 from rethinkdb.handshake import HandshakeV1_0, LocalThreadCache
+from rethinkdb.helpers import to_bytes
 
 
 @pytest.mark.unit
@@ -140,13 +141,13 @@ class TestHandshake(object):
         encoded_string = 'test'
         pack = struct.pack('<L', self.handshake.VERSION)
         mock_base64.standard_b64encode.return_value = encoded_string
-        first_client_message = bytes('n={username},r={r}'.format(username=self.handshake._username, r=encoded_string))
+        first_client_message = to_bytes('n={username},r={r}'.format(username=self.handshake._username, r=encoded_string))
         message = self.handshake._json_encoder.encode({
             'protocol_version': self.handshake._protocol_version,
             'authentication_method': 'SCRAM-SHA-256',
-            'authentication': bytes('n,,{client_message}'.format(client_message=first_client_message).decode("ascii"))
-        }).encode("utf-8")
-        expected_result = bytes('{pack}{message}\0'.format(pack=pack, message=message))
+            'authentication': to_bytes('n,,{client_message}'.format(client_message=first_client_message).decode("ascii"))
+        })
+        expected_result = to_bytes('{pack}{message}\0'.format(pack=pack, message=message))
 
         result = self.handshake._init_connection(response=None)
 
@@ -173,7 +174,7 @@ class TestHandshake(object):
     def test_read_response_error_received(self):
         self.handshake._next_state = Mock()
 
-        with pytest.raises(ReqlDriverError):
+        with pytest.raises(ValueError):
             result = self.handshake._read_response('ERROR')
 
         assert self.handshake._next_state.called is False

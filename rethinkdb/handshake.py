@@ -26,7 +26,8 @@ import threading
 from random import SystemRandom
 from rethinkdb import ql2_pb2
 from rethinkdb.errors import ReqlAuthError, ReqlDriverError
-from rethinkdb.helpers import decode_utf8
+from rethinkdb.helpers import decode_utf8, to_bytes
+from rethinkdb.logger import default_logger
 
 
 try:
@@ -109,7 +110,17 @@ def pbkdf2_hmac(hash_name, password, salt, iterations):
 
 class HandshakeV1_0(object):
     """
-    TODO:
+    RethinkDB client drivers are responsible for serializing queries, sending them to the server using the
+    ReQL wire protocol, and receiving responses from the server and returning them to the calling application.
+
+    The client sends the protocol version, authentication method, and authentication as a null-terminated JSON
+    response. RethinkDB currently supports only one authentication method, SCRAM-SHA-256, as specified in IETF
+    RFC 7677 and RFC 5802. The RFC is followed with the exception of error handling (RethinkDB uses its own
+    higher level error reporting rather than the e= field). RethinkDB does not support channel binding and clients
+    should not request this. The value of "authentication" is the "client-first-message" specified in RFC 5802
+    (the channel binding flag, optional SASL authorization identity, username (n=), and random nonce (r=).
+
+    More info: https://rethinkdb.com/docs/writing-drivers/
     """
 
     VERSION = ql2_pb2.VersionDummy.Version.V1_0
@@ -127,16 +138,13 @@ class HandshakeV1_0(object):
         self._port = port
         self._username = username.encode('utf-8').replace(b'=', b'=3D').replace(b',', b'=2C')
 
-        try:
-            self._password = bytes(password, 'utf-8')
-        except TypeError:
-            self._password = bytes(password)
+        self._password = to_bytes(password)
 
         self._compare_digest = self._get_compare_digest()
         self._pbkdf2_hmac = self._get_pbkdf2_hmac()
 
         self._protocol_version = 0
-        self._r = None
+        self._random_nonce = None
         self._first_client_message = None
         self._server_signature = None
         self._state = 0
@@ -166,6 +174,7 @@ class HandshakeV1_0(object):
         Increase the state counter.
         """
 
+        default_logger.debug('Go to a new state')
         self._state += 1
 
     def _decode_json_response(self, response, with_utf8=False):
@@ -204,17 +213,24 @@ class HandshakeV1_0(object):
         if response is not None:
             raise ReqlDriverError('Unexpected response')
 
-        self._r = base64.standard_b64encode(bytes(bytearray(SystemRandom().getrandbits(8) for i in range(18))))
-        self._first_client_message = b'n={username},r={r}'.format(username=self._username, r=self._r)
+        self._random_nonce = base64.standard_b64encode(bytes(bytearray(
+            SystemRandom().getrandbits(8) for i in range(18)
+        )))
 
-        initial_message = b'{pack}{message}\0'.format(
+        self._first_client_message = to_bytes('n={username},r={r}'.format(
+            username=self._username, r=self._random_nonce
+        ))
+
+        initial_message = to_bytes('{pack}{message}\0'.format(
             pack=struct.pack('<L', self.VERSION),
             message=self._json_encoder.encode({
                 'protocol_version': self._protocol_version,
                 'authentication_method': 'SCRAM-SHA-256',
-                'authentication': b'n,,{first_message}'.format(first_message=self._first_client_message).decode('ascii')
+                'authentication': to_bytes('n,,{first_message}'.format(
+                    first_message=self._first_client_message
+                ).decode('ascii'))
             }).encode('utf-8')
-        )
+        ))
 
         self._next_state()
         return initial_message
@@ -229,12 +245,6 @@ class HandshakeV1_0(object):
         :raises: ReqlDriverError | ReqlAuthError
         :return: An empty string
         """
-
-        if response.startswith('ERROR'):
-            raise ReqlDriverError(
-                'Received an unexpected reply. You may be attempting to connect to a RethinkDB server that is too '
-                'old for this driver. The minimum supported server version is 2.3.0.'
-            )
 
         json_response = self._decode_json_response(response)
         min_protocol_version = json_response['min_protocol_version']
@@ -265,7 +275,7 @@ class HandshakeV1_0(object):
         authentication = dict(x.split(b'=', 1) for x in first_client_message.split(b','))
 
         r = authentication[b'r']
-        if not r.startswith(self._r):
+        if not r.startswith(self._random_nonce):
             raise ReqlAuthError('Invalid nonce from server', self._host, self._port)
 
         salted_password = self._pbkdf2_hmac(
@@ -338,7 +348,7 @@ class HandshakeV1_0(object):
         return None
 
     def reset(self):
-        self._r = None
+        self._random_nonce = None
         self._first_client_message = None
         self._server_signature = None
         self._state = 0
@@ -351,12 +361,12 @@ class HandshakeV1_0(object):
             return self._init_connection(response)
 
         elif self._state == 1:
-            return self._read_response(response)
+            return self._random_nonceead_response(response)
 
         elif self._state == 2:
             return self._prepare_auth_request(response)
 
         elif self._state == 3:
-            return self._read_auth_response(response)
+            return self._random_nonceead_auth_response(response)
 
         raise ReqlDriverError('Unexpected handshake state')
