@@ -123,14 +123,14 @@ class TestHandshake(object):
         assert new_state == 1
 
     def test_reset(self):
-        self.handshake._r = Mock()
+        self.handshake._random_nonce = Mock()
         self.handshake._first_client_message = Mock()
         self.handshake._server_signature = Mock()
         self.handshake._state = Mock()
 
         self.handshake.reset()
 
-        assert self.handshake._r is None
+        assert self.handshake._random_nonce is None
         assert self.handshake._first_client_message is None
         assert self.handshake._server_signature is None
         assert self.handshake._state == 0
