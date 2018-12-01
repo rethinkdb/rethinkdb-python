@@ -228,8 +228,8 @@ class HandshakeV1_0(object):
                 'authentication_method': 'SCRAM-SHA-256',
                 'authentication': to_bytes('n,,{first_message}'.format(
                     first_message=self._first_client_message
-                ).decode('ascii'))
-            }).encode('utf-8')
+                ), decoding='ascii')
+            })
         ))
 
         self._next_state()

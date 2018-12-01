@@ -5,13 +5,17 @@ def decode_utf8(string, encoding='utf-8'):
     return string
 
 
-def to_bytes(string, encoding='utf-8'):
+def to_bytes(string, encoding='utf-8', decoding=None):
     """
     Convert string to bytes.
     Compared to Python2 in case of python 3 we must provide encoding.
     """
 
+    string = string.decode(decoding) if decoding and hasattr(string, 'decode') else string
+
     try:
-        return bytes(string)
+        value = bytes(string)
     except TypeError:
-        return bytes(string, encoding)
+        value = bytes(string, encoding)
+
+
