@@ -18,4 +18,6 @@ def to_bytes(string, encoding='utf-8', decoding=None):
     except TypeError:
         value = bytes(string, encoding)
 
+    return value
+
 
