@@ -145,7 +145,7 @@ class TestHandshake(object):
         message = self.handshake._json_encoder.encode({
             'protocol_version': self.handshake._protocol_version,
             'authentication_method': 'SCRAM-SHA-256',
-            'authentication': to_bytes('n,,{client_message}'.format(client_message=first_client_message), decoding='ascii')
+            'authentication': 'n,,{client_message}'.format(client_message=first_client_message)
         })
         expected_result = to_bytes('{pack}{message}\0'.format(pack=pack, message=message))
 

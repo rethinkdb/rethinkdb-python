@@ -226,9 +226,9 @@ class HandshakeV1_0(object):
             message=self._json_encoder.encode({
                 'protocol_version': self._protocol_version,
                 'authentication_method': 'SCRAM-SHA-256',
-                'authentication': to_bytes('n,,{first_message}'.format(
+                'authentication': 'n,,{first_message}'.format(
                     first_message=self._first_client_message
-                ), decoding='ascii')
+                )
             })
         ))
 
