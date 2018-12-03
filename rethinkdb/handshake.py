@@ -174,7 +174,7 @@ class HandshakeV1_0(object):
         Increase the state counter.
         """
 
-        default_logger.debug('Go to a new state')
+        default_logger.debug('Go to state {state}'.format(state=str(self._state)))
         self._state += 1
 
     def _decode_json_response(self, response, with_utf8=False):
