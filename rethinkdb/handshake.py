@@ -36,17 +36,6 @@ except NameError:
     xrange = range
 
 
-class LocalThreadCache(threading.local):
-    def __init__(self):
-        self._cache = dict()
-
-    def set(self, key, val):
-        self._cache[key] = val
-
-    def get(self, key):
-        return self._cache.get(key)
-
-
 def compare_digest(digest_a, digest_b):
     if sys.version_info[0] == 3:
         def xor_bytes(digest_a, digest_b):
@@ -106,6 +95,17 @@ def pbkdf2_hmac(hash_name, password, salt, iterations):
     u = to_bytes(u)
     HandshakeV1_0.PBKDF2_CACHE.set(cache_key, u)
     return u
+
+
+class LocalThreadCache(threading.local):
+    def __init__(self):
+        self._cache = dict()
+
+    def set(self, key, val):
+        self._cache[key] = val
+
+    def get(self, key):
+        return self._cache.get(key)
 
 
 class HandshakeV1_0(object):
