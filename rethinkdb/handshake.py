@@ -361,12 +361,12 @@ class HandshakeV1_0(object):
             return self._init_connection(response)
 
         elif self._state == 1:
-            return self._random_nonceead_response(response)
+            return self._read_response(response)
 
         elif self._state == 2:
             return self._prepare_auth_request(response)
 
         elif self._state == 3:
-            return self._random_nonceead_auth_response(response)
+            return self._read_auth_response(response)
 
         raise ReqlDriverError('Unexpected handshake state')
