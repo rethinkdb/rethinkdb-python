@@ -5,7 +5,7 @@ from mock import call, patch, ANY, Mock
 from rethinkdb.errors import ReqlDriverError, ReqlAuthError
 from rethinkdb.ql2_pb2 import VersionDummy
 from rethinkdb.handshake import HandshakeV1_0, LocalThreadCache
-from rethinkdb.helpers import to_bytes
+from rethinkdb.helpers import chain_to_bytes
 
 
 @pytest.mark.unit
@@ -139,15 +139,18 @@ class TestHandshake(object):
     def test_init_connection(self, mock_base64):
         self.handshake._next_state = Mock()
         encoded_string = 'test'
-        pack = struct.pack('<L', self.handshake.VERSION)
         mock_base64.standard_b64encode.return_value = encoded_string
-        first_client_message = to_bytes('n={username},r={r}'.format(username=self.handshake._username, r=encoded_string))
-        message = self.handshake._json_encoder.encode({
-            'protocol_version': self.handshake._protocol_version,
-            'authentication_method': 'SCRAM-SHA-256',
-            'authentication': 'n,,{client_message}'.format(client_message=first_client_message)
-        })
-        expected_result = to_bytes('{pack}{message}\0'.format(pack=pack, message=message))
+        first_client_message = chain_to_bytes('n=', self.handshake._username, ',r=', encoded_string)
+
+        expected_result = chain_to_bytes(
+            struct.pack('<L', self.handshake.VERSION),
+            self.handshake._json_encoder.encode({
+                'protocol_version': self.handshake._protocol_version,
+                'authentication_method': 'SCRAM-SHA-256',
+                'authentication': chain_to_bytes('n,,', first_client_message).decode('ascii')
+            }).encode('utf-8'),
+            b'\0'
+        )
 
         result = self.handshake._init_connection(response=None)
 

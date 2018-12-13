@@ -15,6 +15,7 @@
 # This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
+import six
 import base64
 import binascii
 import hashlib
@@ -26,7 +27,7 @@ import threading
 from random import SystemRandom
 from rethinkdb import ql2_pb2
 from rethinkdb.errors import ReqlAuthError, ReqlDriverError
-from rethinkdb.helpers import decode_utf8, to_bytes
+from rethinkdb.helpers import decode_utf8, chain_to_bytes
 from rethinkdb.logger import default_logger
 
 
@@ -138,7 +139,7 @@ class HandshakeV1_0(object):
         self._port = port
         self._username = username.encode('utf-8').replace(b'=', b'=3D').replace(b',', b'=2C')
 
-        self._password = to_bytes(password)
+        self._password = six.b(password)
 
         self._compare_digest = self._get_compare_digest()
         self._pbkdf2_hmac = self._get_pbkdf2_hmac()
@@ -169,12 +170,25 @@ class HandshakeV1_0(object):
 
         return getattr(hashlib, 'pbkdf2_hmac', pbkdf2_hmac)
 
+    @staticmethod
+    def _get_authentication_and_first_client_message(response):
+        """
+        Get the first client message and the authentication related data from the
+        response provided by RethinkDB.
+
+        :param response: Response dict from the database
+        :return: None
+        """
+
+        first_client_message = response['authentication'].encode('ascii')
+        authentication = dict(x.split(b'=', 1) for x in first_client_message.split(b','))
+        return first_client_message, authentication
+
     def _next_state(self):
         """
         Increase the state counter.
         """
 
-        default_logger.debug('Go to state {state}'.format(state=str(self._state)))
         self._state += 1
 
     def _decode_json_response(self, response, with_utf8=False):
@@ -217,22 +231,17 @@ class HandshakeV1_0(object):
             SystemRandom().getrandbits(8) for i in range(18)
         )))
 
-        self._first_client_message = to_bytes('n={username},r={r}'.format(
-            username=self._username, r=self._random_nonce
-        ))
+        self._first_client_message = chain_to_bytes('n=', self._username, ',r=', self._random_nonce)
 
-        initial_message = to_bytes('{pack}{message}\0'.format(
-            pack=struct.pack('<L', self.VERSION),
-            message=self._json_encoder.encode({
+        initial_message = chain_to_bytes(
+            struct.pack('<L', self.VERSION),
+            self._json_encoder.encode({
                 'protocol_version': self._protocol_version,
                 'authentication_method': 'SCRAM-SHA-256',
-                'authentication': to_bytes('n,,{first_message}'.format(
-                    first_message=self._first_client_message
-                ), decoding='ascii')
-            })
-        ))
-
-        default_logger.debug(initial_message)
+                'authentication': chain_to_bytes('n,,', self._first_client_message).decode('ascii')
+            }).encode('utf-8'),
+            b'\0'
+        )
 
         self._next_state()
         return initial_message
@@ -247,6 +256,7 @@ class HandshakeV1_0(object):
         :raises: ReqlDriverError | ReqlAuthError
         :return: An empty string
         """
+
 
         json_response = self._decode_json_response(response)
         min_protocol_version = json_response['min_protocol_version']
@@ -272,12 +282,10 @@ class HandshakeV1_0(object):
         """
 
         json_response = self._decode_json_response(response, with_utf8=True)
-        first_client_message = json_response['authentication'].encode('ascii')
+        first_client_message, authentication = self._get_authentication_and_first_client_message(json_response)
 
-        authentication = dict(x.split(b'=', 1) for x in first_client_message.split(b','))
-
-        r = authentication[b'r']
-        if not r.startswith(self._random_nonce):
+        random_nonce = authentication[b'r']
+        if not random_nonce.startswith(self._random_nonce):
             raise ReqlAuthError('Invalid nonce from server', self._host, self._port)
 
         salted_password = self._pbkdf2_hmac(
@@ -287,7 +295,7 @@ class HandshakeV1_0(object):
             int(authentication[b'i'])
         )
 
-        message_without_proof = b'c=biws,r={r}'.format(r=r)
+        message_without_proof = chain_to_bytes('c=biws,r=', random_nonce)
         auth_message = b','.join((
             self._first_client_message,
             first_client_message,
@@ -302,52 +310,42 @@ class HandshakeV1_0(object):
 
         client_key = hmac.new(salted_password, b'Client Key', hashlib.sha256).digest()
         client_signature = hmac.new(hashlib.sha256(client_key).digest(), auth_message, hashlib.sha256).digest()
-        client_proof = struct.pack('32B', *(l ^ r for l, r in zip(
+        client_proof = struct.pack('32B', *(l ^ random_nonce for l, random_nonce in zip(
             struct.unpack('32B', client_key),
             struct.unpack('32B', client_signature)
         )))
 
-        authentication_request = bytes('{auth_request}\0'.format(auth_request=self._json_encoder.encode({
-            'authentication': bytes('{message_without_proof},p={proof}'.format(
-                message_without_proof=message_without_proof,
-                proof=base64.standard_b64encode(client_proof)
-            )).decode('ascii')
-        }).encode('utf-8')))
+        authentication_request = chain_to_bytes(
+            self._json_encoder.encode({
+                'authentication': chain_to_bytes(
+                    message_without_proof, ',p=', base64.standard_b64encode(client_proof)
+                ).decode('ascii')
+            }),
+            b'\0'
+        )
 
         self._next_state()
         return authentication_request
 
     def _read_auth_response(self, response):
         """
-        Read the authentication request's response sent by the database.
+        Read the authentication request's response sent by the database
+        and validate the server signature which was returned.
 
         :param response: Response from the database
         :raises: ReqlDriverError | ReqlAuthError
-        :return: An empty string
+        :return: None
         """
 
-        json = self._json_decoder.decode(response.decode('utf-8'))
-        v = None
-        try:
-            if json['success'] is False:
-                if 10 <= json['error_code'] <= 20:
-                    raise ReqlAuthError(json['error'], self._host, self._port)
-                else:
-                    raise ReqlDriverError(json['error'])
+        json_response = self._decode_json_response(response, with_utf8=True)
 
-            authentication = dict(
-                x.split(b'=', 1)
-                for x in json['authentication'].encode('ascii').split(b','))
+        first_client_message, authentication = self._get_authentication_and_first_client_message(json_response)
+        server_signature = base64.standard_b64decode(authentication[b'v'])
 
-            v = base64.standard_b64decode(authentication[b'v'])
-        except KeyError as key_error:
-            raise ReqlDriverError('Missing key: %s' % (key_error, ))
-
-        if not self._compare_digest(v, self._server_signature):
+        if not self._compare_digest(server_signature, self._server_signature):
             raise ReqlAuthError('Invalid server signature', self._host, self._port)
 
         self._next_state()
-        return None
 
     def reset(self):
         self._random_nonce = None
