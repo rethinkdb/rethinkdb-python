@@ -1,6 +1,6 @@
 import pytest
 from mock import Mock
-from rethinkdb.helpers import decode_utf8
+from rethinkdb.helpers import decode_utf8, chain_to_bytes
 
 @pytest.mark.unit
 class TestDecodeUTF8Helper(object):
@@ -19,3 +19,26 @@ class TestDecodeUTF8Helper(object):
 
         assert decoded_string == string
 
+
+@pytest.mark.unit
+class TestChainToBytesHelper(object):
+    def test_string_chaining(self):
+        expected_string = b'iron man'
+
+        result = chain_to_bytes('iron', ' ', 'man')
+
+        assert result == expected_string
+
+    def test_byte_chaining(self):
+        expected_string = b'iron man'
+
+        result = chain_to_bytes(b'iron', b' ', b'man')
+
+        assert result == expected_string
+
+    def test_mixed_chaining(self):
+        expected_string = b'iron man'
+
+        result = chain_to_bytes('iron', ' ', b'man')
+
+        assert result == expected_string
