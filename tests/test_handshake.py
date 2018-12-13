@@ -1,11 +1,13 @@
-import pytest
-import struct
+import base64
 import json
+import pytest
+import six
+import struct
 from mock import call, patch, ANY, Mock
 from rethinkdb.errors import ReqlDriverError, ReqlAuthError
-from rethinkdb.ql2_pb2 import VersionDummy
 from rethinkdb.handshake import HandshakeV1_0, LocalThreadCache
 from rethinkdb.helpers import chain_to_bytes
+from rethinkdb.ql2_pb2 import VersionDummy
 
 
 @pytest.mark.unit
@@ -89,27 +91,27 @@ class TestHandshake(object):
         assert handshake._pbkdf2_hmac == mock_pbkdf2_hmac
 
     def test_decode_json_response(self):
-        expected_response = {"success": True}
+        expected_response = {'success': True}
 
         decoded_response = self.handshake._decode_json_response(json.dumps(expected_response))
 
         assert decoded_response == expected_response
 
     def test_decode_json_response_utf8_encoded(self):
-        expected_response = {"success": True}
+        expected_response = {'success': True}
 
         decoded_response = self.handshake._decode_json_response(json.dumps(expected_response), True)
 
         assert decoded_response == expected_response
 
     def test_decode_json_response_auth_error(self):
-        expected_response = {"success": False, "error_code": 15, "error": "test error message"}
+        expected_response = {'success': False, 'error_code': 15, 'error': 'test error message'}
 
         with pytest.raises(ReqlAuthError):
             decoded_response = self.handshake._decode_json_response(json.dumps(expected_response))
 
     def test_decode_json_response_driver_error(self):
-        expected_response = {"success": False, "error_code": 30, "error": "test error message"}
+        expected_response = {'success': False, 'error_code': 30, 'error': 'test error message'}
 
         with pytest.raises(ReqlDriverError):
             decoded_response = self.handshake._decode_json_response(json.dumps(expected_response))
@@ -167,7 +169,7 @@ class TestHandshake(object):
 
     def test_read_response(self):
         self.handshake._next_state = Mock()
-        response = {"success": True, "min_protocol_version": 0, "max_protocol_version": 1}
+        response = {'success': True, 'min_protocol_version': 0, 'max_protocol_version': 1}
 
         result = self.handshake._read_response(json.dumps(response))
 
@@ -184,9 +186,52 @@ class TestHandshake(object):
 
     def test_read_response_protocol_mismatch(self):
         self.handshake._next_state = Mock()
-        response = {"success": True, "min_protocol_version": -1, "max_protocol_version": -1}
+        response = {'success': True, 'min_protocol_version': -1, 'max_protocol_version': -1}
 
         with pytest.raises(ReqlDriverError):
             result = self.handshake._read_response(json.dumps(response))
+
+        assert self.handshake._next_state.called is False
+
+    def test_prepare_auth_request(self):
+        self.handshake._next_state = Mock()
+        self.handshake._random_nonce = base64.encodebytes(b'random_nonce')
+        self.handshake._first_client_message = chain_to_bytes('n=', self.handshake._username, ',r=', self.handshake._random_nonce)
+        response = {'success': True, 'authentication': 's=cmFuZG9tX25vbmNl\n,i=2,r=cmFuZG9tX25vbmNl\n'}
+        expected_result = b'{"authentication": "c=biws,r=cmFuZG9tX25vbmNl\\n,p=2Tpd60LM4Tkhe7VATTPj/lh4yunl07Sm4A+m3ukC774="}\x00'
+
+        result = self.handshake._prepare_auth_request(json.dumps(response))
+
+        assert isinstance(result, six.binary_type)
+        assert result == expected_result
+        assert self.handshake._next_state.called is True
+
+    def test_prepare_auth_request_invalid_nonce(self):
+        self.handshake._next_state = Mock()
+        self.handshake._random_nonce = base64.encodebytes(b'invalid')
+        response = {'success': True, 'authentication': 's=fake,i=2,r=cmFuZG9tX25vbmNl\n'}
+
+        with pytest.raises(ReqlAuthError):
+            result = self.handshake._prepare_auth_request(json.dumps(response))
+
+        assert self.handshake._next_state.called is False
+
+    def test_read_auth_response(self):
+        self.handshake._next_state = Mock()
+        self.handshake._server_signature = b'signature'
+        response = {'success': True, 'authentication': 'v=c2lnbmF0dXJl\n'}
+
+        result = self.handshake._read_auth_response(json.dumps(response))
+
+        assert result is None
+        assert self.handshake._next_state.called is True
+
+    def test_read_auth_response_invalid_server_signature(self):
+        self.handshake._next_state = Mock()
+        self.handshake._server_signature = b'invalid-signature'
+        response = {'success': True, 'authentication': 'v=c2lnbmF0dXJl\n'}
+
+        with pytest.raises(ReqlAuthError):
+            result = self.handshake._read_auth_response(json.dumps(response))
 
         assert self.handshake._next_state.called is False
