@@ -198,7 +198,10 @@ class TestHandshake(object):
         self.handshake._random_nonce = base64.encodebytes(b'random_nonce') if six.PY3 else base64.b64encode(b'random_nonce')
         self.handshake._first_client_message = chain_to_bytes('n=', self.handshake._username, ',r=', self.handshake._random_nonce)
         response = {'success': True, 'authentication': 's=cmFuZG9tX25vbmNl\n,i=2,r=cmFuZG9tX25vbmNl\n'}
-        expected_result = b'{"authentication": "c=biws,r=cmFuZG9tX25vbmNl\\n,p=2Tpd60LM4Tkhe7VATTPj/lh4yunl07Sm4A+m3ukC774="}\x00'
+        if six.PY3:
+            expected_result = b'{"authentication": "c=biws,r=cmFuZG9tX25vbmNl\\n,p=2Tpd60LM4Tkhe7VATTPj/lh4yunl07Sm4A+m3ukC774="}\x00'
+        else:
+            expected_result = b'{"authentication": "c=biws,r=cmFuZG9tX25vbmNl\\n,p=JqVP98bzu3yye/3SLopNJvCRimBx34uKI/EY8UI41gM="}\x00'
 
         result = self.handshake._prepare_auth_request(json.dumps(response))
 
