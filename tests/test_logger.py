@@ -42,37 +42,42 @@ class TestDriverLogger(object):
 
         with patch.object(self.logger, 'log') as mock_log:
             self.driver_logger._log(logging.ERROR, expected_message)
-            mock_stderr.write.assert_has_calls([
-                call(expected_message)
-            ])
+
+        mock_stderr.write.assert_has_calls([
+            call(expected_message)
+        ])
 
     def test_log_debug(self):
         expected_message = 'debug message'
 
         with patch.object(self.logger, 'log') as mock_log:
             self.driver_logger.debug(expected_message)
-            mock_log.assert_called_once_with(logging.DEBUG, expected_message, ANY, ANY)
+
+        mock_log.assert_called_once_with(logging.DEBUG, expected_message, ANY, ANY)
 
     def test_log_info(self):
         expected_message = 'info message'
 
         with patch.object(self.logger, 'log') as mock_log:
             self.driver_logger.info(expected_message)
-            mock_log.assert_called_once_with(logging.INFO, expected_message, ANY, ANY)
+
+        mock_log.assert_called_once_with(logging.INFO, expected_message, ANY, ANY)
 
     def test_log_warning(self):
         expected_message = 'warning message'
 
         with patch.object(self.logger, 'log') as mock_log:
             self.driver_logger.warning(expected_message)
-            mock_log.assert_called_once_with(logging.WARNING, expected_message, ANY, ANY)
+
+        mock_log.assert_called_once_with(logging.WARNING, expected_message, ANY, ANY)
 
     def test_log_error(self):
         expected_message = 'error message'
 
         with patch.object(self.logger, 'log') as mock_log:
             self.driver_logger.error(expected_message)
-            mock_log.assert_called_once_with(logging.ERROR, expected_message, ANY, ANY)
+
+        mock_log.assert_called_once_with(logging.ERROR, expected_message, ANY, ANY)
 
     @patch('rethinkdb.logger.DriverLogger._convert_message')
     def test_log_exception(self, mock_converter):
@@ -86,5 +91,18 @@ class TestDriverLogger(object):
             except Exception as exc:
                 self.driver_logger.exception(exc)
 
-            mock_converter.assert_called_once_with(expected_exception)
-            mock_log.assert_called_once_with(logging.ERROR, expected_message, ANY, {'exc_info':1})
+        mock_converter.assert_called_once_with(expected_exception)
+        mock_log.assert_called_once_with(logging.ERROR, expected_message, ANY, {'exc_info':1})
+
+    @patch('rethinkdb.logger.DriverLogger._convert_message')
+    def test_log_exception_and_raise(self, mock_converter):
+        expected_message = 'exception message'
+        expected_exception = AttributeError(expected_message)
+        mock_converter.return_value = expected_message
+
+        with patch.object(self.logger, 'log') as mock_log:
+            with pytest.raises(AttributeError):
+                self.driver_logger.exception(expected_exception, with_raise=True)
+
+        mock_converter.assert_called_once_with(expected_exception)
+        mock_log.assert_called_once_with(logging.ERROR, expected_message, ANY, {'exc_info':1})

@@ -49,10 +49,10 @@ help:
 	@echo "	make publish			Publish ${PACKAGE_NAME} package on PyPi"
 
 test-unit:
-	pytest -m unit
+	pytest -v -m unit
 
 test-integration:
-	pytest -m integration
+	pytest -v -m integration
 
 test-remote: prepare
 	python ${REMOTE_TEST_SETUP_NAME} pytest -m integration

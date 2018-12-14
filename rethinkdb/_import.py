@@ -129,7 +129,7 @@ class SourceFile(object):
             try:
                 self._source = codecs.open(source, mode="r", encoding="utf-8")
             except IOError as exc:
-                default_logger.exception(str(exc))
+                default_logger.exception(exc)
                 raise ValueError('Unable to open source file "%s": %s' % (str(source), str(exc)))
 
         if hasattr(self._source, 'name') and self._source.name and os.path.isfile(self._source.name):
@@ -423,7 +423,7 @@ class SourceFile(object):
 
         # - report relevant errors
         except Exception as exc:
-            default_logger.exception(str(exc))
+            default_logger.exception(exc)
             error_queue.put(Error(str(exc), traceback.format_exc(), self.name))
             exit_event.set()
             raise
