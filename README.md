@@ -50,6 +50,7 @@ In the `Makefile` you can find three different test commands: `test-unit`, `test
 Before you run any test, make sure that you install the requirements.
 ```bash
 $ pip install -r requirements.txt
+$ make prepare
 ```
 
 ### Running unit tests
