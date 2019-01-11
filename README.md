@@ -29,6 +29,7 @@ non-blocking I/O through multiple async frameworks:
 * [Asyncio](https://docs.python.org/3/library/asyncio.html)
 * [Gevent](http://www.gevent.org/)
 * [Tornado](https://www.tornadoweb.org/en/stable/)
+* [Trio](https://trio.readthedocs.io/en/latest/)
 * [Twisted](https://twistedmatrix.com/trac/)
 
 The following examples demonstrate how to use the driver in each mode.
@@ -146,6 +147,34 @@ def main():
         print(hero['name'])
 
 IOLoop.current().run_sync(main)
+```
+
+### Trio mode
+
+```python
+from rethinkdb import RethinkDB
+import trio
+
+async def main():
+    r = RethinkDB()
+    r.set_loop_type('trio')
+    async with trio.open_nursery() as nursery:
+        async with r.open(db='test', nursery=nursery) as conn:
+            await r.table_create('marvel').run(conn)
+            marvel_heroes = r.table('marvel')
+            await marvel_heroes.insert({
+                'id': 1,
+                'name': 'Iron Man',
+                'first_appearance': 'Tales of Suspense #39'
+            }).run(conn)
+
+            # "async for" is supported in Python ≥ 3.6. In earlier versions, you should
+            # call "await cursor.next()" in a loop.
+            cursor = await marvel_heroes.run(conn)
+            async for hero in cursor:
+                print(hero['name'])
+
+trio.run(main)
 ```
 
 ### Twisted mode
