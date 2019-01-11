@@ -15,6 +15,7 @@
 # This file incorporates work covered by the following copyright:
 # Copyright 2010-2019 RethinkDB all rights reserved.
 
+import collections
 import contextlib
 import logging
 import socket
@@ -427,3 +428,83 @@ class AsyncTrioConnectionContextManager:
 
 # Monkeypatch RethinkDB with an async context manager.
 RethinkDB.open = AsyncTrioConnectionContextManager.open
+
+
+class _TrioConnectionPoolContextManager:
+    '''
+    A context manager for a trio connection pool. This automatically acquires
+    a connection from the pool when entering the block, then releases it after
+    exiting the block.
+
+    This is not meant to be instantiated directly. Use
+    TrioConnectionPool.connection() instead.
+    '''
+    def __init__(self, pool):
+        self._conn = None
+        self._pool = pool
+
+    async def __aenter__(self):
+        ''' Acquire a connection. '''
+        self._conn = await self._pool.acquire()
+        return self._conn
+
+    async def __aexit__(self, exc_type, exc, tb):
+        ''' Release a connection. '''
+        await self._pool.release(self._conn)
+
+
+class TrioConnectionPool:
+    ''' A RethinkDB connection pool for Trio framework. '''
+    def __init__(self, *args, **kwargs):
+        '''
+        Constructor.
+
+        :param int max_idle: The maximum number of idle connections to keep in
+        the pool.
+        '''
+        self._closed = False
+        self._args = args
+        self._kwargs = kwargs
+        self._nursery = kwargs['nursery']
+        self._max_idle = kwargs.pop('maxidle', 10)
+        self._connections = collections.deque()
+        self._lent_out = set()
+
+    def connection(self):
+        return _TrioConnectionPoolContextManager(self)
+
+    async def acquire(self):
+        if self._closed:
+            raise Exception('DB pool is closed!')
+
+        try:
+            conn = self._connections.popleft()
+            while not conn.is_open():
+                # Connections in the pool may timeout, so look for one that is
+                # still connected.
+                conn = self._connections.popleft()
+        except IndexError:
+            conn = await connect(*self._args, **self._kwargs)
+
+        self._lent_out.add(conn)
+        return conn
+
+    async def release(self, conn):
+        self._lent_out.remove(conn)
+        if len(self._connections) < self._max_idle:
+            self._connections.append(conn)
+        else:
+            await conn.close()
+
+    async def close(self):
+        async with trio.open_nursery() as nursery:
+            for conn in self._connections:
+                nursery.start_soon(conn.close)
+            for conn in self._lent_out:
+                nursery.start_soon(conn.close)
+
+        self._closed = True
+
+
+# Monkeypatch RethinkDB with a connection pool.
+RethinkDB.ConnectionPool = TrioConnectionPool

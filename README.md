@@ -177,6 +177,16 @@ async def main():
 trio.run(main)
 ```
 
+The Trio mode also supports a database connection pool. You can modify the example above
+as follows:
+
+```python
+db_pool = r.ConnectionPool(db='test', nursery=nursery)
+async with db_pool.connection() as conn:
+    ...
+await db_pool.close()
+```
+
 ### Twisted mode
 
 ```python
