@@ -22,8 +22,21 @@ r = RethinkDB()
 connection = r.connect(db='test')
 ```
 
-## Example
-Create a table, populate with data, and get every document.
+## Blocking and Non-blocking I/O
+This driver supports blocking I/O (i.e. standard Python sockets) as well as
+non-blocking I/O through multiple async frameworks:
+
+* [Asyncio](https://docs.python.org/3/library/asyncio.html)
+* [Gevent](http://www.gevent.org/)
+* [Tornado](https://www.tornadoweb.org/en/stable/)
+* [Twisted](https://twistedmatrix.com/trac/)
+
+The following examples demonstrate how to use the driver in each mode.
+
+### Default mode (blocking I/O)
+The driver's default mode of operation is to use blocking I/O, i.e. standard Python
+sockets. This example shows how to create a table, populate with data, and get every
+document.
 
 ```python
 from rethinkdb import RethinkDB
@@ -42,6 +55,127 @@ marvel_heroes.insert({
 
 for hero in marvel_heroes.run(connection):
     print(hero['name'])
+```
+
+### Asyncio mode
+Asyncio mode is compatible with Python ≥ 3.4, which is when asyncio was
+introduced into the standard library.
+
+```python
+import asyncio
+from rethinkdb import RethinkDB
+
+# Native coroutines are supported in Python ≥ 3.5. In Python 3.4, you should
+# use the @asyncio.couroutine decorator instead of "async def", and "yield from"
+# instead of "await".
+async def main():
+    r = RethinkDB()
+    r.set_loop_type('asyncio')
+    connection = await r.connect(db='test')
+
+    await r.table_create('marvel').run(connection)
+
+    marvel_heroes = r.table('marvel')
+    await marvel_heroes.insert({
+        'id': 1,
+        'name': 'Iron Man',
+        'first_appearance': 'Tales of Suspense #39'
+    }).run(connection)
+
+    # "async for" is supported in Python ≥ 3.6. In earlier versions, you should
+    # call "await cursor.next()" in a loop.
+    cursor = await marvel_heroes.run(connection)
+    async for hero in cursor:
+        print(hero['name'])
+
+asyncio.get_event_loop().run_until_complete(main())
+```
+
+### Gevent mode
+
+```python
+import gevent
+from rethinkdb import RethinkDB
+
+def main():
+    r = RethinkDB()
+    r.set_loop_type('gevent')
+    connection = r.connect(db='test')
+
+    r.table_create('marvel').run(connection)
+
+    marvel_heroes = r.table('marvel')
+    marvel_heroes.insert({
+        'id': 1,
+        'name': 'Iron Man',
+        'first_appearance': 'Tales of Suspense #39'
+    }).run(connection)
+
+    for hero in marvel_heroes.run(connection):
+        print(hero['name'])
+
+gevent.joinall([gevent.spawn(main)])
+```
+
+### Tornado mode
+Tornado mode is compatible with Tornado < 5.0.0. Tornado 5 is not supported.
+
+```python
+from rethinkdb import RethinkDB
+from tornado import gen
+from tornado.ioloop import IOLoop
+
+@gen.coroutine
+def main():
+    r = RethinkDB()
+    r.set_loop_type('tornado')
+    connection = yield r.connect(db='test')
+
+    yield r.table_create('marvel').run(connection)
+
+    marvel_heroes = r.table('marvel')
+    yield marvel_heroes.insert({
+        'id': 1,
+        'name': 'Iron Man',
+        'first_appearance': 'Tales of Suspense #39'
+    }).run(connection)
+
+    cursor = yield marvel_heroes.run(connection)
+    while (yield cursor.fetch_next()):
+        hero = yield cursor.next()
+        print(hero['name'])
+
+IOLoop.current().run_sync(main)
+```
+
+### Twisted mode
+
+```python
+from rethinkdb import RethinkDB
+from twisted.internet import reactor, defer
+
+@defer.inlineCallbacks
+def main():
+    r = RethinkDB()
+    r.set_loop_type('twisted')
+    connection = yield r.connect(db='test')
+
+    yield r.table_create('marvel').run(connection)
+
+    marvel_heroes = r.table('marvel')
+    yield marvel_heroes.insert({
+        'id': 1,
+        'name': 'Iron Man',
+        'first_appearance': 'Tales of Suspense #39'
+    }).run(connection)
+
+    cursor = yield marvel_heroes.run(connection)
+    while (yield cursor.fetch_next()):
+        hero = yield cursor.next()
+        print(hero['name'])
+
+main().addCallback(lambda d: print("stopping") or reactor.stop())
+reactor.run()
 ```
 
 ## Run tests
