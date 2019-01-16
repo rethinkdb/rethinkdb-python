@@ -125,6 +125,24 @@ class TestDataWrite(IntegrationTestCaseBase):
         assert response['replaced'] == 1
         assert document == self.insert_data
 
+    def test_query_between_integers(self):
+        self.r.table(self.table_name).insert(self.insert_data).run(self.conn)
+
+        document = next(self.r.table(self.table_name).between(
+            0, self.insert_data["id"] + 1,
+        ).run(self.conn))
+
+        assert document == self.insert_data
+
+    def test_query_between_constants(self):
+        self.r.table(self.table_name).insert(self.insert_data).run(self.conn)
+
+        document = next(self.r.table(self.table_name).between(
+            self.r.minval, self.r.maxval,
+        ).run(self.conn))
+
+        assert document == self.insert_data
+
     def test_update_on_table(self):
         self.r.table(self.table_name).insert(self.insert_data).run(self.conn)
 
