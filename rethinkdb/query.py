@@ -287,13 +287,13 @@ def now(*args):
 
 
 class RqlConstant(ast.RqlQuery):
-    def __init__(self, st, tt):
-        self.st = st
-        self.tt = tt
+    def __init__(self, statement, term_type):
+        self.statement = statement
+        self.term_type = term_type
         super(RqlConstant, self).__init__()
 
     def compose(self, args, optargs):
-        return 'r.' + self.st
+        return 'r.' + self.statement
 
 
 # Time enum values
