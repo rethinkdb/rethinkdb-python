@@ -60,6 +60,9 @@ test-remote: prepare
 upload-coverage:
 	@sh scripts/upload-coverage.sh
 
+upload-pypi:
+	@sh scripts/upload-pypi.sh
+
 clean:
 	@rm -rf \
 		${FILE_CONVERTER_NAME} \

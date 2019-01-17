@@ -15,4 +15,4 @@
 # This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-VERSION = '1.0.0'
+VERSION = '2.4.0+source'
