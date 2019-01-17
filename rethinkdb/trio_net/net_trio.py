@@ -17,7 +17,6 @@
 
 import collections
 import contextlib
-import logging
 import socket
 import ssl
 import struct
@@ -31,14 +30,13 @@ from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, \
     ReqlTimeoutError, RqlCursorEmpty
 from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, \
     Response, maybe_profile, connect
-from rethinkdb.logger import default_logger
 
 
 __all__ = ['Connection']
 
 
-pResponse = ql2_pb2.Response.ResponseType
-pQuery = ql2_pb2.Query.QueryType
+p_response = ql2_pb2.Response.ResponseType
+p_query = ql2_pb2.Query.QueryType
 
 
 class TrioFuture:
@@ -187,7 +185,7 @@ class TrioCursor(Cursor, trio.abc.AsyncResource):
 
 
 class ConnectionInstance:
-    def __init__(self, parent, io_loop=None, nursery=None):
+    def __init__(self, parent, nursery=None):
         self._stream = None
         self._stream_lock = trio.Lock()
         self._sockname = None
@@ -220,9 +218,9 @@ class ConnectionInstance:
 
         try:
             while True:
-                c = await self._stream.receive_some(1)
-                buffer.append(c[0])
-                if c == delimiter:
+                data = await self._stream.receive_some(1)
+                buffer.append(data[0])
+                if data == delimiter:
                     break
         except (trio.BrokenResourceError, trio.ClosedResourceError):
             self._closed = True
@@ -250,14 +248,13 @@ class ConnectionInstance:
                 self._stream = await trio.open_ssl_over_tcp_stream(
                     self._parent.host, self._parent.port,
                     ssl_context=ssl_context)
-                socket = self._stream.transport_stream.socket
+                socket_ = self._stream.transport_stream.socket
             else:
                 self._stream = await trio.open_tcp_stream(self._parent.host,
                     self._parent.port)
-                socket = self._stream.socket
-            self._sockname = socket.getsockname()
-            #TODO why doesn't this option work?
-            # socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                socket_ = self._stream.socket
+            self._sockname = socket_.getsockname()
+            socket_.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         except Exception as err:
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
                                   (self._parent.host, self._parent.port, str(err)))
@@ -309,7 +306,7 @@ class ConnectionInstance:
         for cursor in list(self._cursor_cache.values()):
             cursor._error(err_message)
 
-        for query, future in iter(self._user_queries.values()):
+        for _, future in self._user_queries.values():
             if not future.done():
                 future.set_exception(ReqlDriverError(err_message))
 
@@ -317,12 +314,12 @@ class ConnectionInstance:
         self._cursor_cache = {}
 
         if noreply_wait:
-            noreply = Query(pQuery.NOREPLY_WAIT, token, None, None)
+            noreply = Query(p_query.NOREPLY_WAIT, token, None, None)
             await self.run_query(noreply, False)
 
         try:
             await self._stream.aclose()
-        except:
+        except (trio.ClosedResourceError, trio.BrokenResourceError):
             pass
         # We must not wait for the _reader_task if we got an exception, because that
         # means that we were called from it. Waiting would lead to a deadlock.
@@ -362,15 +359,15 @@ class ConnectionInstance:
                     query, future = self._user_queries[token]
                     res = Response(token, buf,
                                    self._parent._get_json_decoder(query))
-                    if res.type == pResponse.SUCCESS_ATOM:
+                    if res.type == p_response.SUCCESS_ATOM:
                         future.set_result(maybe_profile(res.data[0], res))
-                    elif res.type in (pResponse.SUCCESS_SEQUENCE,
-                                      pResponse.SUCCESS_PARTIAL):
+                    elif res.type in (p_response.SUCCESS_SEQUENCE,
+                                      p_response.SUCCESS_PARTIAL):
                         cursor = TrioCursor(self, query, res, nursery=self._nursery)
                         future.set_result(maybe_profile(cursor, res))
-                    elif res.type == pResponse.WAIT_COMPLETE:
+                    elif res.type == p_response.WAIT_COMPLETE:
                         future.set_result(None)
-                    elif res.type == pResponse.SERVER_INFO:
+                    elif res.type == p_response.SERVER_INFO:
                         future.set_result(res.data[0])
                     else:
                         future.set_exception(res.make_error(query))
@@ -394,8 +391,8 @@ class Connection(ConnectionBase):
 
     async def _stop(self, cursor):
         self.check_open()
-        q = Query(pQuery.STOP, cursor.query.token, None, None)
-        return await self._instance.run_query(q, True)
+        query = Query(p_query.STOP, cursor.query.token, None, None)
+        return await self._instance.run_query(query, True)
 
     async def reconnect(self, noreply_wait=True, timeout=None):
         await self.close(noreply_wait)
@@ -422,7 +419,7 @@ class AsyncTrioConnectionContextManager:
         self._conn = await connect(*self._args, **self._kwargs)
         return self._conn
 
-    async def __aexit__(self, exception_type, exception_val, traceback):
+    async def __aexit__(self, self, exc_type, exc, traceback):
         await self._conn.close(False)
 
 
@@ -448,7 +445,7 @@ class _TrioConnectionPoolContextManager:
         self._conn = await self._pool.acquire()
         return self._conn
 
-    async def __aexit__(self, exc_type, exc, tb):
+    async def __aexit__(self, exc_type, exc, traceback):
         ''' Release a connection. '''
         await self._pool.release(self._conn)
 
