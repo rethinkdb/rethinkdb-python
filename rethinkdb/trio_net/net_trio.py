@@ -35,8 +35,8 @@ from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, \
 __all__ = ['Connection']
 
 
-p_response = ql2_pb2.Response.ResponseType
-p_query = ql2_pb2.Query.QueryType
+P_RESPONSE = ql2_pb2.Response.ResponseType
+P_QUERY = ql2_pb2.Query.QueryType
 
 
 class TrioFuture:
@@ -314,7 +314,7 @@ class ConnectionInstance:
         self._cursor_cache = {}
 
         if noreply_wait:
-            noreply = Query(p_query.NOREPLY_WAIT, token, None, None)
+            noreply = Query(P_QUERY.NOREPLY_WAIT, token, None, None)
             await self.run_query(noreply, False)
 
         try:
@@ -359,15 +359,15 @@ class ConnectionInstance:
                     query, future = self._user_queries[token]
                     res = Response(token, buf,
                                    self._parent._get_json_decoder(query))
-                    if res.type == p_response.SUCCESS_ATOM:
+                    if res.type == P_RESPONSE.SUCCESS_ATOM:
                         future.set_result(maybe_profile(res.data[0], res))
-                    elif res.type in (p_response.SUCCESS_SEQUENCE,
-                                      p_response.SUCCESS_PARTIAL):
+                    elif res.type in (P_RESPONSE.SUCCESS_SEQUENCE,
+                                      P_RESPONSE.SUCCESS_PARTIAL):
                         cursor = TrioCursor(self, query, res, nursery=self._nursery)
                         future.set_result(maybe_profile(cursor, res))
-                    elif res.type == p_response.WAIT_COMPLETE:
+                    elif res.type == P_RESPONSE.WAIT_COMPLETE:
                         future.set_result(None)
-                    elif res.type == p_response.SERVER_INFO:
+                    elif res.type == P_RESPONSE.SERVER_INFO:
                         future.set_result(res.data[0])
                     else:
                         future.set_exception(res.make_error(query))
@@ -391,7 +391,7 @@ class Connection(ConnectionBase):
 
     async def _stop(self, cursor):
         self.check_open()
-        query = Query(p_query.STOP, cursor.query.token, None, None)
+        query = Query(P_QUERY.STOP, cursor.query.token, None, None)
         return await self._instance.run_query(query, True)
 
     async def reconnect(self, noreply_wait=True, timeout=None):
@@ -419,7 +419,7 @@ class AsyncTrioConnectionContextManager:
         self._conn = await connect(*self._args, **self._kwargs)
         return self._conn
 
-    async def __aexit__(self, self, exc_type, exc, traceback):
+    async def __aexit__(self, exc_type, exc, traceback):
         await self._conn.close(False)
 
 
