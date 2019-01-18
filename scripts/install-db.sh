@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -euo pipefail
+set -e
+set -u
 
 export DISTRIB_CODENAME=$(lsb_release -sc)
 
