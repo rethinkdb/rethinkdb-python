@@ -56,7 +56,7 @@ setuptools.setup(
     zip_safe=True,
     version=VERSION,
     description='Python driver library for the RethinkDB database server.',
-    long_description=__doc__,
+    long_description=open('README.md', 'r').read(),
     url='https://github.com/RethinkDB/rethinkdb-python',
     maintainer='RethinkDB.',
     maintainer_email='bugs@rethinkdb.com',
@@ -69,6 +69,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
     packages=[
         'rethinkdb',
