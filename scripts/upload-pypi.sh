@@ -1,3 +1,8 @@
+#!/bin/bash
+
+set -e
+set -u
+
 export UPLOAD_STAGING=
 
 if [ "${TRAVIS_PULL_REQUEST}" != "" ]; then

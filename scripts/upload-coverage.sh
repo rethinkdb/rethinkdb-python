@@ -1,7 +1,7 @@
-if [ "${TRAVIS_PULL_REQUEST}" != "" ]; then
-    echo "Skipping coverage upload for PR"
-    exit;
-fi
+#!/bin/bash
+
+set -e
+set -u
 
 if [ "${CODACY_PROJECT_TOKEN}" = "" ]; then
     echo "Skipping coverage upload for missing CODACY_PROJECT_TOKEN"
@@ -10,5 +10,4 @@ fi
 
 set -ex
 
-pytest -m unit --cov rethinkdb --cov-report xml
 python-codacy-coverage -r coverage.xml
