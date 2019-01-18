@@ -28,16 +28,21 @@ notifications:
 matrix:
   include:
     - stage: "Integration test"
+      python:
+        - "2.7"
+        - "3.4"
+        - "3.5"
+        - "3.6"
+        - "3.7"
       before_install: make install-db
-      script:
-        - make test-integration
+      script: make test-integration
 
     - stage: "Coverage upload"
       python: "3.6"
       before_script: skip
       script: make upload-coverage
 
-    - stage: "PyPi test release"
+    - stage: "PyPi package release"
       python: "3.6"
       install: skip
       script: make upload-pypi
