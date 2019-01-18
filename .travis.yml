@@ -1,45 +1,43 @@
-sudo: false
+cache: pip
+dist: xenial
 language: python
+sudo: required
 
 python:
     - "2.7"
     - "3.4"
     - "3.5"
     - "3.6"
+    - "3.7"
+
+allow_failure:
+    - python: "3.7"
 
 install:
     - pip install -r requirements.txt
-
-jobs:
-    include:
-        - sudo: required
-          dist: xenial
-          python: "3.7"
-
-        - stage: upload_coverage
-          python: "2.7"
-          script: make upload-coverage
-
-        - stage: upload_coverage
-          python: "3.6"
-          script: make upload-coverage
-
-        - stage: integration_test
-          if: branch = master
-          python: "2.7"
-          script: make test-remote
-
-        - stage: integration_test
-          if: branch = master
-          python: "3.6"
-          script: make test-remote
-
-        - stage: upload_pypi
-          python: "3.6"
-          script: make upload-pypi
 
 before_script:
     - make prepare
 
 script:
     - make test-unit
+
+notifications:
+    email: false
+
+matrix:
+  include:
+    - stage: "Integration test"
+      before_install: make install-db
+      script:
+        - make test-integration
+
+    - stage: "Coverage upload"
+      python: "3.6"
+      before_script: skip
+      script: make upload-coverage
+
+    - stage: "PyPi test release"
+      python: "3.6"
+      install: skip
+      script: make upload-pypi

@@ -1,3 +1,7 @@
+#!/bin/bash
+
+set -euo pipefail
+
 export UPLOAD_STAGING=
 
 if [ "${TRAVIS_PULL_REQUEST}" != "" ]; then

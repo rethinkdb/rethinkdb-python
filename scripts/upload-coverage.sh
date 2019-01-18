@@ -1,3 +1,7 @@
+#!/bin/bash
+
+set -euo pipefail
+
 if [ "${TRAVIS_PULL_REQUEST}" != "" ]; then
     echo "Skipping coverage upload for PR"
     exit;

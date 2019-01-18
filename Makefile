@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: default help clean prepare package publish
+.PHONY: default help test-unit test-integration test-remote upload-coverage upload-pypi clean prepare
 
 PACKAGE_NAME = rethinkdb
-
-BUILD_DIR = ./build
-PACKAGE_DIR = ${BUILD_DIR}/package
 
 PROTO_FILE_NAME = ql2.proto
 PROTO_FILE_URL = https://raw.githubusercontent.com/RebirthDB/rebirthdb/next/src/rdb_protocol/${PROTO_FILE_NAME}
@@ -43,19 +40,23 @@ help:
 	@echo "	make test-integration	Run integration tests"
 	@echo "	make test-remote		Run tests on digital ocean"
 	@echo "	make upload-coverage	Upload unit test coverage"
+	@echo "	make upload-pypi		Release ${PACKAGE_NAME} package to PyPi"
 	@echo "	make clean				Cleanup source directory"
 	@echo "	make prepare			Prepare ${PACKAGE_NAME} for build"
-	@echo "	make package			Build ${PACKAGE_NAME} package"
-	@echo "	make publish			Publish ${PACKAGE_NAME} package on PyPi"
 
 test-unit:
 	pytest -v -m unit
 
 test-integration:
+	@rebirthdb&
 	pytest -v -m integration
+	@killall rebirthdb
 
-test-remote: prepare
+test-remote:
 	python ${REMOTE_TEST_SETUP_NAME} pytest -m integration
+
+install-db:
+	@sh scripts/install-db.sh
 
 upload-coverage:
 	@sh scripts/upload-coverage.sh
@@ -68,10 +69,9 @@ clean:
 		${FILE_CONVERTER_NAME} \
 		${TARGET_PROTO_FILE} \
 		${TARGET_CONVERTED_PROTO_FILE} \
-		${BUILD_DIR} \
-		.tox \
 		.pytest_cache \
 		.eggs \
+		.dist \
 		*.egg-info
 
 prepare:
@@ -79,11 +79,3 @@ prepare:
 	curl -qo ${FILE_CONVERTER_NAME} ${FILE_CONVERTER_URL}
 	curl -qo ${REMOTE_TEST_SETUP_NAME} ${REMOTE_TEST_SETUP_URL}
 	python ./${FILE_CONVERTER_NAME} -l python -i ${TARGET_PROTO_FILE} -o ${TARGET_CONVERTED_PROTO_FILE}
-	rsync -av ./ ${BUILD_DIR} --filter=':- .gitignore'
-	cp ${TARGET_PROTO_FILE} ${BUILD_DIR}/${PACKAGE_NAME}
-
-package: prepare
-	cd ${BUILD_DIR} && python ./setup.py sdist --dist-dir=$(abspath ${PACKAGE_DIR})
-
-publish:
-	cd ${BUILD_DIR} && python ./setup.py register upload

@@ -55,6 +55,7 @@ coverage.xml
 .python-version
 
 # Environments
+*.pid
 .env
 .venv
 env/
@@ -69,6 +70,8 @@ convert_protofile.py
 prepare_remote_test.py
 rethinkdb/ql2_pb2.py
 rethinkdb/*.proto
+rethinkdb_data/
+rebirthdb_data/
 
 # Editors
 .vscode/
