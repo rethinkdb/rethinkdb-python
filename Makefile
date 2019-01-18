@@ -52,6 +52,9 @@ test-integration:
 	pytest -v -m integration
 	@killall rebirthdb
 
+test-ci:
+	pytest -v --cov rethinkdb --cov-report xml
+
 test-remote:
 	python ${REMOTE_TEST_SETUP_NAME} pytest -m integration
 

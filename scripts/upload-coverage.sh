@@ -15,5 +15,4 @@ fi
 
 set -ex
 
-pytest -m unit --cov rethinkdb --cov-report xml
 python-codacy-coverage -r coverage.xml
