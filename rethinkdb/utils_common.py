@@ -47,7 +47,7 @@ class RetryQuery(object):
 
         connect_options['port'] = int(connect_options['port'])
 
-        if connect_options <= 0:
+        if connect_options['port'] <= 0:
             raise AssertionError('Port number can not be less than one')
 
         self.__connectOptions = copy.deepcopy(connect_options)
