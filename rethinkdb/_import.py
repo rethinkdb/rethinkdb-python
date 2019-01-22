@@ -26,7 +26,7 @@ import collections
 import csv
 import ctypes
 import json
-import multiprocessing
+import multiprocessing as mp
 import optparse
 import os
 import signal
@@ -110,12 +110,12 @@ class SourceFile(object):
         self.query_runner = query_runner
 
         # reporting information
-        self._bytes_size = multiprocessing.Value(ctypes.c_longlong, -1)
-        self._bytes_read = multiprocessing.Value(ctypes.c_longlong, -1)
+        self._bytes_size = mp.Value(ctypes.c_longlong, -1)
+        self._bytes_read = mp.Value(ctypes.c_longlong, -1)
 
-        self._total_rows = multiprocessing.Value(ctypes.c_longlong, -1)
-        self._rows_read = multiprocessing.Value(ctypes.c_longlong, 0)
-        self._rows_written = multiprocessing.Value(ctypes.c_longlong, 0)
+        self._total_rows = mp.Value(ctypes.c_longlong, -1)
+        self._rows_read = mp.Value(ctypes.c_longlong, 0)
+        self._rows_written = mp.Value(ctypes.c_longlong, 0)
 
         # source
         if hasattr(source, 'read'):
@@ -957,7 +957,7 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                             nesting_depth=MAX_NESTING_DEPTH),
                         durability=options.durability,
                         conflict=conflict_action,
-                        ignore_write_hook=True))
+                        ))
 
                 if res["errors"] > 0:
                     raise RuntimeError("Error when importing into table '%s.%s': %s" % (db, table, res["first_error"]))
@@ -1083,13 +1083,15 @@ def import_tables(options, sources, files_ignored=None):
 
     tables = dict(((x.db, x.table), x) for x in sources)  # (db, table) => table
 
-    work_queue = Queue(options.clients * 3)
-    error_queue = SimpleQueue()
-    warning_queue = SimpleQueue()
-    exit_event = multiprocessing.Event()
-    interrupt_event = multiprocessing.Event()
+    ctx = mp.get_context(mp.get_start_method())
+    max_queue_size = options.clients * 3
+    work_queue = mp.Manager().Queue(max_queue_size)
+    error_queue = SimpleQueue(ctx=ctx)
+    warning_queue = SimpleQueue(ctx=ctx)
+    exit_event = mp.Event()
+    interrupt_event = mp.Event()
 
-    timing_queue = SimpleQueue()
+    timing_queue = SimpleQueue(ctx=ctx)
 
     errors = []
     warnings = []
@@ -1166,7 +1168,7 @@ def import_tables(options, sources, files_ignored=None):
     try:
         # - start the progress bar
         if not options.quiet:
-            progress_bar = multiprocessing.Process(
+            progress_bar = mp.Process(
                 target=update_progress,
                 name="progress bar",
                 args=(sources, options.debug, exit_event, progress_bar_sleep)
@@ -1178,7 +1180,7 @@ def import_tables(options, sources, files_ignored=None):
         writers = []
         pools.append(writers)
         for i in range(options.clients):
-            writer = multiprocessing.Process(
+            writer = mp.Process(
                 target=table_writer,
                 name="table writer %d" %
                 i,
@@ -1202,7 +1204,7 @@ def import_tables(options, sources, files_ignored=None):
                 # add a workers to fill up the readers pool
                 while len(readers) < options.clients:
                     table = next(file_iter)
-                    reader = multiprocessing.Process(
+                    reader = mp.Process(
                         target=table.read_to_queue,
                         name="table reader %s.%s" %
                         (table.db,

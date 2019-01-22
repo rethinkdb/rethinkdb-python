@@ -151,7 +151,6 @@ class CommonOptionsParser(optparse.OptionParser, object):
         return self.epilog or ''
 
     def __init__(self, *args, **kwargs):
-
         # -- Type Checkers
 
         def check_tls_option(opt_str, value):
@@ -178,7 +177,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
 
             return int(value)
 
-        def check_existing_file(opt_str, value):
+        def check_existing_file(_, opt_str, value):
             if not os.path.isfile(value):
                 raise optparse.OptionValueError('%s value was not an existing file: %s' % (opt_str, value))
 
@@ -207,7 +206,10 @@ class CommonOptionsParser(optparse.OptionParser, object):
 
         # -- Callbacks
 
-        def combined_connect_action(value, parser):
+        def combined_connect_action(obj, opt, value, parser, *args, **kwargs):
+            """optparse.takeaction() calls the callback (which this is set as)
+               with the following args: self, opt, value, parser *args, **kwargs
+            """
             res = self.__connectRegex.match(value)
             if not res:
                 raise optparse.OptionValueError("Invalid 'host:port' format: %s" % value)
@@ -295,7 +297,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             help='driver port of a rethinkdb server',
             type='int',
             default=os.environ.get(
-                'REBIRTHDB_DRIVER_PORT',
+                'RETHINKDB_DRIVER_PORT',
                 net.DEFAULT_PORT))
         connection_group.add_option(
             '--host-name',
@@ -303,7 +305,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             metavar='HOST',
             help='host and driver port of a rethinkdb server',
             default=os.environ.get(
-                'REBIRTHDB_HOSTNAME',
+                'RETHINKDB_HOSTNAME',
                 'localhost'))
         connection_group.add_option(
             '-u',
@@ -312,7 +314,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             metavar='USERNAME',
             help='user name to connect as',
             default=os.environ.get(
-                'REBIRTHDB_USER',
+                'RETHINKDB_USER',
                 'admin'))
         connection_group.add_option(
             '-p',
@@ -344,12 +346,13 @@ class CommonOptionsParser(optparse.OptionParser, object):
 
         # - validate ENV variables
 
-        if 'REBIRTHDB_DRIVER_PORT' in os.environ:
-            driver_port = os.environ['REBIRTHDB_DRIVER_PORT']
+        if 'RETHINKDB_DRIVER_PORT' in os.environ:
+            driver_port = os.environ['RETHINKDB_DRIVER_PORT']
 
             if not isinstance(driver_port, int) or driver_port < 1:
-                self.error('ENV variable REBIRTHDB_DRIVER_PORT is not a useable integer: %s'
-                           % os.environ['REBIRTHDB_DRIVER_PORT'])
+                self.error('ENV variable RETHINKDB_DRIVER_PORT is not a useable '
+                           'integer: %s'
+                           % os.environ['RETHINKDB_DRIVER_PORT'])
 
         # - parse options
 
