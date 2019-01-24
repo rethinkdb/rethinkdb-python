@@ -18,9 +18,7 @@
 
 import collections
 import errno
-import imp
 import numbers
-import os
 import pprint
 import socket
 import ssl
@@ -48,7 +46,7 @@ from rethinkdb.errors import (
 from rethinkdb.handshake import HandshakeV1_0
 from rethinkdb.logger import default_logger
 
-__all__ = ['connect', 'set_loop_type', 'Connection', 'Cursor', 'DEFAULT_PORT']
+__all__ = ['Connection', 'Cursor', 'DEFAULT_PORT']
 
 
 DEFAULT_PORT = 28015
@@ -705,10 +703,10 @@ class DefaultConnection(Connection):
         Connection.__init__(self, ConnectionInstance, *args, **kwargs)
 
 
-connection_type = DefaultConnection
 
 
-def connect(
+
+def connect(connection_type,
         host=None,
         port=None,
         db=None,
@@ -736,24 +734,3 @@ def connect(
     return conn.reconnect(timeout=timeout)
 
 
-def set_loop_type(library):
-    global connection_type
-    import pkg_resources
-
-    # find module file
-    manager = pkg_resources.ResourceManager()
-    libPath = '%(library)s_net/net_%(library)s.py' % {'library': library}
-    if not manager.resource_exists(__name__, libPath):
-        raise ValueError('Unknown loop type: %r' % library)
-
-    # load the module
-    modulePath = manager.resource_filename(__name__, libPath)
-    moduleName = 'net_%s' % library
-    moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
-    module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
-
-    # set the connection type
-    connection_type = module.Connection
-
-    # cleanup
-    manager.cleanup_resources()
