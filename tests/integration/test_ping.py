@@ -10,7 +10,7 @@ BAD_PASSWORD = "0xDEADBEEF"
 @pytest.mark.integration
 class TestPing(IntegrationTestCaseBase):
     def teardown_method(self):
-        with self.r.connect(host=self.rebirthdb_host) as conn:
+        with self.r.connect(host=self.rethinkdb_host) as conn:
             self.r.db("rethinkdb").table("users").filter(
                 self.r.row["id"].ne("admin")
             ).delete().run(conn)
@@ -18,11 +18,11 @@ class TestPing(IntegrationTestCaseBase):
 
     def test_bad_password(self):
         with pytest.raises(self.r.ReqlAuthError):
-            self.r.connect(password=BAD_PASSWORD, host=self.rebirthdb_host)
+            self.r.connect(password=BAD_PASSWORD, host=self.rethinkdb_host)
 
     def test_password_connect(self):
         new_user = "user"
-        with self.r.connect(user="admin", password="", host=self.rebirthdb_host) as conn:
+        with self.r.connect(user="admin", password="", host=self.rethinkdb_host) as conn:
             curr = self.r.db("rethinkdb").table("users").insert(
                 {"id": new_user, "password": BAD_PASSWORD}
             ).run(conn)
@@ -40,7 +40,7 @@ class TestPing(IntegrationTestCaseBase):
                     {
                         'new_val': {'read': True},
                         'old_val': None}]}
-        with self.r.connect(user=new_user, password=BAD_PASSWORD, host=self.rebirthdb_host) as conn:
+        with self.r.connect(user=new_user, password=BAD_PASSWORD, host=self.rethinkdb_host) as conn:
             curr = self.r.db("rethinkdb").table("users").get("admin").run(conn)
             assert curr == {'id': 'admin', 'password': False}
             with pytest.raises(self.r.ReqlPermissionError):
@@ -49,6 +49,6 @@ class TestPing(IntegrationTestCaseBase):
                 ).run(conn)
 
     def test_context_manager(self):
-        with self.r.connect(host=self.rebirthdb_host) as conn:
+        with self.r.connect(host=self.rethinkdb_host) as conn:
             assert conn.is_open() is True
         assert conn.is_open() is False

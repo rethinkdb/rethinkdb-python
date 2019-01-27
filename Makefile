@@ -17,14 +17,14 @@
 PACKAGE_NAME = rethinkdb
 
 PROTO_FILE_NAME = ql2.proto
-PROTO_FILE_URL = https://raw.githubusercontent.com/RebirthDB/rebirthdb/next/src/rdb_protocol/${PROTO_FILE_NAME}
+PROTO_FILE_URL = https://raw.githubusercontent.com/rethinkdb/rethinkdb/next/src/rdb_protocol/${PROTO_FILE_NAME}
 TARGET_PROTO_FILE = ${PACKAGE_NAME}/${PROTO_FILE_NAME}
 
 FILE_CONVERTER_NAME = convert_protofile.py
-FILE_CONVERTER_URL = https://raw.githubusercontent.com/RebirthDB/rebirthdb/next/scripts/${FILE_CONVERTER_NAME}
+FILE_CONVERTER_URL = https://raw.githubusercontent.com/rethinkdb/rethinkdb/next/scripts/${FILE_CONVERTER_NAME}
 
 REMOTE_TEST_SETUP_NAME = prepare_remote_test.py
-REMOTE_TEST_SETUP_URL = https://raw.githubusercontent.com/RebirthDB/rebirthdb/next/scripts/${REMOTE_TEST_SETUP_NAME}
+REMOTE_TEST_SETUP_URL = https://raw.githubusercontent.com/rethinkdb/rethinkdb/next/scripts/${REMOTE_TEST_SETUP_NAME}
 
 CONVERTED_PROTO_FILE_NAME = ql2_pb2.py
 TARGET_CONVERTED_PROTO_FILE = ${PACKAGE_NAME}/${CONVERTED_PROTO_FILE_NAME}
@@ -48,14 +48,14 @@ test-unit:
 	pytest -v -m unit
 
 test-integration:
-	@rebirthdb&
+	@rethinkdb&
 	pytest -v -m integration
-	@killall rebirthdb
+	@killall rethinkdb
 
 test-ci:
-	@rebirthdb&
+	@rethinkdb&
 	pytest -v --cov rethinkdb --cov-report xml
-	@killall rebirthdb
+	@killall rethinkdb
 
 test-remote:
 	python ${REMOTE_TEST_SETUP_NAME} pytest -m integration
