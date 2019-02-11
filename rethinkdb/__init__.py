@@ -16,6 +16,8 @@ import os
 import imp
 
 from rethinkdb import errors, version
+from rethinkdb import net
+import pkg_resources
 
 
 # The builtins here defends against re-importing something obscuring `object`.
@@ -40,7 +42,6 @@ class RethinkDB(builtins.object):
         self._import = _import
         self._index_rebuild = _index_rebuild
         self._restore = _restore
-        self._connect = net.connect
 
         net.Connection._r = self
 
@@ -50,11 +51,8 @@ class RethinkDB(builtins.object):
 
         self.set_loop_type(None)
 
-    def set_loop_type(self, library):
-        import pkg_resources
-
+    def set_loop_type(self, library=None):
         if library is None:
-            from rethinkdb import net
             self.connection_type = net.DefaultConnection
             return
 
@@ -77,4 +75,4 @@ class RethinkDB(builtins.object):
         manager.cleanup_resources()
 
     def connect(self, *args, **kwargs):
-        return self._connect(self.connection_type, *args, **kwargs)
+        return self.make_connection(self.connection_type, *args, **kwargs)

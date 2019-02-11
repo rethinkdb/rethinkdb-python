@@ -46,7 +46,7 @@ from rethinkdb.errors import (
 from rethinkdb.handshake import HandshakeV1_0
 from rethinkdb.logger import default_logger
 
-__all__ = ['Connection', 'Cursor', 'DEFAULT_PORT']
+__all__ = ['Connection', 'Cursor', 'DEFAULT_PORT', 'DefaultConnection', 'make_connection']
 
 
 DEFAULT_PORT = 28015
@@ -706,7 +706,8 @@ class DefaultConnection(Connection):
 
 
 
-def connect(connection_type,
+def make_connection(
+        connection_type,
         host=None,
         port=None,
         db=None,
@@ -732,5 +733,3 @@ def connect(connection_type,
 
     conn = connection_type(host, port, db, auth_key, user, password, timeout, ssl, _handshake_version, **kwargs)
     return conn.reconnect(timeout=timeout)
-
-
