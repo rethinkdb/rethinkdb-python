@@ -171,8 +171,9 @@ async def main():
             # "async for" is supported in Python ≥ 3.6. In earlier versions, you should
             # call "await cursor.next()" in a loop.
             cursor = await marvel_heroes.run(conn)
-            async for hero in cursor:
-                print(hero['name'])
+            async with cursor:
+                async for hero in cursor:
+                    print(hero['name'])
 
 trio.run(main)
 ```
