@@ -23,7 +23,6 @@ import struct
 
 import trio
 import trio.abc
-import trio.ssl
 
 from rethinkdb import ql2_pb2, RethinkDB
 from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, \
