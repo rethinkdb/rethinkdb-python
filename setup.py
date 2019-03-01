@@ -30,7 +30,7 @@ except ImportError:
 from rethinkdb.version import VERSION
 
 RETHINKDB_VERSION_DESCRIBE = os.environ.get("RETHINKDB_VERSION_DESCRIBE")
-VERSION_RE = r"^v(?P<version>\d+\.\d+)\.0(-(?P<patch>\d+))?(-(?P<sha>\w+))?$"
+VERSION_RE = r"^v(?P<version>\d+\.\d+)\.(?P<patch>\d+)?(-(?P<sha>\w+))?$"
 
 if RETHINKDB_VERSION_DESCRIBE:
     MATCH = re.match(VERSION_RE, RETHINKDB_VERSION_DESCRIBE)
