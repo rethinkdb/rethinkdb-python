@@ -66,7 +66,7 @@ install-db:
 upload-coverage:
 	@sh scripts/upload-coverage.sh
 
-upload-pypi:
+upload-pypi: prepare
 	@sh scripts/upload-pypi.sh
 
 clean:
