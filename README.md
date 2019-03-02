@@ -1,5 +1,5 @@
 # RethinkDB Python driver
-[![Build Status](https://travis-ci.org/rethinkdb/rethinkdb-python.svg?branch=master)](https://travis-ci.org/rethinkdb/rethinkdb-python) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/2b5231a6f90a4a1ba2fc795f8466bbe4)](https://www.codacy.com/app/rethinkdb/rethinkdb-python?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=rethinkdb/rethinkdb-python&amp;utm_campaign=Badge_Grade) [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/2b5231a6f90a4a1ba2fc795f8466bbe4)](https://www.codacy.com/app/rethinkdb/rethinkdb-python?utm_source=github.com&utm_medium=referral&utm_content=rethinkdb/rethinkdb-python&utm_campaign=Badge_Coverage)
+[![PyPI version](https://badge.fury.io/py/rethinkdb.svg)](https://badge.fury.io/py/rethinkdb) [![Build Status](https://travis-ci.org/rethinkdb/rethinkdb-python.svg?branch=master)](https://travis-ci.org/rethinkdb/rethinkdb-python) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/2b5231a6f90a4a1ba2fc795f8466bbe4)](https://www.codacy.com/app/rethinkdb/rethinkdb-python?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=rethinkdb/rethinkdb-python&amp;utm_campaign=Badge_Grade) [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/2b5231a6f90a4a1ba2fc795f8466bbe4)](https://www.codacy.com/app/rethinkdb/rethinkdb-python?utm_source=github.com&utm_medium=referral&utm_content=rethinkdb/rethinkdb-python&utm_campaign=Badge_Coverage)
 
 ## Overview
 
@@ -36,7 +36,7 @@ The following examples demonstrate how to use the driver in each mode.
 
 ### Default mode (blocking I/O)
 The driver's default mode of operation is to use blocking I/O, i.e. standard Python
-sockets. This example shows how to create a table, populate with data, and get every
+sockets. This example shows how to create a table, populate with data, and get every 
 document.
 
 ```python
