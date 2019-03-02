@@ -5,7 +5,7 @@ set -u
 
 export UPLOAD_STAGING=
 
-if [ "${TRAVIS_PULL_REQUEST}" != "" ]; then
+if [ "${TRAVIS_PULL_REQUEST}" = "true" ]; then
     echo 'Using staging pypi upload for PR'
     export UPLOAD_STAGING='yes'
 fi
