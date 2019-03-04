@@ -10,6 +10,7 @@ Helper = namedtuple("Helper", "r connection")
 INTEGRATION_TEST_DB = 'integration_test'
 
 
+@pytest.mark.asyncio
 @pytest.mark.integration
 @pytest.mark.skipif(sys.version_info < (3, 6),
                     reason="requires python3.6 or higher")
