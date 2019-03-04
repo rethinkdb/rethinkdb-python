@@ -10,8 +10,8 @@ INTEGRATION_TEST_DB = 'integration_test'
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(sys.version_info == (3, 4),
-                    reason="requires python3.4")
+@pytest.mark.skipif(sys.version_info == (3, 4) or sys.version_info == (3, 5),
+                    reason="requires python3.4 or python3.5")
 @coroutine
 def test_flow_couroutine_paradigm():
 

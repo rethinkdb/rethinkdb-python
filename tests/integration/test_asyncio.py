@@ -10,8 +10,14 @@ Helper = namedtuple("Helper", "r connection")
 INTEGRATION_TEST_DB = 'integration_test'
 
 
-@pytest.fixture
-async def rethinkdb_helper():
+@pytest.mark.integration
+@pytest.mark.skipif(sys.version_info < (3, 6),
+                    reason="requires python3.6 or higher")
+async def test_flow(rethinkdb_helper):
+    """
+    Test the flow for 3.6 and up, async generators are
+    not supported in 3.5.
+    """
 
     r = RethinkDB()
     r.set_loop_type("asyncio")
@@ -25,19 +31,6 @@ async def rethinkdb_helper():
 
     connection.use(INTEGRATION_TEST_DB)
 
-    yield Helper(r=r, connection=connection)
-
-    await connection.close()
-
-
-@pytest.mark.integration
-@pytest.mark.skipif(sys.version_info < (3, 5),
-                    reason="requires python3.5 or higher")
-async def test_flow(rethinkdb_helper):
-
-    r = rethinkdb_helper.r
-    connection = rethinkdb_helper.connection
-
     await r.table_create("marvel").run(connection)
 
     marvel_heroes = r.table('marvel')
@@ -50,3 +43,5 @@ async def test_flow(rethinkdb_helper):
     cursor = await marvel_heroes.run(connection)
     async for hero in cursor:
         assert hero['name'] == 'Iron Man'
+
+    await connection.close()
