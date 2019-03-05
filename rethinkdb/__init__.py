@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-
 import imp
+import pkg_resources
 
 from rethinkdb import errors, version
-from rethinkdb import net
-import pkg_resources
 
 
 # The builtins here defends against re-importing something obscuring `object`.
@@ -35,7 +33,16 @@ class RethinkDB(builtins.object):
     def __init__(self):
         super(RethinkDB, self).__init__()
 
-        from rethinkdb import _dump, _export, _import, _index_rebuild, _restore, ast, query, net
+        from rethinkdb import (
+            _dump,
+            _export,
+            _import,
+            _index_rebuild,
+            _restore,
+            ast,
+            query,
+            net
+        )
 
         self._dump = _dump
         self._export = _export
