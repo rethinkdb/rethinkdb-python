@@ -92,7 +92,6 @@ class AsyncioCursor(Cursor):
         Cursor.__init__(self, *args, **kwargs)
         self.new_response = asyncio.Future()
 
-    @asyncio.coroutine
     def __aiter__(self):
         return self
 
