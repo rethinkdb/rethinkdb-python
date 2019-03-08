@@ -58,6 +58,7 @@ test-ci:
 	@killall rebirthdb
 
 test-remote:
+	curl -qo ${REMOTE_TEST_SETUP_NAME} ${REMOTE_TEST_SETUP_URL}
 	python ${REMOTE_TEST_SETUP_NAME} pytest -m integration
 
 install-db:
@@ -82,5 +83,4 @@ clean:
 prepare:
 	curl -qo ${TARGET_PROTO_FILE} ${PROTO_FILE_URL}
 	curl -qo ${FILE_CONVERTER_NAME} ${FILE_CONVERTER_URL}
-	curl -qo ${REMOTE_TEST_SETUP_NAME} ${REMOTE_TEST_SETUP_URL}
 	python ./${FILE_CONVERTER_NAME} -l python -i ${TARGET_PROTO_FILE} -o ${TARGET_CONVERTED_PROTO_FILE}
