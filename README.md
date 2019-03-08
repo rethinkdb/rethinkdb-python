@@ -36,7 +36,7 @@ The following examples demonstrate how to use the driver in each mode.
 
 ### Default mode (blocking I/O)
 The driver's default mode of operation is to use blocking I/O, i.e. standard Python
-sockets. This example shows how to create a table, populate with data, and get every 
+sockets. This example shows how to create a table, populate with data, and get every
 document.
 
 ```python
@@ -252,6 +252,7 @@ Remote test will create a new temporary SSH key and a Droplet for you until the 
 | DO_REGION     | sfo2          |
 
 ```bash
+$ pip install paramiko python-digitalocean
 $ export DO_TOKEN=<YOUR_TOKEN>
 $ make test-remote
 ```
