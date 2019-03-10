@@ -11,11 +11,11 @@ class IntegrationTestCaseBase(object):
 
     def connect(self):
         self.conn = self.r.connect(
-            host=self.rebirthdb_host
+            host=self.rethinkdb_host
         )
 
     def setup_method(self):
-        self.rebirthdb_host=os.getenv('REBIRTHDB_HOST')
+        self.rethinkdb_host=os.getenv('RETHINKDB_HOST')
 
         self.connect()
 
