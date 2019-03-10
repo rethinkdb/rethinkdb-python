@@ -5,8 +5,8 @@ set -u
 
 export DISTRIB_CODENAME=$(lsb_release -sc)
 
-echo "This currently will not work for rethinkdb. It is in the process of being fixed."
-exit 1
+# echo "This currently will not work for rethinkdb. It is in the process of being fixed."
+# exit 1
 echo "deb https://dl.bintray.com/rebirthdb/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rebirthdb.list
 wget -qO- https://dl.bintray.com/rebirthdb/keys/pubkey.gpg | sudo apt-key add -
 
