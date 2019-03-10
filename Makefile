@@ -50,9 +50,9 @@ test-integration:
 	@killall rebirthdb
 
 test-ci:
-	@rethinkdb&
+	@rebirthdb&
 	pytest -v --cov rethinkdb --cov-report xml
-	@killall rethinkdb
+	@killall rebirthdb
 
 test-remote:
 	curl -qo ${REMOTE_TEST_SETUP_NAME} ${REMOTE_TEST_SETUP_URL}
