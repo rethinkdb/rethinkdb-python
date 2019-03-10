@@ -20,11 +20,8 @@ PROTO_FILE_NAME = ql2.proto
 PROTO_FILE_URL = https://raw.githubusercontent.com/rethinkdb/rethinkdb/next/src/rdb_protocol/${PROTO_FILE_NAME}
 TARGET_PROTO_FILE = ${PACKAGE_NAME}/${PROTO_FILE_NAME}
 
-FILE_CONVERTER_NAME = convert_protofile.py
-FILE_CONVERTER_URL = https://raw.githubusercontent.com/rethinkdb/rethinkdb/next/scripts/${FILE_CONVERTER_NAME}
-
-REMOTE_TEST_SETUP_NAME = prepare_remote_test.py
-REMOTE_TEST_SETUP_URL = https://raw.githubusercontent.com/rethinkdb/rethinkdb/next/scripts/${REMOTE_TEST_SETUP_NAME}
+FILE_CONVERTER_NAME = ./scripts/convert_protofile.py
+REMOTE_TEST_SETUP_NAME = ./scripts/prepare_remote_test.py
 
 CONVERTED_PROTO_FILE_NAME = ql2_pb2.py
 TARGET_CONVERTED_PROTO_FILE = ${PACKAGE_NAME}/${CONVERTED_PROTO_FILE_NAME}
@@ -71,7 +68,6 @@ upload-pypi:
 
 clean:
 	@rm -rf \
-		${FILE_CONVERTER_NAME} \
 		${TARGET_PROTO_FILE} \
 		${TARGET_CONVERTED_PROTO_FILE} \
 		.pytest_cache \
@@ -81,6 +77,4 @@ clean:
 
 prepare:
 	curl -qo ${TARGET_PROTO_FILE} ${PROTO_FILE_URL}
-	curl -qo ${FILE_CONVERTER_NAME} ${FILE_CONVERTER_URL}
-	curl -qo ${REMOTE_TEST_SETUP_NAME} ${REMOTE_TEST_SETUP_URL}
-	python ./${FILE_CONVERTER_NAME} -l python -i ${TARGET_PROTO_FILE} -o ${TARGET_CONVERTED_PROTO_FILE}
+	python ${FILE_CONVERTER_NAME} -l python -i ${TARGET_PROTO_FILE} -o ${TARGET_CONVERTED_PROTO_FILE}
