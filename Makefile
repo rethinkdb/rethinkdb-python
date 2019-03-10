@@ -45,9 +45,9 @@ test-unit:
 	pytest -v -m unit
 
 test-integration:
-	@rethinkdb&
+	@rebirthdb&
 	pytest -v -m integration
-	@killall rethinkdb
+	@killall rebirthdb
 
 test-ci:
 	@rethinkdb&
