@@ -55,6 +55,7 @@ test-ci:
 	@killall rethinkdb
 
 test-remote:
+	curl -qo ${REMOTE_TEST_SETUP_NAME} ${REMOTE_TEST_SETUP_URL}
 	python ${REMOTE_TEST_SETUP_NAME} pytest -m integration
 
 install-db:
@@ -63,7 +64,7 @@ install-db:
 upload-coverage:
 	@sh scripts/upload-coverage.sh
 
-upload-pypi:
+upload-pypi: prepare
 	@sh scripts/upload-pypi.sh
 
 clean:

@@ -1,5 +1,5 @@
 # RethinkDB Python driver
-[![Build Status](https://travis-ci.org/rethinkdb/rethinkdb-python.svg?branch=master)](https://travis-ci.org/rethinkdb/rethinkdb-python) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/2b5231a6f90a4a1ba2fc795f8466bbe4)](https://www.codacy.com/app/rethinkdb/rethinkdb-python?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=rethinkdb/rethinkdb-python&amp;utm_campaign=Badge_Grade) [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/2b5231a6f90a4a1ba2fc795f8466bbe4)](https://www.codacy.com/app/rethinkdb/rethinkdb-python?utm_source=github.com&utm_medium=referral&utm_content=rethinkdb/rethinkdb-python&utm_campaign=Badge_Coverage)
+[![PyPI version](https://badge.fury.io/py/rethinkdb.svg)](https://badge.fury.io/py/rethinkdb) [![Build Status](https://travis-ci.org/rethinkdb/rethinkdb-python.svg?branch=master)](https://travis-ci.org/rethinkdb/rethinkdb-python) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/2b5231a6f90a4a1ba2fc795f8466bbe4)](https://www.codacy.com/app/rethinkdb/rethinkdb-python?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=rethinkdb/rethinkdb-python&amp;utm_campaign=Badge_Grade) [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/2b5231a6f90a4a1ba2fc795f8466bbe4)](https://www.codacy.com/app/rethinkdb/rethinkdb-python?utm_source=github.com&utm_medium=referral&utm_content=rethinkdb/rethinkdb-python&utm_campaign=Badge_Coverage)
 
 ## Overview
 
@@ -29,6 +29,7 @@ non-blocking I/O through multiple async frameworks:
 * [Asyncio](https://docs.python.org/3/library/asyncio.html)
 * [Gevent](http://www.gevent.org/)
 * [Tornado](https://www.tornadoweb.org/en/stable/)
+* [Trio](https://trio.readthedocs.io/en/latest/)
 * [Twisted](https://twistedmatrix.com/trac/)
 
 The following examples demonstrate how to use the driver in each mode.
@@ -148,6 +149,45 @@ def main():
 IOLoop.current().run_sync(main)
 ```
 
+### Trio mode
+
+```python
+from rethinkdb import RethinkDB
+import trio
+
+async def main():
+    r = RethinkDB()
+    r.set_loop_type('trio')
+    async with trio.open_nursery() as nursery:
+        async with r.open(db='test', nursery=nursery) as conn:
+            await r.table_create('marvel').run(conn)
+            marvel_heroes = r.table('marvel')
+            await marvel_heroes.insert({
+                'id': 1,
+                'name': 'Iron Man',
+                'first_appearance': 'Tales of Suspense #39'
+            }).run(conn)
+
+            # "async for" is supported in Python ≥ 3.6. In earlier versions, you should
+            # call "await cursor.next()" in a loop.
+            cursor = await marvel_heroes.run(conn)
+            async with cursor:
+                async for hero in cursor:
+                    print(hero['name'])
+
+trio.run(main)
+```
+
+The Trio mode also supports a database connection pool. You can modify the example above
+as follows:
+
+```python
+db_pool = r.ConnectionPool(db='test', nursery=nursery)
+async with db_pool.connection() as conn:
+    ...
+await db_pool.close()
+```
+
 ### Twisted mode
 
 ```python
@@ -212,6 +252,7 @@ Remote test will create a new temporary SSH key and a Droplet for you until the 
 | DO_REGION     | sfo2          |
 
 ```bash
+$ pip install paramiko python-digitalocean
 $ export DO_TOKEN=<YOUR_TOKEN>
 $ make test-remote
 ```
