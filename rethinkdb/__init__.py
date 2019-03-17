@@ -83,3 +83,6 @@ class RethinkDB(builtins.object):
 
     def connect(self, *args, **kwargs):
         return self.make_connection(self.connection_type, *args, **kwargs)
+
+
+r = RethinkDB()
