@@ -218,6 +218,9 @@ main().addCallback(lambda d: print("stopping") or reactor.stop())
 reactor.run()
 ```
 
+## Misc
+Although we recommend to use the import used in the examples, to help the migration from rethinkdb<2.4 we introduced a shortcut which can easily replace the old `import rethinkdb as r` import with `from rethinkdb import r`. 
+
 ## Run tests
 In the `Makefile` you can find three different test commands: `test-unit`, `test-integration` and `test-remote`. As RethinkDB has dropped the support of Windows, we would like to ensure that those of us who are using Windows for development can still contribute. Because of this, we support running integration tests against Digital Ocean Droplets as well.
 
