@@ -59,6 +59,7 @@ setuptools.setup(
     version=VERSION,
     description='Python driver library for the RethinkDB database server.',
     long_description=open('README.md', 'r').read(),
+    long_description_content_type='text/markdown',
     url='https://github.com/RethinkDB/rethinkdb-python',
     maintainer='RethinkDB.',
     maintainer_email='bugs@rethinkdb.com',
