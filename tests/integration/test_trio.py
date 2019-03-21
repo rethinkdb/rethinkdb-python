@@ -1,10 +1,13 @@
+from collections import namedtuple
 import os
 import sys
-from collections import namedtuple
+
+from async_generator import async_generator, yield_
 import pytest
 from rethinkdb import RethinkDB
 from rethinkdb.errors import ReqlRuntimeError
 import trio
+
 
 INTEGRATION_TEST_DB = 'integration_test'
 r = RethinkDB()
@@ -12,20 +15,22 @@ r.set_loop_type('trio')
 
 
 @pytest.fixture
+@async_generator
 async def integration_db(nursery):
     async with r.open(db='test', nursery=nursery) as conn:
         try:
             await r.db_create(INTEGRATION_TEST_DB).run(conn)
         except ReqlRuntimeError:
             pass
-    yield r.db(INTEGRATION_TEST_DB)
+    await yield_(r.db(INTEGRATION_TEST_DB))
 
 
 @pytest.fixture
+@async_generator
 async def marvel_table(integration_db, nursery):
     async with r.open(db='test', nursery=nursery) as conn:
         await r.table_create('marvel').run(conn)
-        yield r.table('marvel')
+        await yield_(r.table('marvel'))
         await r.table_drop('marvel').run(conn)
 
 
