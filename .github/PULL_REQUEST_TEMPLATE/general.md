@@ -16,7 +16,8 @@ A clear and concise description of what did you changed and why.
 If applicable, add code examples to help explain your changes.
 
 **Checklist**
-- [ ] asd
+- [ ] Unit tests created/modified
+- [ ] Integration tests created/modified
 
 **References**
 Anything else related to the change e.g. documentations, RFCs, etc.
