@@ -1,11 +1,3 @@
----
-name: General Pull Request
-about: Create a pull request to help us improve
-title: ''
-labels: not qualified
-assignees: gabor-boros
-
----
 **Reason for the change**
 If applicable, link the related issue/bug report or write down in few sentences the motivation.
 
