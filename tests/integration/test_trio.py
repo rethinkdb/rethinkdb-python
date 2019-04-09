@@ -36,8 +36,6 @@ async def marvel_table(integration_db, nursery):
 
 @pytest.mark.trio
 @pytest.mark.integration
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="Async generators require python ≥ 3.6")
 async def test_trio(marvel_table, nursery):
     """
     Test the flow for 3.6 and up, async generators are
