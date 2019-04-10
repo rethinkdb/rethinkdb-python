@@ -1,2 +1,2 @@
 tornado>=5.0
-pytest-tornasync
+pytest-tornasync; python_version >= '3.4'
