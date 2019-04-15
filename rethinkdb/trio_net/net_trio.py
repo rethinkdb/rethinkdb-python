@@ -28,7 +28,7 @@ from rethinkdb import ql2_pb2, RethinkDB
 from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, \
     ReqlTimeoutError, RqlCursorEmpty
 from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, \
-    Response, maybe_profile, connect
+    Response, maybe_profile, make_connection
 
 
 __all__ = ['Connection']
@@ -415,7 +415,8 @@ class AsyncTrioConnectionContextManager:
         return cls(*args, **kwargs)
 
     async def __aenter__(self):
-        self._conn = await connect(*self._args, **self._kwargs)
+        self._conn = await make_connection(Connection, *self._args,
+            **self._kwargs)
         return self._conn
 
     async def __aexit__(self, exc_type, exc, traceback):
@@ -480,7 +481,7 @@ class TrioConnectionPool:
                 # still connected.
                 conn = self._connections.popleft()
         except IndexError:
-            conn = await connect(*self._args, **self._kwargs)
+            conn = await make_connection(*self._args, **self._kwargs)
 
         self._lent_out.add(conn)
         return conn
