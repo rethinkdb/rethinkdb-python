@@ -128,7 +128,6 @@ class ConnectionInstance(object):
             self._stream = yield with_absolute_timeout(
                 deadline,
                 stream_future,
-                io_loop=self._io_loop,
                 quiet_exceptions=(iostream.StreamClosedError))
         except Exception as err:
             raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
@@ -152,7 +151,6 @@ class ConnectionInstance(object):
                 response = yield with_absolute_timeout(
                     deadline,
                     self._stream.read_until(b'\0'),
-                    io_loop=self._io_loop,
                     quiet_exceptions=(iostream.StreamClosedError))
                 response = response[:-1]
         except ReqlAuthError:
