@@ -397,8 +397,11 @@ def run_clients(options, workingDir, db_table_set):
     # Spawn one client for each db.table, up to options.clients at a time
     exit_event = multiprocessing.Event()
     processes = []
-    ctx = multiprocessing.get_context(multiprocessing.get_start_method())
-    error_queue = SimpleQueue(ctx=ctx)
+    if six.PY3:
+        ctx = multiprocessing.get_context(multiprocessing.get_start_method())
+        error_queue = SimpleQueue(ctx=ctx)
+    else:
+        error_queue = SimpleQueue()
     interrupt_event = multiprocessing.Event()
     sindex_counter = multiprocessing.Value(ctypes.c_longlong, 0)
     hook_counter = multiprocessing.Value(ctypes.c_longlong, 0)
