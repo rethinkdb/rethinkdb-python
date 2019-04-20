@@ -1,32 +1,29 @@
-Issue tracker is **ONLY** used for reporting bugs. NO NEW FEATURE ACCEPTED! Use [spectrum](https://spectrum.chat/rethinkdb) for supporting issues.
+---
+name: Bug report
+about: Create a report to help us improve
+title: ''
+labels: bug, not qualified
+assignees: gabor-boros
 
-<!--- Provide a general summary of the issue in the Title above -->
+---
 
-## Expected Behavior
-<!--- Tell us what should happen -->
+**Describe the bug**
+A clear and concise description of what the bug is.
 
-## Current Behavior
-<!--- Tell us what happens instead of the expected behavior -->
+**To Reproduce**
+Steps to reproduce the behavior:
+1. TODO
 
-## Possible Solution
-<!--- Not obligatory, but suggest a fix/reason for the bug, -->
+**Expected behavior**
+A clear and concise description of what you expected to happen.
 
-## Steps to Reproduce
-<!--- Provide a link to a live example, or an unambiguous set of steps to -->
-<!--- reproduce this bug. Include code to reproduce, if relevant -->
-1.
-2.
-3.
-4.
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
 
-## Context (Environment)
-<!--- How has this issue affected you? What are you trying to accomplish? -->
-<!--- Providing context helps us come up with a solution that is most useful in the real world -->
+**System info**
+ - OS: [e.g. macOS Mojave 10.14.3]
+ - RethinkDB Version: [e.g. 2.4.0]
+ - Python client version: [e.g. 2.4.1
 
-<!--- Provide a general summary of the issue in the Title above -->
-
-## Detailed Description
-<!--- Provide a detailed description of the change or addition you are proposing -->
-
-## Possible Implementation
-<!--- Not obligatory, but suggest an idea for implementing addition or change -->
+**Additional context**
+Add any other context about the problem here.

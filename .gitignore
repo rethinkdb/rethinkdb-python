@@ -66,8 +66,6 @@ venv.bak/
 virtualenv/
 
 # RethinkDB
-convert_protofile.py
-prepare_remote_test.py
 rethinkdb/ql2_pb2.py
 rethinkdb/*.proto
 rethinkdb_data/

@@ -67,7 +67,7 @@ class RetryQuery(object):
 
         # cache a new connection
         if not os.getpid() in self.__local.connCache:
-            self.__local.connCache[os.getpid()] = net.connect(**self.__connectOptions)
+            self.__local.connCache[os.getpid()] = net.make_connection(net.DefaultConnection, **self.__connectOptions)
 
         # return the connection
         return self.__local.connCache[os.getpid()]

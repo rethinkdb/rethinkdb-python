@@ -5,13 +5,14 @@ sudo: required
 
 python:
     - "2.7"
-    - "3.4"
     - "3.5"
     - "3.6"
     - "3.7"
+    - "3.7-dev"
+    - "3.8-dev"
 
 allow_failure:
-    - python: "3.7"
+    - python: "3.8-dev"
 
 install:
     - pip install -r requirements.txt
@@ -30,7 +31,7 @@ deploy:
     provider: script
     script: make upload-pypi
     on:
-        python: 3.6
+        python: 3.7
         tags: true
 
 notifications:
