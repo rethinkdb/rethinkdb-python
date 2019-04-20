@@ -129,7 +129,7 @@ def check_minimum_version(options, minimum_version='1.6'):
     version_string = options.retryQuery('get server version', query.db(
         'rethinkdb').table('server_status')[0]['process']['version'])
 
-    matches = re.match(r'rethinkdb (?P<version>(\d+)\.(\d+)\.(\d+)).*', version_string)
+    matches = re.match(r'(rethinkdb|rebirthdb) (?P<version>(\d+)\.(\d+)\.(\d+)).*', version_string)
 
     if not matches:
         raise RuntimeError("invalid version string format: %s" % version_string)
@@ -285,11 +285,11 @@ class CommonOptionsParser(optparse.OptionParser, object):
             '--connect',
             dest='driver_port',
             metavar='HOST:PORT',
-            help='host and client port of a rethinkdb node to connect (default: localhost:%d)' %
-            net.DEFAULT_PORT,
+            help='host and client port of a rethinkdb node to connect (default: localhost:%d)' % net.DEFAULT_PORT,
             action='callback',
             callback=combined_connect_action,
-            type='string')
+            type='str'
+        )
         connection_group.add_option(
             '--driver-port',
             dest='driver_port',
