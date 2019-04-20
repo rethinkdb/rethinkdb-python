@@ -439,9 +439,9 @@ def run_clients(options, workingDir, db_table_set):
             processes = [process for process in processes if process.is_alive()]
 
             if len(processes) < options.clients and len(arg_lists) > 0:
-                newProcess = multiprocessing.Process(target=export_table, args=arg_lists.pop(0))
-                newProcess.start()
-                processes.append(newProcess)
+                new_process = multiprocessing.Process(target=export_table, args=arg_lists.pop(0))
+                new_process.start()
+                processes.append(new_process)
 
             update_progress(progress_info, options)
 
