@@ -23,7 +23,7 @@ import csv
 import ctypes
 import datetime
 import json
-import multiprocessing as mp
+import multiprocessing
 import numbers
 import optparse
 import os
@@ -34,6 +34,8 @@ import tempfile
 import time
 import traceback
 from multiprocessing.queues import SimpleQueue
+
+import six
 
 from rethinkdb import errors, query, utils_common
 from rethinkdb.logger import default_logger
@@ -259,12 +261,16 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
         with sindex_counter.get_lock():
             sindex_counter.value += len(table_info["indexes"])
         # -- start the writer
-        ctx = mp.get_context(mp.get_start_method())
-        task_queue = SimpleQueue(ctx=ctx)
+        if six.PY3:
+            ctx = multiprocessing.get_context(multiprocessing.get_start_method())
+            task_queue = SimpleQueue(ctx=ctx)
+        else:
+            task_queue = SimpleQueue()
+
         writer = None
         if options.format == "json":
             filename = directory + "/%s/%s.json" % (db, table)
-            writer = mp.Process(
+            writer = multiprocessing.Process(
                 target=json_writer,
                 args=(
                     filename,
@@ -274,7 +280,7 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
                     options.format))
         elif options.format == "csv":
             filename = directory + "/%s/%s.csv" % (db, table)
-            writer = mp.Process(
+            writer = multiprocessing.Process(
                 target=csv_writer,
                 args=(
                     filename,
@@ -284,7 +290,7 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
                     error_queue))
         elif options.format == "ndjson":
             filename = directory + "/%s/%s.ndjson" % (db, table)
-            writer = mp.Process(
+            writer = multiprocessing.Process(
                 target=json_writer,
                 args=(
                     filename,
@@ -389,13 +395,16 @@ def update_progress(progress_info, options):
 
 def run_clients(options, workingDir, db_table_set):
     # Spawn one client for each db.table, up to options.clients at a time
-    exit_event = mp.Event()
+    exit_event = multiprocessing.Event()
     processes = []
-    ctx = mp.get_context(mp.get_start_method())
-    error_queue = SimpleQueue(ctx=ctx)
-    interrupt_event = mp.Event()
-    sindex_counter = mp.Value(ctypes.c_longlong, 0)
-    hook_counter = mp.Value(ctypes.c_longlong, 0)
+    if six.PY3:
+        ctx = multiprocessing.get_context(multiprocessing.get_start_method())
+        error_queue = SimpleQueue(ctx=ctx)
+    else:
+        error_queue = SimpleQueue()
+    interrupt_event = multiprocessing.Event()
+    sindex_counter = multiprocessing.Value(ctypes.c_longlong, 0)
+    hook_counter = multiprocessing.Value(ctypes.c_longlong, 0)
 
     signal.signal(signal.SIGINT, lambda a, b: abort_export(a, b, exit_event, interrupt_event))
     errors = []
@@ -407,8 +416,8 @@ def run_clients(options, workingDir, db_table_set):
 
             tableSize = int(options.retryQuery("count", query.db(db).table(table).info()['doc_count_estimates'].sum()))
 
-            progress_info.append((mp.Value(ctypes.c_longlong, 0),
-                                  mp.Value(ctypes.c_longlong, tableSize)))
+            progress_info.append((multiprocessing.Value(ctypes.c_longlong, 0),
+                                  multiprocessing.Value(ctypes.c_longlong, tableSize)))
             arg_lists.append((db, table,
                               workingDir,
                               options,
@@ -430,9 +439,9 @@ def run_clients(options, workingDir, db_table_set):
             processes = [process for process in processes if process.is_alive()]
 
             if len(processes) < options.clients and len(arg_lists) > 0:
-                newProcess = mp.Process(target=export_table, args=arg_lists.pop(0))
-                newProcess.start()
-                processes.append(newProcess)
+                new_process = multiprocessing.Process(target=export_table, args=arg_lists.pop(0))
+                new_process.start()
+                processes.append(new_process)
 
             update_progress(progress_info, options)
 

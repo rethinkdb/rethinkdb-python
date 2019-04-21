@@ -55,7 +55,6 @@ test-ci:
 	@killall rebirthdb
 
 test-remote:
-	curl -qo ${REMOTE_TEST_SETUP_NAME} ${REMOTE_TEST_SETUP_URL}
 	python ${REMOTE_TEST_SETUP_NAME} pytest -m integration
 
 install-db:
