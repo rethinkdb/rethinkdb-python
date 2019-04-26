@@ -248,7 +248,7 @@ class T(object):
             for sub in next(itr):
                 yield sub
         except StopIteration:
-                    return
+            return
 
         for token in itr:
             for sub in self.intsp:
