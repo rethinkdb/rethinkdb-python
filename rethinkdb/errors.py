@@ -243,10 +243,16 @@ class T(object):
 
     def __iter__(self):
         itr = iter(self.seq)
-        for sub in next(itr):
-            yield sub
+
+        try:
+            for sub in next(itr):
+                yield sub
+        except StopIteration:
+            return
+
         for token in itr:
             for sub in self.intsp:
                 yield sub
+
             for sub in token:
                 yield sub
