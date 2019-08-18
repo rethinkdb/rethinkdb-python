@@ -172,10 +172,14 @@ class CommonOptionsParser(optparse.OptionParser, object):
             return DbTable(res.group('db'), res.group('table'))
 
         def check_positive_int(_, opt_str, value):
-            if not isinstance(value, int) or value < 1:
-                raise optparse.OptionValueError('%s value must be an integer greater that 1: %s' % (opt_str, value))
+            try:
+                value = int(value)
+                if value < 1:
+                    raise ValueError
+            except ValueError:
+                raise optparse.OptionValueError('%s value must be an integer greater than 1: %s' % (opt_str, value))
 
-            return int(value)
+            return value
 
         def check_existing_file(_, opt_str, value):
             if not os.path.isfile(value):
