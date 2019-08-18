@@ -161,7 +161,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             else:
                 raise optparse.OptionValueError('Option %s value is not a file: %r' % (opt_str, value))
 
-        def check_db_table_option(_, opt_str, value):
+        def check_db_table_option(_, _opt_str, value):
             res = _tableNameRegex.match(value)
 
             if not res:
