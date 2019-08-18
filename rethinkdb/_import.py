@@ -301,13 +301,13 @@ class SourceFile(object):
                 exception_type, exception_class, trcback = sys.exc_info()
                 warning_queue.put((exception_type, exception_class, traceback.extract_tb(trcback), self._source.name))
 
-        self.query_runner(
-            "Write hook from: %s.%s" %
-            (self.db, self.table), query.db(
-                self.db).table(
-                self.table).get_write_hook())
-        try:
-            if self.write_hook:
+        if self.write_hook:
+            self.query_runner(
+                "Write hook from: %s.%s" %
+                (self.db, self.table), query.db(
+                    self.db).table(
+                    self.table).get_write_hook())
+            try:
                 self.query_runner(
                     "drop hook: %s.%s" % (self.db, self.table),
                     query.db(self.db).table(self.table).set_write_hook(None)
@@ -316,9 +316,9 @@ class SourceFile(object):
                     "create hook: %s.%s:%s" % (self.db, self.table, self.write_hook),
                     query.db(self.db).table(self.table).set_write_hook(self.write_hook["function"])
                 )
-        except RuntimeError:
-            exception_type, exception_class, trcback = sys.exc_info()
-            warning_queue.put((exception_type, exception_class, traceback.extract_tb(trcback), self._source.name))
+            except RuntimeError:
+                exception_type, exception_class, trcback = sys.exc_info()
+                warning_queue.put((exception_type, exception_class, traceback.extract_tb(trcback), self._source.name))
 
     def batches(self, batch_size=None, warning_queue=None):
 
@@ -1342,6 +1342,7 @@ def parse_sources(options, files_ignored=None):
     def parse_info_file(path):
         primary_key = None
         indexes = []
+        write_hook = None
         with open(path, 'r') as info_file:
             metadata = json.load(info_file)
             if "primary_key" in metadata:
@@ -1351,6 +1352,8 @@ def parse_sources(options, files_ignored=None):
             if "write_hook" in metadata:
                 write_hook = metadata["write_hook"]
         return primary_key, indexes, write_hook
+
+    has_write_hooks = utils_common.check_minimum_version(options, '2.3.7', False)
 
     sources = set()
     if files_ignored is None:
@@ -1385,6 +1388,8 @@ def parse_sources(options, files_ignored=None):
                 indexes = info_indexes
             if write_hook is None:
                 write_hook = info_write_hook
+            if write_hook and not has_write_hooks:
+                raise Exception('this RDB version doesn\'t support write-hooks')
 
         sources.add(
             table_type(
@@ -1449,6 +1454,8 @@ def parse_sources(options, files_ignored=None):
                             files_ignored.append(os.path.join(root, filename))
                         else:
                             primary_key, indexes, write_hook = parse_info_file(info_path)
+                        if write_hook and not has_write_hooks:
+                            raise Exception('RDB versions below doesn\'t support write-hooks')
 
                         table_type = None
                         if ext == ".json":
