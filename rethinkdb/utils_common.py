@@ -153,7 +153,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
     def __init__(self, *args, **kwargs):
         # -- Type Checkers
 
-        def check_tls_option(opt_str, value):
+        def check_tls_option(_, opt_str, value):
             value = str(value)
 
             if os.path.isfile(value):
@@ -161,7 +161,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
             else:
                 raise optparse.OptionValueError('Option %s value is not a file: %r' % (opt_str, value))
 
-        def check_db_table_option(value):
+        def check_db_table_option(_, opt_str, value):
             res = _tableNameRegex.match(value)
 
             if not res:
@@ -171,7 +171,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
 
             return DbTable(res.group('db'), res.group('table'))
 
-        def check_positive_int(opt_str, value):
+        def check_positive_int(_, opt_str, value):
             if not isinstance(value, int) or value < 1:
                 raise optparse.OptionValueError('%s value must be an integer greater that 1: %s' % (opt_str, value))
 
@@ -183,7 +183,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
 
             return os.path.realpath(value)
 
-        def check_new_file_location(opt_str, value):
+        def check_new_file_location(_, opt_str, value):
             try:
                 real_value = os.path.realpath(value)
             except Exception:
@@ -194,7 +194,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
 
             return real_value
 
-        def file_contents(opt_str, value):
+        def file_contents(_, opt_str, value):
             if not os.path.isfile(value):
                 raise optparse.OptionValueError('%s value is not an existing file: %r' % (opt_str, value))
 
