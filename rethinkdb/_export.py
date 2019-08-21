@@ -351,7 +351,7 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
                 cursor = options.retryQuery(
                     'backup cursor for %s.%s' %
                     (db, table), query.db(db).table(table).between(
-                        lastPrimaryKey, None, left_bound="open").order_by(
+                        lastPrimaryKey, query.maxval, left_bound="open").order_by(
                         index=table_info["primary_key"]), run_options=run_options)
 
     except (errors.ReqlError, errors.ReqlDriverError) as ex:
