@@ -66,6 +66,7 @@ def parse_options(argv, prog=None):
         dest="db_tables",
         metavar="DB|DB.TABLE",
         default=[],
+        type='db_table',
         help='limit dump to the given database or table (may be specified multiple times)',
         action="append")
 
