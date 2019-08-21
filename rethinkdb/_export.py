@@ -234,6 +234,8 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
 
     writer = None
 
+    has_write_hooks = utils_common.check_minimum_version(options, '2.3.7', False)
+
     try:
         # -- get table info
 
@@ -248,13 +250,14 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
 
         sindex_counter.value += len(table_info["indexes"])
 
-        table_info['write_hook'] = options.retryQuery(
-            'table write hook data %s.%s' % (db, table),
-            query.db(db).table(table).get_write_hook(),
-            run_options={'binary_format': 'raw'})
+        if has_write_hooks:
+            table_info['write_hook'] = options.retryQuery(
+                'table write hook data %s.%s' % (db, table),
+                query.db(db).table(table).get_write_hook(),
+                run_options={'binary_format': 'raw'})
 
-        if table_info['write_hook'] is not None:
-            hook_counter.value += 1
+            if table_info['write_hook'] is not None:
+                hook_counter.value += 1
 
         with open(os.path.join(directory, db, table + '.info'), 'w') as info_file:
             info_file.write(json.dumps(table_info) + "\n")

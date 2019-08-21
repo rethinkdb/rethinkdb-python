@@ -124,7 +124,7 @@ def print_progress(ratio, indent=0, read=None, write=None):
     sys.stdout.flush()
 
 
-def check_minimum_version(options, minimum_version='1.6'):
+def check_minimum_version(options, minimum_version='1.6', raise_exception=True):
     minimum_version = distutils.version.LooseVersion(minimum_version)
     version_string = options.retryQuery('get server version', query.db(
         'rethinkdb').table('server_status')[0]['process']['version'])
@@ -135,7 +135,10 @@ def check_minimum_version(options, minimum_version='1.6'):
         raise RuntimeError("invalid version string format: %s" % version_string)
 
     if distutils.version.LooseVersion(matches.group('version')) < minimum_version:
-        raise RuntimeError("Incompatible version, expected >= %s got: %s" % (minimum_version, version_string))
+        if raise_exception:
+            raise RuntimeError("Incompatible version, expected >= %s got: %s" % (minimum_version, version_string))
+        return False
+    return True
 
 
 DbTable = collections.namedtuple('DbTable', ['db', 'table'])
