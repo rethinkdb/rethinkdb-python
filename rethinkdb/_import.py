@@ -372,9 +372,6 @@ class SourceFile(object):
             if self.indexes:
                 self.restore_indexes(warning_queue)
 
-            # -
-            raise e
-
     def setup_file(self, warning_queue=None):
         raise NotImplementedError("Subclasses need to implement this")
 
