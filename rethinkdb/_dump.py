@@ -18,7 +18,7 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
 
-'''`rethinkdb dump` creates an archive of data from a RethinkDB cluster'''
+'''`rethinkdb-dump` creates an archive of data from a RethinkDB cluster'''
 
 from __future__ import print_function
 
@@ -95,7 +95,6 @@ def parse_options(argv, prog=None):
     options, args = parser.parse_args(argv)
 
     # Check validity of arguments
-
     if len(args) != 0:
         raise parser.error("No positional arguments supported. Unrecognized option(s): %s" % args)
 
@@ -141,7 +140,7 @@ def parse_options(argv, prog=None):
 
 
 def main(argv=None, prog=None):
-    options = parse_options(argv or sys.argv[2:], prog=prog)
+    options = parse_options(argv or sys.argv[1:], prog=prog)
     try:
         if not options.quiet:
             # Print a warning about the capabilities of dump, so no one is confused (hopefully)
