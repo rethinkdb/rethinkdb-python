@@ -104,7 +104,10 @@ class SocketWrapper(net.SocketWrapper):
                     self._socket.close()
                     raise ReqlDriverError("SSL handshake failed (see server log for more information): %s" % str(exc))
                 try:
-                    ssl.match_hostname(self._socket.getpeercert(), hostname=get_hostname_for_ssl_match(self.host))
+                    ssl.match_hostname(
+                        self._socket.getpeercert(),
+                        hostname=get_hostname_for_ssl_match(self.host)
+                    )
                 except ssl.CertificateError:
                     self._socket.close()
                     raise

@@ -353,8 +353,10 @@ class SocketWrapper(object):
                             "SSL handshake failed (see server log for more information): %s" %
                             str(err))
                 try:
-                    
-                    match_hostname(self._socket.getpeercert(), hostname=get_hostname_for_ssl_match(self.host))
+                    ssl.match_hostname(
+                        self._socket.getpeercert(),
+                        hostname=get_hostname_for_ssl_match(self.host)
+                    )
                 except CertificateError:
                     self._socket.close()
                     raise
