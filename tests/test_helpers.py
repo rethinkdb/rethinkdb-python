@@ -1,6 +1,6 @@
 import pytest
 from mock import Mock
-from rethinkdb.helpers import decode_utf8, chain_to_bytes
+from rethinkdb.helpers import decode_utf8, chain_to_bytes, get_hostname_for_ssl_match
 
 @pytest.mark.unit
 class TestDecodeUTF8Helper(object):
@@ -42,3 +42,24 @@ class TestChainToBytesHelper(object):
         result = chain_to_bytes('iron', ' ', b'man')
 
         assert result == expected_string
+
+
+@pytest.mark.unit
+class TestSSLMatchHostHostnameHelper(object):
+    def test_subdomain_replaced_to_star(self):
+        expected_string = '*.example.com'
+
+        result = get_hostname_for_ssl_match('test.example.com')
+
+        assert result == expected_string
+
+    def test_no_subdomain_to_replace(self):
+        expected_string = 'example.com'
+
+        result = get_hostname_for_ssl_match('example.com')
+
+        assert result == expected_string
+
+    def test_no_match(self):
+        with pytest.raises(AttributeError) as exc:
+            get_hostname_for_ssl_match('')
