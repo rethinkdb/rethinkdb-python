@@ -14,6 +14,10 @@ def chain_to_bytes(*strings):
 
 
 def get_hostname_for_ssl_match(hostname):
-    match = re.match(r'^((?P<subdomain>[^\.]+)\.)?(?P<domain>[^\./]+\.[^/]+)/?.*$', hostname)
-    domain = match.group('domain')
-    return '*.{domain}'.format(domain=domain) if match.group('subdomain') else domain
+    parts = hostname.split('.')
+
+    if len(parts) < 3:
+        return hostname
+
+    parts[0] = '*'
+    return '.'.join(parts)

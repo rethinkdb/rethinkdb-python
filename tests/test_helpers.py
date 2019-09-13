@@ -53,13 +53,23 @@ class TestSSLMatchHostHostnameHelper(object):
 
         assert result == expected_string
 
-    def test_no_subdomain_to_replace(self):
-        expected_string = 'example.com'
+    def test_subdomain_replaced_to_star_special_tld(self):
+        expected_string = '*.example.co.uk'
 
-        result = get_hostname_for_ssl_match('example.com')
+        result = get_hostname_for_ssl_match('test.example.co.uk')
 
         assert result == expected_string
 
-    def test_no_match(self):
-        with pytest.raises(AttributeError) as exc:
-            get_hostname_for_ssl_match('')
+    def test_no_subdomain_to_replace(self):
+        expected_string = 'example.com'
+
+        result = get_hostname_for_ssl_match(expected_string)
+
+        assert result == expected_string
+
+    def test_no_tld(self):
+        expected_string = 'localhost'
+
+        result = get_hostname_for_ssl_match(expected_string)
+
+        assert result == expected_string
