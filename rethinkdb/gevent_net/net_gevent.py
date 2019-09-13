@@ -26,6 +26,7 @@ from gevent.lock import Semaphore
 from rethinkdb import net, ql2_pb2
 from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError, RqlDriverError, \
     RqlTimeoutError
+from rethinkdb.helpers import get_hostname_for_ssl_match
 from rethinkdb.logger import default_logger
 
 __all__ = ['Connection']
@@ -103,7 +104,10 @@ class SocketWrapper(net.SocketWrapper):
                     self._socket.close()
                     raise ReqlDriverError("SSL handshake failed (see server log for more information): %s" % str(exc))
                 try:
-                    ssl.match_hostname(self._socket.getpeercert(), hostname=self.host)
+                    ssl.match_hostname(
+                        self._socket.getpeercert(),
+                        hostname=get_hostname_for_ssl_match(self.host)
+                    )
                 except ssl.CertificateError:
                     self._socket.close()
                     raise

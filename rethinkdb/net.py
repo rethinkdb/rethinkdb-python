@@ -44,6 +44,7 @@ from rethinkdb.errors import (
     ReqlTimeoutError,
     ReqlUserError)
 from rethinkdb.handshake import HandshakeV1_0
+from rethinkdb.helpers import get_hostname_for_ssl_match
 from rethinkdb.logger import default_logger
 
 __all__ = ['Connection', 'Cursor', 'DEFAULT_PORT', 'DefaultConnection', 'make_connection']
@@ -352,7 +353,10 @@ class SocketWrapper(object):
                             "SSL handshake failed (see server log for more information): %s" %
                             str(err))
                 try:
-                    match_hostname(self._socket.getpeercert(), hostname=self.host)
+                    ssl.match_hostname(
+                        self._socket.getpeercert(),
+                        hostname=get_hostname_for_ssl_match(self.host)
+                    )
                 except CertificateError:
                     self._socket.close()
                     raise
