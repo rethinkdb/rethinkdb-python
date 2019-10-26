@@ -16,9 +16,8 @@ $ pip install rethinkdb
 The main difference with the previous driver (except the name of the package) is we are **not** importing RethinkDB as `r`. If you would like to use `RethinkDB`'s python driver as a drop in replacement, you should do the following:
 
 ```python
-from rethinkdb import RethinkDB
+from rethinkdb import r
 
-r = RethinkDB()
 connection = r.connect(db='test')
 ```
 
@@ -40,9 +39,8 @@ sockets. This example shows how to create a table, populate with data, and get e
 document.
 
 ```python
-from rethinkdb import RethinkDB
+from rethinkdb import r
 
-r = RethinkDB()
 connection = r.connect(db='test')
 
 r.table_create('marvel').run(connection)
@@ -64,13 +62,12 @@ introduced into the standard library.
 
 ```python
 import asyncio
-from rethinkdb import RethinkDB
+from rethinkdb import r
 
 # Native coroutines are supported in Python ≥ 3.5. In Python 3.4, you should
 # use the @asyncio.couroutine decorator instead of "async def", and "yield from"
 # instead of "await".
 async def main():
-    r = RethinkDB()
     r.set_loop_type('asyncio')
     connection = await r.connect(db='test')
 
@@ -96,10 +93,9 @@ asyncio.get_event_loop().run_until_complete(main())
 
 ```python
 import gevent
-from rethinkdb import RethinkDB
+from rethinkdb import r
 
 def main():
-    r = RethinkDB()
     r.set_loop_type('gevent')
     connection = r.connect(db='test')
 
@@ -122,13 +118,12 @@ gevent.joinall([gevent.spawn(main)])
 Tornado mode is compatible with Tornado < 5.0.0. Tornado 5 is not supported.
 
 ```python
-from rethinkdb import RethinkDB
+from rethinkdb import r
 from tornado import gen
 from tornado.ioloop import IOLoop
 
 @gen.coroutine
 def main():
-    r = RethinkDB()
     r.set_loop_type('tornado')
     connection = yield r.connect(db='test')
 
@@ -152,11 +147,10 @@ IOLoop.current().run_sync(main)
 ### Trio mode
 
 ```python
-from rethinkdb import RethinkDB
+from rethinkdb import r
 import trio
 
 async def main():
-    r = RethinkDB()
     r.set_loop_type('trio')
     async with trio.open_nursery() as nursery:
         async with r.open(db='test', nursery=nursery) as conn:
@@ -191,12 +185,11 @@ await db_pool.close()
 ### Twisted mode
 
 ```python
-from rethinkdb import RethinkDB
+from rethinkdb import r
 from twisted.internet import reactor, defer
 
 @defer.inlineCallbacks
 def main():
-    r = RethinkDB()
     r.set_loop_type('twisted')
     connection = yield r.connect(db='test')
 
@@ -219,7 +212,7 @@ reactor.run()
 ```
 
 ## Misc
-Although we recommend to use the import used in the examples, to help the migration from rethinkdb<2.4 we introduced a shortcut which can easily replace the old `import rethinkdb as r` import with `from rethinkdb import r`. 
+To help the migration from rethinkdb<2.4 we introduced a shortcut which can easily replace the old `import rethinkdb as r` import with `from rethinkdb import r`.
 
 ## Run tests
 In the `Makefile` you can find three different test commands: `test-unit`, `test-integration` and `test-remote`. As RethinkDB has dropped the support of Windows, we would like to ensure that those of us who are using Windows for development can still contribute. Because of this, we support running integration tests against Digital Ocean Droplets as well.

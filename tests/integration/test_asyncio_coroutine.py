@@ -2,7 +2,7 @@ import os
 import sys
 from asyncio import coroutine
 import pytest
-from rethinkdb import RethinkDB
+from rethinkdb import r
 from rethinkdb.errors import ReqlRuntimeError
 
 
@@ -15,7 +15,6 @@ INTEGRATION_TEST_DB = 'integration_test'
 @coroutine
 def test_flow_couroutine_paradigm():
 
-    r = RethinkDB()
     r.set_loop_type("asyncio")
 
     connection = yield from r.connect(os.getenv("REBIRTHDB_HOST"))

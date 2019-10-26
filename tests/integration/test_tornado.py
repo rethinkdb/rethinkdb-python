@@ -2,7 +2,7 @@ import os
 import sys
 from collections import namedtuple
 import pytest
-from rethinkdb import RethinkDB
+from rethinkdb import r
 from rethinkdb.errors import ReqlRuntimeError
 
 Helper = namedtuple("Helper", "r connection")
@@ -18,7 +18,6 @@ async def test_tornado_connect(io_loop):
     not supported in 3.5.
     """
 
-    r = RethinkDB()
     r.set_loop_type("tornado")
 
     connection = await r.connect(os.getenv("REBIRTHDB_HOST"))

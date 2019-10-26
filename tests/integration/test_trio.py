@@ -4,13 +4,12 @@ import sys
 
 from async_generator import async_generator, yield_
 import pytest
-from rethinkdb import RethinkDB
+from rethinkdb import r
 from rethinkdb.errors import ReqlRuntimeError
 import trio
 
 
 INTEGRATION_TEST_DB = 'integration_test'
-r = RethinkDB()
 r.set_loop_type('trio')
 
 
