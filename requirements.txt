@@ -4,9 +4,10 @@ mock==3.0.5
 pytest-cov==2.8.1
 pytest-tornasync==0.6.0; python_version >= '3.5'
 pytest-trio==0.5.2; python_version>="3.6"
-pytest==4.6.6; python_version<"3.6"
+pytest==4.6.6; python_version<"3.5"
 pytest==5.2.2; python_version>="3.6"
 six==1.12.0
-tornado>=6.0.3
+tornado==5.1.1; python_version<"3.5"
+tornado==6.0.3; python_version>="3.6"
 trio==0.12.1; python_version>="3.6"
-outcome-1.0.1; python_version>="3.5"
+outcome==1.0.1; python_version>="3.5"
