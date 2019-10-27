@@ -139,9 +139,9 @@ class DropletSetup(object):
         self._execute_command('source /etc/lsb-release && echo "deb https://dl.bintray.com/{username}/apt $DISTRIB_CODENAME main" | tee /etc/apt/sources.list.d/rebirthdb.list'.format(username=BINTRAY_USERNAME))
         self._execute_command('wget -qO- https://dl.bintray.com/{username}/keys/pubkey.gpg | apt-key add -'.format(username=BINTRAY_USERNAME))
 
-        self._print_info('installing rebirthdb')
-        self._execute_command('apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y rebirthdb')
-        self._execute_command('echo "bind=all" > /etc/rebirthdb/instances.d/default.conf')
+        self._print_info('installing rethinkdb')
+        self._execute_command('apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --allow-unauthenticated -y rethinkdb')
+        self._execute_command('echo "bind=all" > /etc/rethinkdb/instances.d/default.conf')
 
     def start_rebirthdb(self):
         self._print_info('restarting rebirthdb')
