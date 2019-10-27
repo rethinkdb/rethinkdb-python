@@ -11,7 +11,7 @@ BAD_PASSWORD = "0xDEADBEEF"
 class TestPing(IntegrationTestCaseBase):
     def teardown_method(self):
         with self.r.connect(host=self.rethinkdb_host) as conn:
-            self.r.table("users").filter(
+            self.r.db("rethinkdb").table("users").filter(
                 self.r.row["id"].ne("admin")
             ).delete().run(conn)
         super(TestPing, self).teardown_method()
@@ -23,7 +23,7 @@ class TestPing(IntegrationTestCaseBase):
     def test_password_connect(self):
         new_user = "user"
         with self.r.connect(user="admin", password="", host=self.rethinkdb_host) as conn:
-            curr = self.r.table("users").insert(
+            curr = self.r.db("rethinkdb").table("users").insert(
                 {"id": new_user, "password": BAD_PASSWORD}
             ).run(conn)
             assert curr == {
@@ -41,10 +41,10 @@ class TestPing(IntegrationTestCaseBase):
                         'new_val': {'read': True},
                         'old_val': None}]}
         with self.r.connect(user=new_user, password=BAD_PASSWORD, host=self.rethinkdb_host) as conn:
-            curr = self.r.table("users").get("admin").run(conn)
+            curr = self.r.db("rethinkdb").table("users").get("admin").run(conn)
             assert curr == {'id': 'admin', 'password': False}
             with pytest.raises(self.r.ReqlPermissionError):
-                self.r.table("users").insert(
+                self.r.db("rethinkdb").table("users").insert(
                     {"id": "bob", "password": ""}
                 ).run(conn)
 
