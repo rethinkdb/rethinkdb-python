@@ -22,7 +22,7 @@ async def test_flow():
 
     r.set_loop_type("asyncio")
 
-    connection = await r.connect(os.getenv("REBIRTHDB_HOST"))
+    connection = await r.connect(os.getenv("RETHINKDB_HOST"))
 
     try:
         await r.db_create(INTEGRATION_TEST_DB).run(connection)

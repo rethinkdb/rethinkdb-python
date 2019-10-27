@@ -20,7 +20,7 @@ async def test_tornado_connect(io_loop):
 
     r.set_loop_type("tornado")
 
-    connection = await r.connect(os.getenv("REBIRTHDB_HOST"))
+    connection = await r.connect(os.getenv("RETHINKDB_HOST"))
     dbs = await r.db_list().run(connection)
     assert isinstance(dbs, list)
     await connection.close()

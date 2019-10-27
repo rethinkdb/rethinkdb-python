@@ -17,7 +17,7 @@ def test_flow_couroutine_paradigm():
 
     r.set_loop_type("asyncio")
 
-    connection = yield from r.connect(os.getenv("REBIRTHDB_HOST"))
+    connection = yield from r.connect(os.getenv("RETHINKDB_HOST"))
 
     try:
         yield from r.db_create(INTEGRATION_TEST_DB).run(connection)

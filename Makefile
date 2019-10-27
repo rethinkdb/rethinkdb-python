@@ -45,14 +45,14 @@ test-unit:
 	pytest -v -m unit
 
 test-integration:
-	@rebirthdb&
+	@rethinkdb&
 	pytest -v -m integration
-	@killall rebirthdb
+	@killall rethinkdb
 
 test-ci:
-	@rebirthdb&
+	@rethinkdb&
 	pytest -v --cov rethinkdb --cov-report xml
-	@killall rebirthdb
+	@killall rethinkdb
 
 test-remote:
 	python ${REMOTE_TEST_SETUP_NAME} pytest -m integration
