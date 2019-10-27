@@ -8,3 +8,5 @@ pytest==4.5.0
 six==1.12.0
 tornado>=5.0
 trio==0.12.1; python_version>="3.6"
+# FIXME: Remove pinning when pytest is not failing on trio tests.
+attrs==19.1.0
