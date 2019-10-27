@@ -1,26 +1,27 @@
-import os
 import sys
-from collections import namedtuple
 import pytest
-from rethinkdb import r
-from rethinkdb.errors import ReqlRuntimeError
-
-Helper = namedtuple("Helper", "r connection")
-
-INTEGRATION_TEST_DB = 'integration_test'
+from tests.helpers import IntegrationTestCaseBase
 
 
+@pytest.mark.tornado
 @pytest.mark.integration
 @pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
-async def test_tornado_connect(io_loop):
-    """
-    Test the flow for 3.6 and up, async generators are
-    not supported in 3.5.
-    """
+class TestTornado(IntegrationTestCaseBase):
+    def setup_method(self):
+        super(TestTornado, self).setup_method()
+        self.table_name = 'test_tornado'
+        self.r.set_loop_type('tornado')
+        self.r.table_create(self.table_name).run(self.conn)
 
-    r.set_loop_type("tornado")
+    def teardown_method(self):
+        super(TestTornado, self).teardown_method()
+        self.r.set_loop_type(None)
 
-    connection = await r.connect(os.getenv("RETHINKDB_HOST"))
-    dbs = await r.db_list().run(connection)
-    assert isinstance(dbs, list)
-    await connection.close()
+    async def test_tornado_list_tables(self):
+        """
+        Test the flow for 3.6 and up, async generators are
+        not supported in 3.5.
+        """
+
+        tables = self.r.table_list().run(self.conn)
+        assert isinstance(tables, list)

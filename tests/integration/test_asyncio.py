@@ -1,47 +1,43 @@
-import os
 import sys
-from collections import namedtuple
 import pytest
-from rethinkdb import r
-from rethinkdb.errors import ReqlRuntimeError
 
-Helper = namedtuple("Helper", "r connection")
-
-INTEGRATION_TEST_DB = 'integration_test'
+from asyncio import coroutine
+from tests.helpers import INTEGRATION_TEST_DB, IntegrationTestCaseBase
 
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
-async def test_flow():
-    """
-    Test the flow for 3.6 and up, async generators are
-    not supported in 3.5.
-    """
+@pytest.mark.skipif(
+    sys.version_info == (3, 4) or sys.version_info == (3, 5),
+    reason="requires python3.4 or python3.5"
+)
+class TestAsyncio(IntegrationTestCaseBase):
+    def setup_method(self):
+        super(TestAsyncio, self).setup_method()
+        self.table_name = 'test_asyncio'
+        self.r.set_loop_type('asyncio')
 
-    r.set_loop_type("asyncio")
+    def teardown_method(self):
+        super(TestAsyncio, self).teardown_method()
+        self.r.set_loop_type(None)
 
-    connection = await r.connect(os.getenv("RETHINKDB_HOST"))
+    @coroutine
+    def test_flow_coroutine_paradigm(self):
+        connection = yield from self.conn
 
-    try:
-        await r.db_create(INTEGRATION_TEST_DB).run(connection)
-    except ReqlRuntimeError:
-        pass
+        yield from self.r.table_create(self.table_name).run(connection)
 
-    connection.use(INTEGRATION_TEST_DB)
+        table = self.r.table(self.table_name)
+        yield from table.insert({
+            'id': 1,
+            'name': 'Iron Man',
+            'first_appearance': 'Tales of Suspense #39'
+        }).run(connection)
 
-    await r.table_create("marvel").run(connection)
+        cursor = yield from table.run(connection)
 
-    marvel_heroes = r.table('marvel')
-    await marvel_heroes.insert({
-        'id': 1,
-        'name': 'Iron Man',
-        'first_appearance': 'Tales of Suspense #39'
-    }).run(connection)
+        while (yield from cursor.fetch_next()):
+            hero = yield from cursor.__anext__()
+            assert hero['name'] == 'Iron Man'
 
-    cursor = await marvel_heroes.run(connection)
-    async for hero in cursor:
-        assert hero['name'] == 'Iron Man'
-
-    await connection.close()
+        yield from connection.close()
