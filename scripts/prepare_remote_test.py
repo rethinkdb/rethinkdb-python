@@ -138,7 +138,7 @@ class DropletSetup(object):
         self._execute_command('wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -')
 
         self._print_info('installing rethinkdb')
-        self._execute_command('apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y rethinkdb')
+        self._execute_command('apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --allow-unauthenticated -y rethinkdb')
         self._execute_command('echo "bind=all" > /etc/rethinkdb/instances.d/default.conf')
 
     def start_rethinkdb(self):
