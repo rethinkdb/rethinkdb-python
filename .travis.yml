@@ -15,13 +15,13 @@ allow_failure:
 
 install:
     - pip install -r requirements.txt
+    - pip freeze
 
 before_script:
     - make prepare
     - make install-db
 
 script:
-    - pip freeze
     - make test-ci
 
 after_success:
