@@ -8,14 +8,14 @@ python:
     - "3.5"
     - "3.6"
     - "3.7"
-    - "3.7-dev"
-    - "3.8-dev"
+    - "3.8"
 
 allow_failure:
-    - python: "3.8-dev"
+    - python: "3.8"
 
 install:
     - pip install -r requirements.txt
+    - pip freeze
 
 before_script:
     - make prepare
@@ -31,7 +31,7 @@ deploy:
     provider: script
     script: make upload-pypi
     on:
-        python: 3.7
+        python: 3.8
         tags: true
 
 notifications:

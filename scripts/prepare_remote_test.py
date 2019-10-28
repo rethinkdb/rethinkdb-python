@@ -75,9 +75,6 @@ class DropletSetup(object):
         std_in, _, std_err = self.ssh_client.exec_command(command)
         std_in.close()
 
-        #for line in std_out.readlines():
-        #    print(line.replace('\n', ''))
-
         has_err = False
         for line in std_err.readlines():
             has_err = True
@@ -134,22 +131,23 @@ class DropletSetup(object):
             return self.__enter__()
         return self
 
-    def install_rebirthdb(self):
-        self._print_info('getting rebirthdb')
-        self._execute_command('source /etc/lsb-release && echo "deb https://dl.bintray.com/{username}/apt $DISTRIB_CODENAME main" | tee /etc/apt/sources.list.d/rebirthdb.list'.format(username=BINTRAY_USERNAME))
-        self._execute_command('wget -qO- https://dl.bintray.com/{username}/keys/pubkey.gpg | apt-key add -'.format(username=BINTRAY_USERNAME))
+    def install_rethinkdb(self):
+        self._print_info('getting rethinkdb')
+        
+        self._execute_command('source /etc/lsb-release && echo "deb https://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list')
+        self._execute_command('wget -qO- https://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -')
 
         self._print_info('installing rethinkdb')
         self._execute_command('apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --allow-unauthenticated -y rethinkdb')
         self._execute_command('echo "bind=all" > /etc/rethinkdb/instances.d/default.conf')
 
-    def start_rebirthdb(self):
-        self._print_info('restarting rebirthdb')
-        self._execute_command('/etc/init.d/rebirthdb restart')
+    def start_rethinkdb(self):
+        self._print_info('restarting rethinkdb')
+        self._execute_command('/etc/init.d/rethinkdb restart')
 
     def run_script(self, script, script_arguments):
         self._print_info('executing script')
-        os.environ["REBIRTHDB_HOST"] = self.droplet.ip_address
+        os.environ["RETHINKDB_HOST"] = self.droplet.ip_address
         check_call([script, ' '.join(script_arguments)])
 
     def __exit__(self, *args):
@@ -176,8 +174,8 @@ def main():
     setup.create_droplet()
 
     with setup:
-        setup.install_rebirthdb()
-        setup.start_rebirthdb()
+        setup.install_rethinkdb()
+        setup.start_rethinkdb()
         setup.run_script(script, script_arguments)
 
 

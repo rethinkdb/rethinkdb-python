@@ -1,52 +1,33 @@
-from collections import namedtuple
-import os
-import sys
-
-from async_generator import async_generator, yield_
 import pytest
-from rethinkdb import r
-from rethinkdb.errors import ReqlRuntimeError
-import trio
-
-
-INTEGRATION_TEST_DB = 'integration_test'
-r.set_loop_type('trio')
-
-
-@pytest.fixture
-@async_generator
-async def integration_db(nursery):
-    async with r.open(db='test', nursery=nursery) as conn:
-        try:
-            await r.db_create(INTEGRATION_TEST_DB).run(conn)
-        except ReqlRuntimeError:
-            pass
-    await yield_(r.db(INTEGRATION_TEST_DB))
-
-
-@pytest.fixture
-@async_generator
-async def marvel_table(integration_db, nursery):
-    async with r.open(db='test', nursery=nursery) as conn:
-        await r.table_create('marvel').run(conn)
-        await yield_(r.table('marvel'))
-        await r.table_drop('marvel').run(conn)
+from tests.helpers import INTEGRATION_TEST_DB, IntegrationTestCaseBase
 
 
 @pytest.mark.trio
 @pytest.mark.integration
-async def test_trio(marvel_table, nursery):
-    """
-    Test the flow for 3.6 and up, async generators are
-    not supported in 3.5.
-    """
-    async with r.open(db='test', nursery=nursery) as conn:
-        await marvel_table.insert({
-            'id': 1,
-            'name': 'Iron Man',
-            'first_appearance': 'Tales of Suspense #39'
-        }).run(conn)
+class TestTrio(IntegrationTestCaseBase):
+    def setup_method(self):
+        super(TestTrio, self).setup_method()
+        self.table_name = 'test_trio'
+        self.r.set_loop_type('trio')
+        self.r.table_create(self.table_name).run(self.conn)
 
-        cursor = await marvel_table.run(conn)
-        async for hero in cursor:
-            hero['name'] == 'Iron Man'
+    def teardown_method(self):
+        super(TestTrio, self).teardown_method()
+        self.r.set_loop_type(None)
+    
+    async def test_trio(self, nursery):
+        """
+        Test the flow for 3.6 and up, async generators are
+        not supported in 3.5.
+        """
+
+        async with self.r.open(db=INTEGRATION_TEST_DB, nursery=nursery) as conn:
+            await self.r.table(self.table_name).insert({
+                'id': 1,
+                'name': 'Iron Man',
+                'first_appearance': 'Tales of Suspense #39'
+            }).run(conn)
+
+            cursor = await self.r.table(self.table_name).run(conn)
+            async for hero in cursor:
+                hero['name'] == 'Iron Man'

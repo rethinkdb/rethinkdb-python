@@ -33,7 +33,7 @@ class TestPing(IntegrationTestCaseBase):
                 'replaced': 0,
                 'skipped': 0,
                 'unchanged': 0}
-            curr = self.r.db("rethinkdb").grant(new_user, {"read": True}).run(conn)
+            curr = self.r.grant(new_user, {"read": True}).run(conn)
             assert curr == {
                 'granted': 1,
                 'permissions_changes': [
@@ -41,9 +41,12 @@ class TestPing(IntegrationTestCaseBase):
                         'new_val': {'read': True},
                         'old_val': None}]}
         with self.r.connect(user=new_user, password=BAD_PASSWORD, host=self.rethinkdb_host) as conn:
-            curr = self.r.db("rethinkdb").table("users").get("admin").run(conn)
-            assert curr == {'id': 'admin', 'password': False}
             with pytest.raises(self.r.ReqlPermissionError):
+                # Only administrators may access system tables
+                curr = self.r.db("rethinkdb").table("users").get("admin").run(conn)
+            
+            with pytest.raises(self.r.ReqlPermissionError):
+                # No permission for write. Only for read.
                 self.r.db("rethinkdb").table("users").insert(
                     {"id": "bob", "password": ""}
                 ).run(conn)
