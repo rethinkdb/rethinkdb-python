@@ -21,6 +21,7 @@ before_script:
     - make install-db
 
 script:
+    - pip freeze
     - make test-ci
 
 after_success:
