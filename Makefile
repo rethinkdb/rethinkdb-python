@@ -51,9 +51,7 @@ test-integration:
 	@killall rethinkdb
 
 test-integration-2.4:
-	@rethinkdb&
 	pytest -v -m integration_v2_4_x
-	@killall rethinkdb
 
 test-ci:
 	@rethinkdb&
