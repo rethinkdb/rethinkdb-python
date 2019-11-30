@@ -32,14 +32,15 @@ default: help
 help:
 	@echo "Usage:"
 	@echo
-	@echo "	make help				Print this help message"
-	@echo "	make test-unit			Run unit tests"
-	@echo "	make test-integration	Run integration tests"
-	@echo "	make test-remote		Run tests on digital ocean"
-	@echo "	make upload-coverage	Upload unit test coverage"
-	@echo "	make upload-pypi		Release ${PACKAGE_NAME} package to PyPi"
-	@echo "	make clean				Cleanup source directory"
-	@echo "	make prepare			Prepare ${PACKAGE_NAME} for build"
+	@echo "	make help				    Print this help message"
+	@echo "	make test-unit			    Run unit tests"
+	@echo "	make test-integration	    Run integration tests"
+	@echo "	make test-integration-2.4	Run integration tests"
+	@echo "	make test-remote		    Run tests on digital ocean"
+	@echo "	make upload-coverage	    Upload unit test coverage"
+	@echo "	make upload-pypi		    Release ${PACKAGE_NAME} package to PyPi"
+	@echo "	make clean				    Cleanup source directory"
+	@echo "	make prepare			    Prepare ${PACKAGE_NAME} for build"
 
 test-unit:
 	pytest -v -m unit
@@ -47,6 +48,11 @@ test-unit:
 test-integration:
 	@rethinkdb&
 	pytest -v -m integration
+	@killall rethinkdb
+
+test-integration-2.4:
+	@rethinkdb&
+	pytest -v -m integration_v2_4_x
 	@killall rethinkdb
 
 test-ci:
