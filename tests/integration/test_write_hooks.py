@@ -16,15 +16,13 @@ class TestWriteHooks(IntegrationTestCaseBase):
         self.r.table(self.table_name).insert(self.documents).run(self.conn)
 
     def test_set_write_hook(self):
-        self.r.table(self.table_name).set_write_hook(lambda context, old_val, new_val:
+        response = self.r.table(self.table_name).set_write_hook(lambda context, old_val, new_val:
             new_val.merge({
                 'modified_at': context['timestamp']
             })
         ).run(self.conn)
 
-        hook = self.r.table(self.table_name).get_write_hook().run(self.conn)
-
-        assert hook.keys() == ['function', 'query']
+        assert response == {'created': 1}
 
     def test_write_hook_add_extra_data(self):
         self.r.table(self.table_name).set_write_hook(lambda context, old_val, new_val:
@@ -40,3 +38,14 @@ class TestWriteHooks(IntegrationTestCaseBase):
         document = self.r.table(self.table_name).get(2).run(self.conn)
 
         assert document.get('modified_at') != None
+
+    def test_get_write_hook(self):
+        self.r.table(self.table_name).set_write_hook(lambda context, old_val, new_val:
+            new_val.merge({
+                'modified_at': context['timestamp']
+            })
+        ).run(self.conn)
+
+        hook = self.r.table(self.table_name).get_write_hook().run(self.conn)
+
+        assert list(hook.keys()) == ['function', 'query']
