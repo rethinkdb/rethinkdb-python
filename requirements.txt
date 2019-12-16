@@ -5,7 +5,7 @@ pytest-cov==2.8.1
 pytest-tornasync==0.6.0.post2; python_version >= '3.5'
 pytest-trio==0.5.2; python_version>="3.6"
 pytest==4.6.6; python_version<"3.5"
-pytest==5.3.1; python_version>="3.5"
+pytest==5.3.2; python_version>="3.5"
 six==1.13.0
 tornado==5.1.1; python_version<"3.6"
 tornado==6.0.3; python_version>="3.6"
