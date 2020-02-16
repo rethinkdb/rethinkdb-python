@@ -2,7 +2,7 @@ import pytest
 
 from tests.helpers import IntegrationTestCaseBase
 
-@pytest.mark.integration_v2_4_x
+@pytest.mark.integration
 class TestWriteHooks(IntegrationTestCaseBase):
     def setup_method(self):
         super(TestWriteHooks, self).setup_method()

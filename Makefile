@@ -50,12 +50,9 @@ test-integration:
 	pytest -v -m integration
 	@killall rethinkdb
 
-test-integration-2.4:
-	pytest -v -m integration_v2_4_x
-
 test-ci:
 	@rethinkdb&
-	pytest -v --cov rethinkdb --cov-report xml --ignore=tests/integration/test_write_hooks.py
+	pytest -v --cov rethinkdb --cov-report xml
 	@killall rethinkdb
 
 test-remote:
