@@ -48,4 +48,4 @@ class TestWriteHooks(IntegrationTestCaseBase):
 
         hook = self.r.table(self.table_name).get_write_hook().run(self.conn)
 
-        assert list(hook.keys()) == ['function', 'query']
+        assert list(sorted(hook.keys())) == ['function', 'query']
