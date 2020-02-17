@@ -725,11 +725,10 @@ def make_connection(
         connection_string = urlparse(url)
         query_string = parse_qs(connection_string.query)
         
-        # Reverse the tuple, this way we can ensure that the host:port/user:pass
-        # will be always at the same position
-        host_port, _, user_pass = connection_string.netloc.partition("@")[::-1]
-        user, password = user_pass.partition(":")[0], user_pass.partition(":")[2]
-        host, port = host_port.partition(":")[0], host_port.partition(":")[2]
+        user = connection_string.username
+        password = connection_string.password
+        host = connection_string.hostname
+        port = connection_string.port
 
         db = connection_string.path.replace("/", "") or None
         auth_key = query_string.get("auth_key")
