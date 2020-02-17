@@ -724,7 +724,7 @@ def make_connection(
     if url:
         connection_string = urlparse(url)
         query_string = parse_qs(connection_string.query)
-        
+
         user = connection_string.username
         password = connection_string.password
         host = connection_string.hostname
