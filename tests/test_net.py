@@ -11,7 +11,7 @@ class TestMakeConnection(object):
         self.conn_type.return_value.reconnect.return_value = self.reconnect
 
         self.host = "myhost"
-        self.port = "1234"
+        self.port = 1234
         self.db = "mydb"
         self.auth_key = None
         self.user = "gabor"
