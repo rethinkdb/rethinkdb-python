@@ -146,7 +146,11 @@ class SourceFile(object):
         self.write_hook = write_hook or []
 
         # options
-        self.source_options = source_options or {}
+        self.source_options = source_options or {
+            "create_args": {
+                "primary_key": self.primary_key
+            }
+        }
 
         # name
         if hasattr(self._source, 'name') and self._source.name:
@@ -249,7 +253,7 @@ class SourceFile(object):
             ast.expr([self.table]).set_difference(
                 query.db(self.db).table_list()
             ).for_each(query.db(self.db).table_create(
-                query.row, **self.source_options.create_args if 'create_args' in self.source_options else {})
+                query.row, **self.source_options["create_args"] if 'create_args' in self.source_options else {})
             )
         )
 
