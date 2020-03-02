@@ -25,6 +25,11 @@ import ssl
 import struct
 import time
 
+try:
+    from urllib.parse import urlparse, parse_qs
+except ImportError:
+    from urlparse import urlparse, parse_qs
+
 from rethinkdb import ql2_pb2
 from rethinkdb.ast import DB, ReQLDecoder, ReQLEncoder, Repl, expr
 from rethinkdb.errors import (
@@ -703,9 +708,6 @@ class DefaultConnection(Connection):
         Connection.__init__(self, ConnectionInstance, *args, **kwargs)
 
 
-
-
-
 def make_connection(
         connection_type,
         host=None,
@@ -716,20 +718,40 @@ def make_connection(
         password=None,
         timeout=20,
         ssl=None,
+        url=None,
         _handshake_version=10,
         **kwargs):
-    if host is None:
-        host = 'localhost'
-    if port is None:
-        port = DEFAULT_PORT
-    if user is None:
-        user = 'admin'
-    if timeout is None:
-        timeout = 20
-    if ssl is None:
-        ssl = dict()
-    if _handshake_version is None:
-        _handshake_version = 10
+    if url:
+        connection_string = urlparse(url)
+        query_string = parse_qs(connection_string.query)
+
+        user = connection_string.username
+        password = connection_string.password
+        host = connection_string.hostname
+        port = connection_string.port
+
+        db = connection_string.path.replace("/", "") or None
+        auth_key = query_string.get("auth_key")
+        timeout = query_string.get("timeout")
+
+        if auth_key:
+            auth_key = auth_key[0]
+
+        if timeout:
+            timeout = int(timeout[0])
+
+
+    host = host or 'localhost'
+    port = port or DEFAULT_PORT
+    user = user or 'admin'
+    timeout = timeout or 20
+    ssl = ssl or dict()
+    _handshake_version = _handshake_version or 10
+
+    # The internal APIs will wait for none to deal with auth_key and password
+    # TODO: refactor when we drop python2
+    if not password and not password is None:
+        password = None
 
     conn = connection_type(host, port, db, auth_key, user, password, timeout, ssl, _handshake_version, **kwargs)
     return conn.reconnect(timeout=timeout)
