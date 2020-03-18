@@ -1,5 +1,7 @@
 import sys
+
 import pytest
+
 from tests.helpers import IntegrationTestCaseBase
 
 
@@ -9,8 +11,8 @@ from tests.helpers import IntegrationTestCaseBase
 class TestTornado(IntegrationTestCaseBase):
     def setup_method(self):
         super(TestTornado, self).setup_method()
-        self.table_name = 'test_tornado'
-        self.r.set_loop_type('tornado')
+        self.table_name = "test_tornado"
+        self.r.set_loop_type("tornado")
         self.r.table_create(self.table_name).run(self.conn)
 
     def teardown_method(self):

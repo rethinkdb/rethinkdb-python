@@ -17,7 +17,7 @@
 # This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-'''`rethinkdb import` loads data into a RethinkDB cluster'''
+"""`rethinkdb import` loads data into a RethinkDB cluster"""
 
 from __future__ import print_function
 
@@ -33,8 +33,9 @@ import signal
 import sys
 import time
 import traceback
-import six
 from multiprocessing.queues import Queue, SimpleQueue
+
+import six
 
 from rethinkdb import ast, errors, query, utils_common
 from rethinkdb.logger import default_logger
@@ -87,26 +88,30 @@ class SourceFile(object):
     _rows_written = None
 
     def __init__(
-            self,
-            source,
-            db,
-            table,
-            query_runner,
-            primary_key=None,
-            indexes=None,
-            write_hook=None,
-            source_options=None):
+        self,
+        source,
+        db,
+        table,
+        query_runner,
+        primary_key=None,
+        indexes=None,
+        write_hook=None,
+        source_options=None,
+    ):
 
         if self.format is None:
-            raise AssertionError('{class_name} must have a format'.format(class_name=self.__class__.__name__))
+            raise AssertionError(
+                "{class_name} must have a format".format(
+                    class_name=self.__class__.__name__
+                )
+            )
 
-        if self.db == 'rethinkdb':
-            raise AssertionError('Can not import tables into the system database')
-
+        if self.db == "rethinkdb":
+            raise AssertionError("Can not import tables into the system database")
 
         # query_runner
         if not isinstance(query_runner, utils_common.RetryQuery):
-            raise AssertionError('Query runner is not instance of RetryQuery')
+            raise AssertionError("Query runner is not instance of RetryQuery")
 
         self.query_runner = query_runner
 
@@ -119,8 +124,8 @@ class SourceFile(object):
         self._rows_written = multiprocessing.Value(ctypes.c_longlong, 0)
 
         # source
-        if hasattr(source, 'read'):
-            if unicode != str or 'b' in source.mode:
+        if hasattr(source, "read"):
+            if unicode != str or "b" in source.mode:
                 # Python2.x or binary file, assume utf-8 encoding
                 self._source = codecs.getreader("utf-8")(source)
             else:
@@ -131,12 +136,18 @@ class SourceFile(object):
                 self._source = codecs.open(source, mode="r", encoding="utf-8")
             except IOError as exc:
                 default_logger.exception(exc)
-                raise ValueError('Unable to open source file "%s": %s' % (str(source), str(exc)))
+                raise ValueError(
+                    'Unable to open source file "%s": %s' % (str(source), str(exc))
+                )
 
-        if hasattr(self._source, 'name') and self._source.name and os.path.isfile(self._source.name):
+        if (
+            hasattr(self._source, "name")
+            and self._source.name
+            and os.path.isfile(self._source.name)
+        ):
             self._bytes_size.value = os.path.getsize(source)
             if self._bytes_size.value == 0:
-                raise ValueError('Source is zero-length: %s' % source)
+                raise ValueError("Source is zero-length: %s" % source)
 
         # table info
         self.db = db
@@ -147,23 +158,23 @@ class SourceFile(object):
 
         # options
         self.source_options = source_options or {
-            "create_args": {
-                "primary_key": self.primary_key
-            }
+            "create_args": {"primary_key": self.primary_key}
         }
 
         # name
-        if hasattr(self._source, 'name') and self._source.name:
+        if hasattr(self._source, "name") and self._source.name:
             self.name = os.path.basename(self._source.name)
         else:
-            self.name = '%s.%s' % (self.db, self.table)
+            self.name = "%s.%s" % (self.db, self.table)
 
     def __hash__(self):
         return hash((self.db, self.table))
 
     def get_line(self):
-        '''Returns a single line from the file'''
-        raise NotImplementedError('This needs to be implemented on the %s subclass' % self.format)
+        """Returns a single line from the file"""
+        raise NotImplementedError(
+            "This needs to be implemented on the %s subclass" % self.format
+        )
 
     # - bytes
     @property
@@ -210,12 +221,15 @@ class SourceFile(object):
     # - percent done
     @property
     def percent_done(self):
-        '''return a float between 0 and 1 for a reasonable guess of percentage complete'''
+        """return a float between 0 and 1 for a reasonable guess of percentage complete"""
         # assume that reading takes 50% of the time and writing the other 50%
         completed = 0.0  # of 2.0
 
         # - add read percentage
-        if self._bytes_size.value <= 0 or self._bytes_size.value <= self._bytes_read.value:
+        if (
+            self._bytes_size.value <= 0
+            or self._bytes_size.value <= self._bytes_read.value
+        ):
             completed += 1.0
         elif self._bytes_read.value < 0 and self._total_rows.value >= 0:
             # done by rows read
@@ -224,7 +238,9 @@ class SourceFile(object):
         else:
             # done by bytes read
             if self._bytes_read.value > 0:
-                completed += float(self._bytes_read.value) / float(self._bytes_size.value)
+                completed += float(self._bytes_read.value) / float(
+                    self._bytes_size.value
+                )
 
         # - add written percentage
         if self._rows_read.value or self._rows_written.value:
@@ -233,9 +249,13 @@ class SourceFile(object):
                 completed += 1.0
             elif total_rows < 0:
                 # a guesstimate
-                per_row_size = float(self._bytes_read.value) / float(self._rows_read.value)
-                total_rows = float(self._rows_read.value) + \
-                    (float(self._bytes_size.value - self._bytes_read.value) / per_row_size)
+                per_row_size = float(self._bytes_read.value) / float(
+                    self._rows_read.value
+                )
+                total_rows = float(self._rows_read.value) + (
+                    float(self._bytes_size.value - self._bytes_read.value)
+                    / per_row_size
+                )
                 completed += float(self._rows_written.value) / total_rows
             else:
                 # accurate count
@@ -245,21 +265,26 @@ class SourceFile(object):
         return completed * 0.5
 
     def setup_table(self):
-        '''Ensure that the db, table, and indexes exist and are correct'''
+        """Ensure that the db, table, and indexes exist and are correct"""
 
         # - ensure the table exists and is ready
         self.query_runner(
             "create table: %s.%s" % (self.db, self.table),
-            ast.expr([self.table]).set_difference(
-                query.db(self.db).table_list()
-            ).for_each(query.db(self.db).table_create(
-                query.row, **self.source_options["create_args"] if 'create_args' in self.source_options else {})
-            )
+            ast.expr([self.table])
+            .set_difference(query.db(self.db).table_list())
+            .for_each(
+                query.db(self.db).table_create(
+                    query.row,
+                    **self.source_options["create_args"]
+                    if "create_args" in self.source_options
+                    else {}
+                )
+            ),
         )
 
         self.query_runner(
             "wait for %s.%s" % (self.db, self.table),
-            query.db(self.db).table(self.table).wait(timeout=30)
+            query.db(self.db).table(self.table).wait(timeout=30),
         )
 
         # - ensure that the primary key on the table is correct
@@ -271,58 +296,81 @@ class SourceFile(object):
             self.primary_key = primary_key
         elif primary_key != self.primary_key:
             raise RuntimeError(
-                "Error: table %s.%s primary key was `%s` rather than the expected: %s" %
-                (self.db, self.table, primary_key, self.primary_key))
+                "Error: table %s.%s primary key was `%s` rather than the expected: %s"
+                % (self.db, self.table, primary_key, self.primary_key)
+            )
 
     def restore_indexes(self, warning_queue):
         # recreate secondary indexes - dropping existing on the assumption they are wrong
         if self.indexes:
             existing_indexes = self.query_runner(
-                "indexes from: %s.%s" %
-                (self.db, self.table), query.db(
-                    self.db).table(
-                    self.table).index_list())
+                "indexes from: %s.%s" % (self.db, self.table),
+                query.db(self.db).table(self.table).index_list(),
+            )
             try:
                 created_indexes = []
                 for index in self.indexes:
                     if index["index"] in existing_indexes:  # drop existing versions
                         self.query_runner(
-                            "drop index: %s.%s:%s" % (self.db, self.table, index["index"]),
-                            query.db(self.db).table(self.table).index_drop(index["index"])
+                            "drop index: %s.%s:%s"
+                            % (self.db, self.table, index["index"]),
+                            query.db(self.db)
+                            .table(self.table)
+                            .index_drop(index["index"]),
                         )
                     self.query_runner(
-                        "create index: %s.%s:%s" % (self.db, self.table, index["index"]),
-                        query.db(self.db).table(self.table).index_create(index["index"], index["function"])
+                        "create index: %s.%s:%s"
+                        % (self.db, self.table, index["index"]),
+                        query.db(self.db)
+                        .table(self.table)
+                        .index_create(index["index"], index["function"]),
                     )
                     created_indexes.append(index["index"])
 
                 # wait for all of the created indexes to build
                 self.query_runner(
                     "waiting for indexes on %s.%s" % (self.db, self.table),
-                    query.db(self.db).table(self.table).index_wait(query.args(created_indexes))
+                    query.db(self.db)
+                    .table(self.table)
+                    .index_wait(query.args(created_indexes)),
                 )
             except RuntimeError:
                 exception_type, exception_class, trcback = sys.exc_info()
-                warning_queue.put((exception_type, exception_class, traceback.extract_tb(trcback), self._source.name))
+                warning_queue.put(
+                    (
+                        exception_type,
+                        exception_class,
+                        traceback.extract_tb(trcback),
+                        self._source.name,
+                    )
+                )
 
         if self.write_hook:
             self.query_runner(
-                "Write hook from: %s.%s" %
-                (self.db, self.table), query.db(
-                    self.db).table(
-                    self.table).get_write_hook())
+                "Write hook from: %s.%s" % (self.db, self.table),
+                query.db(self.db).table(self.table).get_write_hook(),
+            )
             try:
                 self.query_runner(
                     "drop hook: %s.%s" % (self.db, self.table),
-                    query.db(self.db).table(self.table).set_write_hook(None)
+                    query.db(self.db).table(self.table).set_write_hook(None),
                 )
                 self.query_runner(
                     "create hook: %s.%s:%s" % (self.db, self.table, self.write_hook),
-                    query.db(self.db).table(self.table).set_write_hook(self.write_hook["function"])
+                    query.db(self.db)
+                    .table(self.table)
+                    .set_write_hook(self.write_hook["function"]),
                 )
             except RuntimeError:
                 exception_type, exception_class, trcback = sys.exc_info()
-                warning_queue.put((exception_type, exception_class, traceback.extract_tb(trcback), self._source.name))
+                warning_queue.put(
+                    (
+                        exception_type,
+                        exception_class,
+                        traceback.extract_tb(trcback),
+                        self._source.name,
+                    )
+                )
 
     def batches(self, batch_size=None, warning_queue=None):
 
@@ -336,7 +384,7 @@ class SourceFile(object):
             batch_size = int(batch_size)
 
         if batch_size <= 0:
-            raise AssertionError('Batch size can not be less than one')
+            raise AssertionError("Batch size can not be less than one")
 
         # setup
         self.setup_file(warning_queue=warning_queue)
@@ -383,16 +431,19 @@ class SourceFile(object):
         pass
 
     def read_to_queue(
-            self,
-            work_queue,
-            exit_event,
-            error_queue,
-            warning_queue,
-            timing_queue,
-            fields=None,
-            ignore_signals=True,
-            batch_size=None):
-        if ignore_signals:  # ToDo: work out when we are in a worker process automatically
+        self,
+        work_queue,
+        exit_event,
+        error_queue,
+        warning_queue,
+        timing_queue,
+        fields=None,
+        ignore_signals=True,
+        batch_size=None,
+    ):
+        if (
+            ignore_signals
+        ):  # ToDo: work out when we are in a worker process automatically
             signal.signal(signal.SIGINT, signal.SIG_IGN)  # workers should ignore these
 
         if batch_size is None:
@@ -402,7 +453,7 @@ class SourceFile(object):
         try:
             timePoint = time.time()
             for batch in self.batches(warning_queue=warning_queue):
-                timing_queue.put(('reader_work', time.time() - timePoint))
+                timing_queue.put(("reader_work", time.time() - timePoint))
                 timePoint = time.time()
 
                 # apply the fields filter
@@ -420,7 +471,7 @@ class SourceFile(object):
                         pass
                 else:
                     break
-                timing_queue.put(('reader_wait', time.time() - timePoint))
+                timing_queue.put(("reader_wait", time.time() - timePoint))
                 timePoint = time.time()
 
         # - report relevant errors
@@ -438,7 +489,7 @@ class NeedMoreData(Exception):
 
 
 class JsonSourceFile(SourceFile):
-    format = 'json'
+    format = "json"
 
     decoder = json.JSONDecoder()
     json_array = None
@@ -451,7 +502,7 @@ class JsonSourceFile(SourceFile):
 
     def fill_buffer(self):
         if self._buffer_str is None:
-            self._buffer_str = ''
+            self._buffer_str = ""
             self._buffer_pos = 0
             self._buffer_end = 0
         elif self._buffer_pos == 0:
@@ -459,22 +510,22 @@ class JsonSourceFile(SourceFile):
             if self._buffer_size == JSON_MAX_BUFFER_SIZE:
                 raise Exception(
                     "Error: JSON max buffer size exceeded on file %s (from position %d). Use '--max-document-size' to "
-                    "extend your buffer." %
-                    (self.name, self.bytes_processed))
+                    "extend your buffer." % (self.name, self.bytes_processed)
+                )
             self._buffer_size = min(self._buffer_size * 2, JSON_MAX_BUFFER_SIZE)
 
         # add more data
         read_target = self._buffer_size - self._buffer_end + self._buffer_pos
 
         if read_target < 1:
-            raise AssertionError('Can not set the read target and full the buffer')
+            raise AssertionError("Can not set the read target and full the buffer")
 
         new_chunk = self._source.read(read_target)
 
         if len(new_chunk) == 0:
             raise StopIteration()  # file ended
 
-        self._buffer_str = self._buffer_str[self._buffer_pos:] + new_chunk
+        self._buffer_str = self._buffer_str[self._buffer_pos :] + new_chunk
         self._bytes_read.value += len(new_chunk)
 
         # reset markers
@@ -482,27 +533,37 @@ class JsonSourceFile(SourceFile):
         self._buffer_end = len(self._buffer_str) - 1
 
     def get_line(self):
-        '''Return a line from the current _buffer_str, or raise NeedMoreData trying'''
+        """Return a line from the current _buffer_str, or raise NeedMoreData trying"""
 
         # advance over any whitespace
-        self._buffer_pos = json.decoder.WHITESPACE.match(self._buffer_str, self._buffer_pos).end()
+        self._buffer_pos = json.decoder.WHITESPACE.match(
+            self._buffer_str, self._buffer_pos
+        ).end()
         if self._buffer_pos >= self._buffer_end:
             raise NeedMoreData()
 
         # read over a comma if we are not the first item in a json_array
-        if self.json_array and self.found_first and self._buffer_str[self._buffer_pos] == ",":
+        if (
+            self.json_array
+            and self.found_first
+            and self._buffer_str[self._buffer_pos] == ","
+        ):
             self._buffer_pos += 1
             if self._buffer_pos >= self._buffer_end:
                 raise NeedMoreData()
 
         # advance over any post-comma whitespace
-        self._buffer_pos = json.decoder.WHITESPACE.match(self._buffer_str, self._buffer_pos).end()
+        self._buffer_pos = json.decoder.WHITESPACE.match(
+            self._buffer_str, self._buffer_pos
+        ).end()
         if self._buffer_pos >= self._buffer_end:
             raise NeedMoreData()
 
         # parse and return an object
         try:
-            row, self._buffer_pos = self.decoder.raw_decode(self._buffer_str, idx=self._buffer_pos)
+            row, self._buffer_pos = self.decoder.raw_decode(
+                self._buffer_str, idx=self._buffer_pos
+            )
             self.found_first = True
             return row
         except (ValueError, IndexError):
@@ -526,7 +587,9 @@ class JsonSourceFile(SourceFile):
             elif self._buffer_str[0] == "{":
                 self.json_array = False
             else:
-                raise ValueError("Error: JSON format not recognized - file does not begin with an object or array")
+                raise ValueError(
+                    "Error: JSON format not recognized - file does not begin with an object or array"
+                )
         except IndexError:
             raise ValueError("Error: JSON file was empty of content")
 
@@ -536,23 +599,39 @@ class JsonSourceFile(SourceFile):
         # note: fill_buffer should have guaranteed that we have only the data in the end
 
         # advance through any leading whitespace
-        self._buffer_pos = json.decoder.WHITESPACE.match(self._buffer_str, self._buffer_pos).end()
+        self._buffer_pos = json.decoder.WHITESPACE.match(
+            self._buffer_str, self._buffer_pos
+        ).end()
 
         # check the end of the array if we have it
         if self.json_array:
             if self._buffer_str[self._buffer_pos] != "]":
-                snippit = self._buffer_str[self._buffer_pos:]
-                extra = '' if len(snippit) <= 100 else ' and %d more characters' % (len(snippit) - 100)
-                raise ValueError("Error: JSON array did not end cleanly, rather with: <<%s>>%s" %
-                                 (snippit[:100], extra))
+                snippit = self._buffer_str[self._buffer_pos :]
+                extra = (
+                    ""
+                    if len(snippit) <= 100
+                    else " and %d more characters" % (len(snippit) - 100)
+                )
+                raise ValueError(
+                    "Error: JSON array did not end cleanly, rather with: <<%s>>%s"
+                    % (snippit[:100], extra)
+                )
             self._buffer_pos += 1
 
         # advance through any trailing whitespace
-        self._buffer_pos = json.decoder.WHITESPACE.match(self._buffer_str, self._buffer_pos).end()
-        snippit = self._buffer_str[self._buffer_pos:]
+        self._buffer_pos = json.decoder.WHITESPACE.match(
+            self._buffer_str, self._buffer_pos
+        ).end()
+        snippit = self._buffer_str[self._buffer_pos :]
         if len(snippit) > 0:
-            extra = '' if len(snippit) <= 100 else ' and %d more characters' % (len(snippit) - 100)
-            raise ValueError("Error: extra data after JSON data: <<%s>>%s" % (snippit[:100], extra))
+            extra = (
+                ""
+                if len(snippit) <= 100
+                else " and %d more characters" % (len(snippit) - 100)
+            )
+            raise ValueError(
+                "Error: extra data after JSON data: <<%s>>%s" % (snippit[:100], extra)
+            )
 
 
 class CsvSourceFile(SourceFile):
@@ -565,21 +644,23 @@ class CsvSourceFile(SourceFile):
     _columns = None  # name of the columns
 
     def __init__(self, *args, **kwargs):
-        if 'source_options' in kwargs and isinstance(kwargs['source_options'], dict):
-            if 'no_header_row' in kwargs['source_options']:
-                self.no_header_row = kwargs['source_options']['no_header_row']
-            if 'custom_header' in kwargs['source_options']:
-                self.custom_header = kwargs['source_options']['custom_header']
+        if "source_options" in kwargs and isinstance(kwargs["source_options"], dict):
+            if "no_header_row" in kwargs["source_options"]:
+                self.no_header_row = kwargs["source_options"]["no_header_row"]
+            if "custom_header" in kwargs["source_options"]:
+                self.custom_header = kwargs["source_options"]["custom_header"]
 
         super(CsvSourceFile, self).__init__(*args, **kwargs)
 
     def byte_counter(self):
-        '''Generator for getting a byte count on a file being used'''
+        """Generator for getting a byte count on a file being used"""
 
         for line in self._source:
             self._bytes_read.value += len(line)
             if unicode != str:
-                yield line.encode("utf-8")  # Python2.x csv module does not really handle unicode
+                yield line.encode(
+                    "utf-8"
+                )  # Python2.x csv module does not really handle unicode
             else:
                 yield line
 
@@ -596,7 +677,9 @@ class CsvSourceFile(SourceFile):
         # field names may override fields from the header
         if self.custom_header is not None:
             if not self.no_header_row:
-                warning_queue.put("Ignoring header row on %s: %s" % (self.name, str(self._columns)))
+                warning_queue.put(
+                    "Ignoring header row on %s: %s" % (self.name, str(self._columns))
+                )
             self._columns = self.custom_header
         elif self.no_header_row:
             raise ValueError("Error: No field name information available")
@@ -605,17 +688,21 @@ class CsvSourceFile(SourceFile):
         raw_row = next(self._reader)
         if len(self._columns) != len(raw_row):
             raise Exception(
-                "Error: '%s' line %d has an inconsistent number of columns: %s" %
-                (self.name, self._reader.line_num, str(raw_row)))
+                "Error: '%s' line %d has an inconsistent number of columns: %s"
+                % (self.name, self._reader.line_num, str(raw_row))
+            )
 
         row = {}
-        for key, value in zip(self._columns, raw_row):  # note: we import all csv fields as strings
+        for key, value in zip(
+            self._columns, raw_row
+        ):  # note: we import all csv fields as strings
             # treat empty fields as no entry rather than empty string
-            if value == '':
+            if value == "":
                 continue
             row[key] = value if str == unicode else unicode(value, encoding="utf-8")
 
         return row
+
 
 # ==
 
@@ -628,7 +715,7 @@ usage = """rethinkdb import -d DIR [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--
       [--shards NUM_SHARDS] [--replicas NUM_REPLICAS]
       [--delimiter CHARACTER] [--custom-header FIELD,FIELD... [--no-header]]"""
 
-help_epilog = '''
+help_epilog = """
 EXAMPLES:
 
 rethinkdb import -d rdb_export -c mnemosyne:39500 --clients 128
@@ -651,25 +738,45 @@ rethinkdb import -f user_data.csv --delimiter ';' --no-header --custom-header id
   Import data into a local cluster using the named CSV file with no header and instead
   use the fields 'id', 'name', and 'number', the delimiter is a semicolon (rather than
   a comma).
-'''
+"""
 
 
 def parse_options(argv, prog=None):
-    parser = utils_common.CommonOptionsParser(usage=usage, epilog=help_epilog, prog=prog)
+    parser = utils_common.CommonOptionsParser(
+        usage=usage, epilog=help_epilog, prog=prog
+    )
 
-    parser.add_option("--clients", dest="clients", metavar="CLIENTS", default=8,
-                      help="client connections to use (default: 8)", type="pos_int")
-    parser.add_option("--hard-durability", dest="durability", action="store_const", default="soft",
-                      help="use hard durability writes (slower, uses less memory)", const="hard")
-    parser.add_option("--force", dest="force", action="store_true", default=False,
-                      help="import even if a table already exists, overwriting duplicate primary keys")
+    parser.add_option(
+        "--clients",
+        dest="clients",
+        metavar="CLIENTS",
+        default=8,
+        help="client connections to use (default: 8)",
+        type="pos_int",
+    )
+    parser.add_option(
+        "--hard-durability",
+        dest="durability",
+        action="store_const",
+        default="soft",
+        help="use hard durability writes (slower, uses less memory)",
+        const="hard",
+    )
+    parser.add_option(
+        "--force",
+        dest="force",
+        action="store_true",
+        default=False,
+        help="import even if a table already exists, overwriting duplicate primary keys",
+    )
 
     parser.add_option(
         "--batch-size",
         dest="batch_size",
         default=utils_common.default_batch_size,
         help=optparse.SUPPRESS_HELP,
-        type="pos_int")
+        type="pos_int",
+    )
 
     # Replication settings
     replication_options_group = optparse.OptionGroup(parser, "Replication Options")
@@ -679,14 +786,16 @@ def parse_options(argv, prog=None):
         metavar="SHARDS",
         help="shards to setup on created tables (default: 1)",
         type="pos_int",
-        action="add_key")
+        action="add_key",
+    )
     replication_options_group.add_option(
         "--replicas",
         dest="create_args",
         metavar="REPLICAS",
         help="replicas to setup on created tables (default: 1)",
         type="pos_int",
-        action="add_key")
+        action="add_key",
+    )
     parser.add_option_group(replication_options_group)
 
     # Directory import options
@@ -697,7 +806,8 @@ def parse_options(argv, prog=None):
         dest="directory",
         metavar="DIRECTORY",
         default=None,
-        help="directory to import data from")
+        help="directory to import data from",
+    )
     dir_import_group.add_option(
         "-i",
         "--import",
@@ -706,13 +816,15 @@ def parse_options(argv, prog=None):
         default=[],
         help="restore only the given database or table (may be specified multiple times)",
         action="append",
-        type="db_table")
+        type="db_table",
+    )
     dir_import_group.add_option(
         "--no-secondary-indexes",
         dest="indexes",
         action="store_false",
         default=None,
-        help="do not create secondary indexes")
+        help="do not create secondary indexes",
+    )
     parser.add_option_group(dir_import_group)
 
     # File import options
@@ -724,11 +836,22 @@ def parse_options(argv, prog=None):
         metavar="FILE",
         default=None,
         help="file to import data from",
-        type="file")
-    file_import_group.add_option("--table", dest="import_table", metavar="DB.TABLE",
-                               default=None, help="table to import the data into")
-    file_import_group.add_option("--fields", dest="fields", metavar="FIELD,...", default=None,
-                               help="limit which fields to use when importing one table")
+        type="file",
+    )
+    file_import_group.add_option(
+        "--table",
+        dest="import_table",
+        metavar="DB.TABLE",
+        default=None,
+        help="table to import the data into",
+    )
+    file_import_group.add_option(
+        "--fields",
+        dest="fields",
+        metavar="FIELD,...",
+        default=None,
+        help="limit which fields to use when importing one table",
+    )
     file_import_group.add_option(
         "--format",
         dest="format",
@@ -736,16 +859,16 @@ def parse_options(argv, prog=None):
         default=None,
         help="format of the file (default: json, accepts newline delimited json)",
         type="choice",
-        choices=[
-            "json",
-            "csv"])
+        choices=["json", "csv"],
+    )
     file_import_group.add_option(
         "--pkey",
         dest="create_args",
         metavar="PRIMARY_KEY",
         default=None,
         help="field to use as the primary key in the table",
-        action="add_key")
+        action="add_key",
+    )
     parser.add_option_group(file_import_group)
 
     # CSV import options
@@ -755,15 +878,22 @@ def parse_options(argv, prog=None):
         dest="delimiter",
         metavar="CHARACTER",
         default=None,
-        help="character separating fields, or '\\t' for tab")
-    csv_import_group.add_option("--no-header", dest="no_header", action="store_true",
-                              default=None, help="do not read in a header of field names")
+        help="character separating fields, or '\\t' for tab",
+    )
+    csv_import_group.add_option(
+        "--no-header",
+        dest="no_header",
+        action="store_true",
+        default=None,
+        help="do not read in a header of field names",
+    )
     csv_import_group.add_option(
         "--custom-header",
         dest="custom_header",
         metavar="FIELD,...",
         default=None,
-        help="header to use (overriding file header), must be specified if --no-header")
+        help="header to use (overriding file header), must be specified if --no-header",
+    )
     parser.add_option_group(csv_import_group)
 
     # JSON import options
@@ -774,14 +904,16 @@ def parse_options(argv, prog=None):
         metavar="MAX_SIZE",
         default=0,
         help="maximum allowed size (bytes) for a single JSON document (default: 128MiB)",
-        type="pos_int")
+        type="pos_int",
+    )
     json_options_group.add_option(
         "--max-nesting-depth",
         dest="max_nesting_depth",
         metavar="MAX_DEPTH",
         default=0,
         help="maximum depth of the JSON documents (default: 100)",
-        type="pos_int")
+        type="pos_int",
+    )
     parser.add_option_group(json_options_group)
 
     options, args = parser.parse_args(argv)
@@ -789,7 +921,9 @@ def parse_options(argv, prog=None):
     # Check validity of arguments
 
     if len(args) != 0:
-        raise parser.error("No positional arguments supported. Unrecognized option(s): %s" % args)
+        raise parser.error(
+            "No positional arguments supported. Unrecognized option(s): %s" % args
+        )
 
     # - create_args
     if options.create_args is None:
@@ -822,15 +956,23 @@ def parse_options(argv, prog=None):
         if options.no_header:
             parser.error("--no-header option is not valid when importing a directory")
         if options.custom_header:
-            parser.error("table create options are not valid when importing a directory: %s" %
-                         ", ".join([x.lower().replace("_", " ") for x in options.custom_header.keys()]))
+            parser.error(
+                "table create options are not valid when importing a directory: %s"
+                % ", ".join(
+                    [x.lower().replace("_", " ") for x in options.custom_header.keys()]
+                )
+            )
 
         # check valid options
         if not os.path.isdir(options.directory):
             parser.error("Directory to import does not exist: %s" % options.directory)
 
-        if options.fields and (len(options.db_tables) > 1 or options.db_tables[0].table is None):
-            parser.error("--fields option can only be used when importing a single table")
+        if options.fields and (
+            len(options.db_tables) > 1 or options.db_tables[0].table is None
+        ):
+            parser.error(
+                "--fields option can only be used when importing a single table"
+            )
 
     elif options.file:
         if not os.path.exists(options.file):
@@ -841,13 +983,15 @@ def parse_options(argv, prog=None):
 
         # format
         if options.format is None:
-            options.format = os.path.splitext(options.file)[1].lstrip('.')
+            options.format = os.path.splitext(options.file)[1].lstrip(".")
 
         # import_table
         if options.import_table:
             res = utils_common._tableNameRegex.match(options.import_table)
             if res and res.group("table"):
-                options.import_table = utils_common.DbTable(res.group("db"), res.group("table"))
+                options.import_table = utils_common.DbTable(
+                    res.group("db"), res.group("table")
+                )
             else:
                 parser.error("Invalid --table option: %s" % options.import_table)
         else:
@@ -860,12 +1004,16 @@ def parse_options(argv, prog=None):
         if options.db_tables:
             parser.error("-i/--import can only be used when importing a directory")
         if options.indexes:
-            parser.error("--no-secondary-indexes can only be used when importing a directory")
+            parser.error(
+                "--no-secondary-indexes can only be used when importing a directory"
+            )
 
         if options.format == "csv":
             # disallow invalid options
             if options.max_document_size:
-                parser.error("--max_document_size only affects importing JSON documents")
+                parser.error(
+                    "--max_document_size only affects importing JSON documents"
+                )
 
             # delimiter
             if options.delimiter is None:
@@ -873,7 +1021,10 @@ def parse_options(argv, prog=None):
             elif options.delimiter == "\\t":
                 options.delimiter = "\t"
             elif len(options.delimiter) != 1:
-                parser.error("Specify exactly one character for the --delimiter option: %s" % options.delimiter)
+                parser.error(
+                    "Specify exactly one character for the --delimiter option: %s"
+                    % options.delimiter
+                )
 
             # no_header
             if options.no_header is None:
@@ -920,10 +1071,13 @@ def parse_options(argv, prog=None):
 
     return options
 
+
 # This is run for each client requested, and accepts tasks from the reader processes
 
 
-def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_event, timing_queue):
+def table_writer(
+    tables, options, work_queue, error_queue, warning_queue, exit_event, timing_queue
+):
     signal.signal(signal.SIGINT, signal.SIG_IGN)  # workers should ignore these
     db = table = batch = None
 
@@ -936,7 +1090,7 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                 db, table, batch = work_queue.get(timeout=0.1)
             except Empty:
                 continue
-            timing_queue.put(('writer_wait', time.time() - timePoint))
+            timing_queue.put(("writer_wait", time.time() - timePoint))
             timePoint = time.time()
 
             # shut down when appropriate
@@ -950,25 +1104,24 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
             # write the batch to the database
             try:
                 res = options.retryQuery(
-                    "write batch to %s.%s" %
-                    (db,
-                     table),
+                    "write batch to %s.%s" % (db, table),
                     tbl.insert(
-                        ast.expr(
-                            batch,
-                            nesting_depth=MAX_NESTING_DEPTH),
+                        ast.expr(batch, nesting_depth=MAX_NESTING_DEPTH),
                         durability=options.durability,
                         conflict=conflict_action,
-                        ))
+                    ),
+                )
 
                 if res["errors"] > 0:
-                    raise RuntimeError("Error when importing into table '%s.%s': %s" % (db, table, res["first_error"]))
+                    raise RuntimeError(
+                        "Error when importing into table '%s.%s': %s"
+                        % (db, table, res["first_error"])
+                    )
                 modified = res["inserted"] + res["replaced"] + res["unchanged"]
                 if modified != len(batch):
                     raise RuntimeError(
-                        "The inserted/replaced/unchanged number did not match when importing into table '%s.%s': %s" % (
-                            db, table, res["first_error"]
-                        )
+                        "The inserted/replaced/unchanged number did not match when importing into table '%s.%s': %s"
+                        % (db, table, res["first_error"])
                     )
 
                 table_info.add_rows_written(modified)
@@ -980,53 +1133,53 @@ def table_writer(tables, options, work_queue, error_queue, warning_queue, exit_e
                     if table_info.primary_key not in row:
                         raise RuntimeError(
                             "Connection error while importing.  Current row does not have the specified primary key "
-                            "(%s), so cannot guarantee absence of duplicates" % table_info.primary_key)
+                            "(%s), so cannot guarantee absence of duplicates"
+                            % table_info.primary_key
+                        )
                     res = None
                     if conflict_action == "replace":
                         res = options.retryQuery(
-                            "write row to %s.%s" %
-                            (db,
-                             table),
+                            "write row to %s.%s" % (db, table),
                             tbl.insert(
-                                ast.expr(
-                                    row,
-                                    nesting_depth=MAX_NESTING_DEPTH),
+                                ast.expr(row, nesting_depth=MAX_NESTING_DEPTH),
                                 durability=options.durability,
                                 conflict=conflict_action,
-                                ignore_write_hook=True))
+                                ignore_write_hook=True,
+                            ),
+                        )
                     else:
                         existingRow = options.retryQuery(
                             "read row from %s.%s" % (db, table),
-                            tbl.get(row[table_info.primary_key])
+                            tbl.get(row[table_info.primary_key]),
                         )
                         if not existingRow:
                             res = options.retryQuery(
-                                "write row to %s.%s" %
-                                (db,
-                                 table),
+                                "write row to %s.%s" % (db, table),
                                 tbl.insert(
-                                    ast.expr(
-                                        row,
-                                        nesting_depth=MAX_NESTING_DEPTH),
+                                    ast.expr(row, nesting_depth=MAX_NESTING_DEPTH),
                                     durability=options.durability,
                                     conflict=conflict_action,
-                                    ignore_write_hook=True))
+                                    ignore_write_hook=True,
+                                ),
+                            )
                         elif existingRow != row:
                             raise RuntimeError(
-                                "Duplicate primary key `%s`:\n%s\n%s" %
-                                (table_info.primary_key, str(row), str(existingRow)))
+                                "Duplicate primary key `%s`:\n%s\n%s"
+                                % (table_info.primary_key, str(row), str(existingRow))
+                            )
 
                     if res["errors"] > 0:
-                        raise RuntimeError("Error when importing into table '%s.%s': %s" % (
-                            db, table, res["first_error"]))
+                        raise RuntimeError(
+                            "Error when importing into table '%s.%s': %s"
+                            % (db, table, res["first_error"])
+                        )
                     if res["inserted"] + res["replaced"] + res["unchanged"] != 1:
                         raise RuntimeError(
-                            "The inserted/replaced/unchanged number was not 1 when inserting on '%s.%s': %s" % (
-                                db, table, res
-                            )
+                            "The inserted/replaced/unchanged number was not 1 when inserting on '%s.%s': %s"
+                            % (db, table, res)
                         )
                     table_info.add_rows_written(1)
-            timing_queue.put(('writer_work', time.time() - timePoint))
+            timing_queue.put(("writer_work", time.time() - timePoint))
             timePoint = time.time()
 
     except Exception as e:
@@ -1063,9 +1216,15 @@ def update_progress(tables, debug, exit_event, sleep=0.2):
             if complete != lastComplete:
                 timeDelta = readWrites[-1][0] - readWrites[0][0]
                 if debug and len(readWrites) > 1 and timeDelta > 0:
-                    readRate = max((readWrites[-1][1] - readWrites[0][1]) / timeDelta, 0)
-                    writeRate = max((readWrites[-1][2] - readWrites[0][2]) / timeDelta, 0)
-                utils_common.print_progress(complete, indent=2, read=readRate, write=writeRate)
+                    readRate = max(
+                        (readWrites[-1][1] - readWrites[0][1]) / timeDelta, 0
+                    )
+                    writeRate = max(
+                        (readWrites[-1][2] - readWrites[0][2]) / timeDelta, 0
+                    )
+                utils_common.print_progress(
+                    complete, indent=2, read=readRate, write=writeRate
+                )
                 lastComplete = complete
             time.sleep(sleep)
         except KeyboardInterrupt:
@@ -1135,18 +1294,28 @@ def import_tables(options, sources, files_ignored=None):
     # create missing dbs
     needed_dbs = set([x.db for x in sources])
     if "rethinkdb" in needed_dbs:
-        raise RuntimeError("Error: Cannot import tables into the system database: 'rethinkdb'")
+        raise RuntimeError(
+            "Error: Cannot import tables into the system database: 'rethinkdb'"
+        )
     options.retryQuery(
-        "ensure dbs: %s" %
-        ", ".join(needed_dbs),
-        ast.expr(needed_dbs).set_difference(
-            query.db_list()).for_each(
-            query.db_create(
-                query.row)))
+        "ensure dbs: %s" % ", ".join(needed_dbs),
+        ast.expr(needed_dbs)
+        .set_difference(query.db_list())
+        .for_each(query.db_create(query.row)),
+    )
 
     # check for existing tables, or if --force is enabled ones with mis-matched primary keys
-    existing_tables = dict([((x["db"], x["name"]), x["primary_key"]) for x in options.retryQuery(
-        "list tables", query.db("rethinkdb").table("table_config").pluck(["db", "name", "primary_key"]))])
+    existing_tables = dict(
+        [
+            ((x["db"], x["name"]), x["primary_key"])
+            for x in options.retryQuery(
+                "list tables",
+                query.db("rethinkdb")
+                .table("table_config")
+                .pluck(["db", "name", "primary_key"]),
+            )
+        ]
+    )
     already_exist = []
     for source in sources:
         if (source.db, source.table) in existing_tables:
@@ -1156,20 +1325,26 @@ def import_tables(options, sources, files_ignored=None):
                 source.primary_key = existing_tables[(source.db, source.table)]
             elif source.primary_key != existing_tables[(source.db, source.table)]:
                 raise RuntimeError(
-                    "Error: Table '%s.%s' already exists with a different primary key: %s (expected: %s)" % (
-                        source.db, source.table, existing_tables[(source.db, source.table)], source.primary_key
+                    "Error: Table '%s.%s' already exists with a different primary key: %s (expected: %s)"
+                    % (
+                        source.db,
+                        source.table,
+                        existing_tables[(source.db, source.table)],
+                        source.primary_key,
                     )
                 )
 
     if len(already_exist) == 1:
         raise RuntimeError(
-            "Error: Table '%s' already exists, run with --force to import into the existing table" %
-            already_exist[0])
+            "Error: Table '%s' already exists, run with --force to import into the existing table"
+            % already_exist[0]
+        )
     elif len(already_exist) > 1:
         already_exist.sort()
         raise RuntimeError(
-            "Error: The following tables already exist, run with --force to import into the existing tables:\n  %s" %
-            "\n  ".join(already_exist))
+            "Error: The following tables already exist, run with --force to import into the existing tables:\n  %s"
+            % "\n  ".join(already_exist)
+        )
 
     # - start the import
 
@@ -1179,7 +1354,7 @@ def import_tables(options, sources, files_ignored=None):
             progress_bar = multiprocessing.Process(
                 target=update_progress,
                 name="progress bar",
-                args=(sources, options.debug, exit_event, progress_bar_sleep)
+                args=(sources, options.debug, exit_event, progress_bar_sleep),
             )
             progress_bar.start()
             pools.append([progress_bar])
@@ -1190,8 +1365,7 @@ def import_tables(options, sources, files_ignored=None):
         for i in range(options.clients):
             writer = multiprocessing.Process(
                 target=table_writer,
-                name="table writer %d" %
-                i,
+                name="table writer %d" % i,
                 kwargs={
                     "tables": tables,
                     "options": options,
@@ -1199,7 +1373,9 @@ def import_tables(options, sources, files_ignored=None):
                     "error_queue": error_queue,
                     "warning_queue": warning_queue,
                     "timing_queue": timing_queue,
-                    "exit_event": exit_event})
+                    "exit_event": exit_event,
+                },
+            )
             writers.append(writer)
             writer.start()
 
@@ -1214,9 +1390,7 @@ def import_tables(options, sources, files_ignored=None):
                     table = next(file_iter)
                     reader = multiprocessing.Process(
                         target=table.read_to_queue,
-                        name="table reader %s.%s" %
-                        (table.db,
-                         table.table),
+                        name="table reader %s.%s" % (table.db, table.table),
                         kwargs={
                             "fields": options.fields,
                             "batch_size": options.batch_size,
@@ -1224,7 +1398,9 @@ def import_tables(options, sources, files_ignored=None):
                             "error_queue": error_queue,
                             "warning_queue": warning_queue,
                             "timing_queue": timing_queue,
-                            "exit_event": exit_event})
+                            "exit_event": exit_event,
+                        },
+                    )
                     readers.append(reader)
                     reader.start()
 
@@ -1236,7 +1412,7 @@ def import_tables(options, sources, files_ignored=None):
                     if not reader.is_alive():
                         readers.remove(reader)
                     if len(readers) == options.clients:
-                        time.sleep(.05)
+                        time.sleep(0.05)
         except StopIteration:
             pass  # ran out of new tables
 
@@ -1256,7 +1432,7 @@ def import_tables(options, sources, files_ignored=None):
             # watch the readers
             for reader in readers[:]:
                 try:
-                    reader.join(.1)
+                    reader.join(0.1)
                 except Exception as exc:
                     default_logger.exception(exc)
                 if not reader.is_alive():
@@ -1297,20 +1473,26 @@ def import_tables(options, sources, files_ignored=None):
                 utils_common.print_progress(1.0, indent=2)
 
             # advance past the progress bar
-            print('')
+            print("")
 
             # report statistics
             def plural(num, text):
                 return "%d %s%s" % (num, text, "" if num == 1 else "s")
 
-            print("  %s imported to %s in %.2f secs" % (plural(sum(x.rows_written for x in sources), "row"),
-                                                        plural(len(sources), "table"), time.time() - start_time))
+            print(
+                "  %s imported to %s in %.2f secs"
+                % (
+                    plural(sum(x.rows_written for x in sources), "row"),
+                    plural(len(sources), "table"),
+                    time.time() - start_time,
+                )
+            )
 
             # report debug statistics
             if options.debug:
-                print('Debug timing:')
+                print("Debug timing:")
                 for key, value in sorted(timing_sums.items(), key=lambda x: x[0]):
-                    print('  %s: %.2f' % (key, value))
+                    print("  %s: %.2f" % (key, value))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -1326,7 +1508,9 @@ def import_tables(options, sources, files_ignored=None):
     for warning in warnings:
         print("%s" % warning[1], file=sys.stderr)
         if options.debug:
-            print("%s traceback: %s" % (warning[0].__name__, warning[2]), file=sys.stderr)
+            print(
+                "%s traceback: %s" % (warning[0].__name__, warning[2]), file=sys.stderr
+            )
         if len(warning) == 4:
             print("In file: %s" % warning[3], file=sys.stderr)
 
@@ -1339,12 +1523,11 @@ def import_tables(options, sources, files_ignored=None):
 
 
 def parse_sources(options, files_ignored=None):
-
     def parse_info_file(path):
         primary_key = None
         indexes = []
         write_hook = None
-        with open(path, 'r') as info_file:
+        with open(path, "r") as info_file:
             metadata = json.load(info_file)
             if "primary_key" in metadata:
                 primary_key = metadata["primary_key"]
@@ -1354,13 +1537,15 @@ def parse_sources(options, files_ignored=None):
                 write_hook = metadata["write_hook"]
         return primary_key, indexes, write_hook
 
-    has_write_hooks = utils_common.check_minimum_version(options, '2.3.7', False)
+    has_write_hooks = utils_common.check_minimum_version(options, "2.3.7", False)
 
     sources = set()
     if files_ignored is None:
         files_ignored = []
     if options.directory and options.file:
-        raise RuntimeError("Error: Both --directory and --file cannot be specified together")
+        raise RuntimeError(
+            "Error: Both --directory and --file cannot be specified together"
+        )
     elif options.file:
         db, table = options.import_table
         path, ext = os.path.splitext(options.file)
@@ -1370,18 +1555,24 @@ def parse_sources(options, files_ignored=None):
         elif ext == ".csv":
             table_type = CsvSourceFile
             table_type_options = {
-                'no_header_row': options.no_header,
-                'custom_header': options.custom_header
+                "no_header_row": options.no_header,
+                "custom_header": options.custom_header,
             }
         else:
             raise Exception("The table type is not recognised: %s" % ext)
 
         # - parse the info file if it exists
-        primary_key = options.create_args.get('primary_key', None) if options.create_args else None
+        primary_key = (
+            options.create_args.get("primary_key", None)
+            if options.create_args
+            else None
+        )
         indexes = []
         write_hook = None
         info_path = path + ".info"
-        if (primary_key is None or options.indexes is not False) and os.path.isfile(info_path):
+        if (primary_key is None or options.indexes is not False) and os.path.isfile(
+            info_path
+        ):
             info_primary_key, info_indexes, info_write_hook = parse_info_file(info_path)
             if primary_key is None:
                 primary_key = info_primary_key
@@ -1390,17 +1581,18 @@ def parse_sources(options, files_ignored=None):
             if write_hook is None:
                 write_hook = info_write_hook
             if write_hook and not has_write_hooks:
-                raise Exception('this RDB version doesn\'t support write-hooks')
+                raise Exception("this RDB version doesn't support write-hooks")
 
         sources.add(
             table_type(
                 source=options.file,
-                db=db, table=table,
+                db=db,
+                table=table,
                 query_runner=options.retryQuery,
                 primary_key=primary_key,
                 indexes=indexes,
                 write_hook=write_hook,
-                source_options=table_type_options
+                source_options=table_type_options,
             )
         )
     elif options.directory:
@@ -1454,9 +1646,13 @@ def parse_sources(options, files_ignored=None):
                         if not os.path.isfile(info_path):
                             files_ignored.append(os.path.join(root, filename))
                         else:
-                            primary_key, indexes, write_hook = parse_info_file(info_path)
+                            primary_key, indexes, write_hook = parse_info_file(
+                                info_path
+                            )
                         if write_hook and not has_write_hooks:
-                            raise Exception('RDB versions below doesn\'t support write-hooks')
+                            raise Exception(
+                                "RDB versions below doesn't support write-hooks"
+                            )
 
                         table_type = None
                         if ext == ".json":
@@ -1464,29 +1660,42 @@ def parse_sources(options, files_ignored=None):
                         elif ext == ".csv":
                             table_type = CsvSourceFile
                         else:
-                            raise Exception("The table type is not recognised: %s" % ext)
+                            raise Exception(
+                                "The table type is not recognised: %s" % ext
+                            )
                         source = table_type(
                             source=path,
                             query_runner=options.retryQuery,
-                            db=db, table=table,
+                            db=db,
+                            table=table,
                             primary_key=primary_key,
                             indexes=indexes,
-                            write_hook=write_hook
+                            write_hook=write_hook,
                         )
 
                         # ensure we don't have a duplicate
                         if table in sources:
                             raise RuntimeError(
-                                "Error: Duplicate db.table found in directory tree: %s.%s" %
-                                (source.db, source.table))
+                                "Error: Duplicate db.table found in directory tree: %s.%s"
+                                % (source.db, source.table)
+                            )
 
                         sources.add(source)
 
         # Warn the user about the files that were ignored
         if len(files_ignored) > 0:
-            print("Unexpected files found in the specified directory.  Importing a directory expects", file=sys.stderr)
-            print(" a directory from `rethinkdb export`.  If you want to import individual tables", file=sys.stderr)
-            print(" import them as single files.  The following files were ignored:", file=sys.stderr)
+            print(
+                "Unexpected files found in the specified directory.  Importing a directory expects",
+                file=sys.stderr,
+            )
+            print(
+                " a directory from `rethinkdb export`.  If you want to import individual tables",
+                file=sys.stderr,
+            )
+            print(
+                " import them as single files.  The following files were ignored:",
+                file=sys.stderr,
+            )
             for ignored_file in files_ignored:
                 print("%s" % str(ignored_file), file=sys.stderr)
     else:

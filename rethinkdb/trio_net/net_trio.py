@@ -24,14 +24,18 @@ import struct
 import trio
 import trio.abc
 
-from rethinkdb import ql2_pb2, RethinkDB
-from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, \
-    ReqlTimeoutError, RqlCursorEmpty
-from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, \
-    Response, maybe_profile, make_connection
+from rethinkdb import RethinkDB, ql2_pb2
+from rethinkdb.errors import (
+    ReqlAuthError,
+    ReqlCursorEmpty,
+    ReqlDriverError,
+    ReqlTimeoutError,
+    RqlCursorEmpty,
+)
+from rethinkdb.net import Connection as ConnectionBase
+from rethinkdb.net import Cursor, Query, Response, make_connection, maybe_profile
 
-
-__all__ = ['Connection']
+__all__ = ["Connection"]
 
 
 P_RESPONSE = ql2_pb2.Response.ResponseType
@@ -39,7 +43,7 @@ P_QUERY = ql2_pb2.Query.QueryType
 
 
 class TrioFuture:
-    ''' Trio does not have a future class because Trio encourages the use of
+    """ Trio does not have a future class because Trio encourages the use of
     "coroutines all the way down", but the this driver was implemented by
     copying the net_asyncio code and transliterating it into the Trio API. The
     underlying code in net.py has the I/O intertwined with framing and state
@@ -47,7 +51,8 @@ class TrioFuture:
     Therefore I've taken the easy way out by writing up a simple future class.
 
     Similar to an asyncio future except without callbacks or cancellation.
-    '''
+    """
+
     def __init__(self):
         self._event = trio.Event()
         self._cancelled = False
@@ -62,7 +67,7 @@ class TrioFuture:
         if self._event.is_set():
             return self._exc
         else:
-            raise Exception('Future value has not been set')
+            raise Exception("Future value has not been set")
 
     def result(self):
         if self._event.is_set():
@@ -70,7 +75,7 @@ class TrioFuture:
                 raise self._exc
             return self._value
         else:
-            raise Exception('Future value has not been set')
+            raise Exception("Future value has not been set")
 
     def set_result(self, value):
         self._value = value
@@ -86,14 +91,14 @@ class TrioFuture:
 
 @contextlib.contextmanager
 def _reql_timeout(seconds):
-    '''
+    """
     Run a block with a timeout, raising `ReqlTimeoutError` if the block
     execution exceeds the timeout.
 
     :param float seconds: A timeout in seconds. If None, then no timeout is
         enforced.
     :raises ReqlTimeoutError: If execution time exceeds the timeout.
-    '''
+    """
     if seconds is None:
         yield
     else:
@@ -105,36 +110,38 @@ def _reql_timeout(seconds):
 
 
 class TrioCursor(Cursor, trio.abc.AsyncResource):
-    ''' A cursor that allows async iteration within the Trio framework. '''
+    """ A cursor that allows async iteration within the Trio framework. """
+
     def __init__(self, *args, **kwargs):
-        ''' Constructor '''
+        """ Constructor """
         self._new_response = trio.Event()
-        self._nursery = kwargs.pop('nursery')
+        self._nursery = kwargs.pop("nursery")
         Cursor.__init__(self, *args, **kwargs)
 
     def __aiter__(self):
-        ''' This object is an async iterator. '''
+        """ This object is an async iterator. """
         return self
 
     async def __anext__(self):
-        ''' Asynchronously get next item from this cursor. '''
+        """ Asynchronously get next item from this cursor. """
         try:
             return await self._get_next(timeout=None)
         except ReqlCursorEmpty:
             raise StopAsyncIteration
 
     async def close(self):
-        ''' Close this cursor. '''
+        """ Close this cursor. """
         if self.error is None:
             self.error = self._empty_error()
             if self.conn.is_open():
                 self.outstanding_requests += 1
                 await self.conn._parent._stop(self)
+
     aclose = close
 
     def _extend(self, res_buf):
-        ''' Override so that we can make this async, and also to wake up blocked
-        tasks. '''
+        """ Override so that we can make this async, and also to wake up blocked
+        tasks. """
         self.outstanding_requests -= 1
         self._maybe_fetch_batch()
         res = Response(self.query.token, res_buf, self._json_decoder)
@@ -177,8 +184,11 @@ class TrioCursor(Cursor, trio.abc.AsyncResource):
         return await self.conn._parent._continue(self)
 
     def _maybe_fetch_batch(self):
-        if self.error is None and len(self.items) < self.threshold and \
-                self.outstanding_requests == 0:
+        if (
+            self.error is None
+            and len(self.items) < self.threshold
+            and self.outstanding_requests == 0
+        ):
             self.outstanding_requests += 1
             self._nursery.start_soon(self.conn._parent._continue, self)
 
@@ -212,7 +222,7 @@ class ConnectionInstance:
                 self._closed = True
 
     async def _read_until(self, delimiter):
-        ''' Naive implementation of reading until a delimiter. '''
+        """ Naive implementation of reading until a delimiter. """
         buffer = bytearray()
 
         try:
@@ -245,18 +255,21 @@ class ConnectionInstance:
                 ssl_context.load_verify_locations(self._parent.ssl["ca_certs"])
             if ssl_context:
                 self._stream = await trio.open_ssl_over_tcp_stream(
-                    self._parent.host, self._parent.port,
-                    ssl_context=ssl_context)
+                    self._parent.host, self._parent.port, ssl_context=ssl_context
+                )
                 socket_ = self._stream.transport_stream.socket
             else:
-                self._stream = await trio.open_tcp_stream(self._parent.host,
-                    self._parent.port)
+                self._stream = await trio.open_tcp_stream(
+                    self._parent.host, self._parent.port
+                )
                 socket_ = self._stream.socket
             self._sockname = socket_.getsockname()
             socket_.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
         except Exception as err:
-            raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
-                                  (self._parent.host, self._parent.port, str(err)))
+            raise ReqlDriverError(
+                "Could not connect to %s:%s. Error: %s"
+                % (self._parent.host, self._parent.port, str(err))
+            )
 
         try:
             self._parent.handshake.reset()
@@ -270,7 +283,7 @@ class ConnectionInstance:
                 if request is not "":
                     await self._send(request)
                 with _reql_timeout(timeout):
-                    response = await self._read_until(b'\0')
+                    response = await self._read_until(b"\0")
                 response = response[:-1]
         except ReqlAuthError:
             await self.close()
@@ -278,14 +291,15 @@ class ConnectionInstance:
         except ReqlTimeoutError as err:
             await self.close()
             raise ReqlDriverError(
-                'Connection interrupted during handshake with %s:%s. Error: %s' % (
-                    self._parent.host, self._parent.port, str(err)
-                )
+                "Connection interrupted during handshake with %s:%s. Error: %s"
+                % (self._parent.host, self._parent.port, str(err))
             )
         except Exception as err:
             await self.close()
-            raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
-                                  (self._parent.host, self._parent.port, str(err)))
+            raise ReqlDriverError(
+                "Could not connect to %s:%s. Error: %s"
+                % (self._parent.host, self._parent.port, str(err))
+            )
 
         # Start a parallel function to perform reads
         self._nursery.start_soon(self._reader_task)
@@ -356,12 +370,13 @@ class ConnectionInstance:
                     # Do not pop the query from the dict until later, so
                     # we don't lose track of it in case of an exception
                     query, future = self._user_queries[token]
-                    res = Response(token, buf,
-                                   self._parent._get_json_decoder(query))
+                    res = Response(token, buf, self._parent._get_json_decoder(query))
                     if res.type == P_RESPONSE.SUCCESS_ATOM:
                         future.set_result(maybe_profile(res.data[0], res))
-                    elif res.type in (P_RESPONSE.SUCCESS_SEQUENCE,
-                                      P_RESPONSE.SUCCESS_PARTIAL):
+                    elif res.type in (
+                        P_RESPONSE.SUCCESS_SEQUENCE,
+                        P_RESPONSE.SUCCESS_PARTIAL,
+                    ):
                         cursor = TrioCursor(self, query, res, nursery=self._nursery)
                         future.set_result(maybe_profile(cursor, res))
                     elif res.type == P_RESPONSE.WAIT_COMPLETE:
@@ -386,7 +401,9 @@ class Connection(ConnectionBase):
         try:
             self.port = int(self.port)
         except ValueError:
-            raise ReqlDriverError("Could not convert port %s to an integer." % self.port)
+            raise ReqlDriverError(
+                "Could not convert port %s to an integer." % self.port
+            )
 
     async def _stop(self, cursor):
         self.check_open()
@@ -415,8 +432,7 @@ class AsyncTrioConnectionContextManager:
         return cls(*args, **kwargs)
 
     async def __aenter__(self):
-        self._conn = await make_connection(Connection, *self._args,
-            **self._kwargs)
+        self._conn = await make_connection(Connection, *self._args, **self._kwargs)
         return self._conn
 
     async def __aexit__(self, exc_type, exc, traceback):
@@ -428,42 +444,44 @@ RethinkDB.open = AsyncTrioConnectionContextManager.open
 
 
 class _TrioConnectionPoolContextManager:
-    '''
+    """
     A context manager for a trio connection pool. This automatically acquires
     a connection from the pool when entering the block, then releases it after
     exiting the block.
 
     This is not meant to be instantiated directly. Use
     TrioConnectionPool.connection() instead.
-    '''
+    """
+
     def __init__(self, pool):
         self._conn = None
         self._pool = pool
 
     async def __aenter__(self):
-        ''' Acquire a connection. '''
+        """ Acquire a connection. """
         self._conn = await self._pool.acquire()
         return self._conn
 
     async def __aexit__(self, exc_type, exc, traceback):
-        ''' Release a connection. '''
+        """ Release a connection. """
         await self._pool.release(self._conn)
 
 
 class TrioConnectionPool:
-    ''' A RethinkDB connection pool for Trio framework. '''
+    """ A RethinkDB connection pool for Trio framework. """
+
     def __init__(self, *args, **kwargs):
-        '''
+        """
         Constructor.
 
         :param int max_idle: The maximum number of idle connections to keep in
         the pool.
-        '''
+        """
         self._closed = False
         self._args = args
         self._kwargs = kwargs
-        self._nursery = kwargs['nursery']
-        self._max_idle = kwargs.pop('maxidle', 10)
+        self._nursery = kwargs["nursery"]
+        self._max_idle = kwargs.pop("maxidle", 10)
         self._connections = collections.deque()
         self._lent_out = set()
 
@@ -472,7 +490,7 @@ class TrioConnectionPool:
 
     async def acquire(self):
         if self._closed:
-            raise Exception('DB pool is closed!')
+            raise Exception("DB pool is closed!")
 
         try:
             conn = self._connections.popleft()

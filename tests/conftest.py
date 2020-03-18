@@ -9,4 +9,3 @@ if sys.version_info < (3, 6):
         "integration/test_tornado.py",
         "integration/test_trio.py",
     ]
-    

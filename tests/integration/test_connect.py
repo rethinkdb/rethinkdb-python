@@ -1,8 +1,9 @@
 import os
+
 import pytest
 
 from rethinkdb import r
-from tests.helpers import IntegrationTestCaseBase, INTEGRATION_TEST_DB
+from tests.helpers import INTEGRATION_TEST_DB, IntegrationTestCaseBase
 
 
 @pytest.mark.integration
@@ -22,8 +23,7 @@ class TestConnect(IntegrationTestCaseBase):
 
     def test_connect_to_db(self):
         db_url = "rethinkdb://{host}/{database}".format(
-            host=self.rethinkdb_host,
-            database=INTEGRATION_TEST_DB
+            host=self.rethinkdb_host, database=INTEGRATION_TEST_DB
         )
 
         assert self.r.connect(url=db_url) is not None

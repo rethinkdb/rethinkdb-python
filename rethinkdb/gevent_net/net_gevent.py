@@ -24,11 +24,17 @@ import gevent.socket as socket
 from gevent.event import AsyncResult, Event
 from gevent.lock import Semaphore
 from rethinkdb import net, ql2_pb2
-from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError, RqlDriverError, \
-    RqlTimeoutError
+from rethinkdb.errors import (
+    ReqlAuthError,
+    ReqlCursorEmpty,
+    ReqlDriverError,
+    ReqlTimeoutError,
+    RqlDriverError,
+    RqlTimeoutError,
+)
 from rethinkdb.logger import default_logger
 
-__all__ = ['Connection']
+__all__ = ["Connection"]
 
 pResponse = ql2_pb2.Response.ResponseType
 pQuery = ql2_pb2.Query.QueryType
@@ -86,22 +92,34 @@ class SocketWrapper(net.SocketWrapper):
 
             if len(self.ssl) > 0:
                 try:
-                    if hasattr(ssl, 'SSLContext'):  # Python2.7 and 3.2+, or backports.ssl
+                    if hasattr(
+                        ssl, "SSLContext"
+                    ):  # Python2.7 and 3.2+, or backports.ssl
                         ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
                         if hasattr(ssl_context, "options"):
                             ssl_context.options |= getattr(ssl, "OP_NO_SSLv2", 0)
                             ssl_context.options |= getattr(ssl, "OP_NO_SSLv3", 0)
                         self.ssl_context.verify_mode = ssl.CERT_REQUIRED
-                        self.ssl_context.check_hostname = True  # redundant with match_hostname
+                        self.ssl_context.check_hostname = (
+                            True  # redundant with match_hostname
+                        )
                         self.ssl_context.load_verify_locations(self.ssl["ca_certs"])
-                        self._socket = ssl_context.wrap_socket(self._socket, server_hostname=self.host)
+                        self._socket = ssl_context.wrap_socket(
+                            self._socket, server_hostname=self.host
+                        )
                     else:  # this does not disable SSLv2 or SSLv3
                         self._socket = ssl.wrap_socket(
-                            self._socket, cert_reqs=ssl.CERT_REQUIRED, ssl_version=ssl.PROTOCOL_SSLv23,
-                            ca_certs=self.ssl["ca_certs"])
+                            self._socket,
+                            cert_reqs=ssl.CERT_REQUIRED,
+                            ssl_version=ssl.PROTOCOL_SSLv23,
+                            ca_certs=self.ssl["ca_certs"],
+                        )
                 except IOError as exc:
                     self._socket.close()
-                    raise ReqlDriverError("SSL handshake failed (see server log for more information): %s" % str(exc))
+                    raise ReqlDriverError(
+                        "SSL handshake failed (see server log for more information): %s"
+                        % str(exc)
+                    )
                 try:
                     ssl.match_hostname(self._socket.getpeercert(), hostname=self.host)
                 except ssl.CertificateError:
@@ -120,10 +138,10 @@ class SocketWrapper(net.SocketWrapper):
                     self.sendall(request)
 
                 # The response from the server is a null-terminated string
-                response = b''
+                response = b""
                 while True:
                     char = self.recvall(1)
-                    if char == b'\0':
+                    if char == b"\0":
                         break
                     response += char
         except (ReqlAuthError, ReqlTimeoutError):
@@ -131,14 +149,17 @@ class SocketWrapper(net.SocketWrapper):
             raise
         except ReqlDriverError as ex:
             self.close()
-            error = str(ex) \
-                .replace('receiving from', 'during handshake with') \
-                .replace('sending to', 'during handshake with')
+            error = (
+                str(ex)
+                .replace("receiving from", "during handshake with")
+                .replace("sending to", "during handshake with")
+            )
             raise ReqlDriverError(error)
         except Exception as ex:
             self.close()
-            raise ReqlDriverError("Could not connect to %s:%s. Error: %s" %
-                                  (self.host, self.port, ex))
+            raise ReqlDriverError(
+                "Could not connect to %s:%s. Error: %s" % (self.host, self.port, ex)
+            )
 
     def close(self):
         if self._socket is not None:
@@ -151,7 +172,7 @@ class SocketWrapper(net.SocketWrapper):
                 self._socket = None
 
     def recvall(self, length):
-        res = b'' if self._read_buffer is None else self._read_buffer
+        res = b"" if self._read_buffer is None else self._read_buffer
         while len(res) < length:
             while True:
                 try:
@@ -166,11 +187,15 @@ class SocketWrapper(net.SocketWrapper):
                     elif ex.errno != errno.EINTR:
                         self.close()
                         raise ReqlDriverError(
-                            'Connection interrupted receiving from %s:%s - %s' % (self.host, self.port, str(ex))
+                            "Connection interrupted receiving from %s:%s - %s"
+                            % (self.host, self.port, str(ex))
                         )
                 except Exception as ex:
                     self.close()
-                    raise ReqlDriverError('Error receiving from %s:%s - %s' % (self.host, self.port, str(ex)))
+                    raise ReqlDriverError(
+                        "Error receiving from %s:%s - %s"
+                        % (self.host, self.port, str(ex))
+                    )
             if len(chunk) == 0:
                 self.close()
                 raise ReqlDriverError("Connection is closed.")
@@ -188,12 +213,15 @@ class SocketWrapper(net.SocketWrapper):
                     raise ReqlDriverError("Connection is closed.")
                 elif ex.errno != errno.EINTR:
                     self.close()
-                    raise ReqlDriverError(('Connection interrupted ' +
-                                           'sending to %s:%s - %s') %
-                                          (self.host, self.port, str(ex)))
+                    raise ReqlDriverError(
+                        ("Connection interrupted " + "sending to %s:%s - %s")
+                        % (self.host, self.port, str(ex))
+                    )
             except Exception as ex:
                 self.close()
-                raise ReqlDriverError('Error sending to %s:%s - %s' % (self.host, self.port, str(ex)))
+                raise ReqlDriverError(
+                    "Error sending to %s:%s - %s" % (self.host, self.port, str(ex))
+                )
 
 
 class ConnectionInstance(object):
@@ -207,7 +235,9 @@ class ConnectionInstance(object):
         self._socket = None
 
     def connect(self, timeout):
-        with gevent.Timeout(timeout, RqlTimeoutError(self._parent.host, self._parent.port)) as timeout:
+        with gevent.Timeout(
+            timeout, RqlTimeoutError(self._parent.host, self._parent.port)
+        ) as timeout:
             self._socket = SocketWrapper(self)
 
         # Start a parallel coroutine to perform reads
@@ -278,11 +308,15 @@ class ConnectionInstance(object):
                     # Do not pop the query from the dict until later, so
                     # we don't lose track of it in case of an exception
                     query, async_res = self._user_queries[token]
-                    res = net.Response(token, buf, self._parent._get_json_decoder(query))
+                    res = net.Response(
+                        token, buf, self._parent._get_json_decoder(query)
+                    )
                     if res.type == pResponse.SUCCESS_ATOM:
                         async_res.set(net.maybe_profile(res.data[0], res))
-                    elif res.type in (pResponse.SUCCESS_SEQUENCE,
-                                      pResponse.SUCCESS_PARTIAL):
+                    elif res.type in (
+                        pResponse.SUCCESS_SEQUENCE,
+                        pResponse.SUCCESS_PARTIAL,
+                    ):
                         cursor = GeventCursor(self, query, res)
                         async_res.set(net.maybe_profile(cursor, res))
                     elif res.type == pResponse.WAIT_COMPLETE:
