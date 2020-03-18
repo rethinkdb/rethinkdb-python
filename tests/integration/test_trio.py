@@ -17,11 +17,6 @@ class TestTrio(IntegrationTestCaseBase):
         self.r.set_loop_type(None)
 
     async def test_trio(self, nursery):
-        """
-        Test the flow for 3.6 and up, async generators are
-        not supported in 3.5.
-        """
-
         async with self.r.open(db=INTEGRATION_TEST_DB, nursery=nursery) as conn:
             await self.r.table(self.table_name).insert(
                 {
