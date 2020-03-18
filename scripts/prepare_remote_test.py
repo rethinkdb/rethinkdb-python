@@ -32,12 +32,12 @@
 import os
 import sys
 import uuid
-import paramiko
-import digitalocean
-from time import sleep
 from datetime import datetime
 from subprocess import check_call
+from time import sleep
 
+import digitalocean
+import paramiko
 
 DROPLET_NAME = 'test-{uuid}'.format(uuid=str(uuid.uuid4()))
 SSH_KEY_NAME = 'key-{name}'.format(name=DROPLET_NAME)

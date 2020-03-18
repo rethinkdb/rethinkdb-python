@@ -18,7 +18,10 @@
 
 import os
 import re
+
 import setuptools
+
+from rethinkdb.version import VERSION
 
 try:
     import asyncio
@@ -27,7 +30,6 @@ try:
 except ImportError:
     CONDITIONAL_PACKAGES = []
 
-from rethinkdb.version import VERSION
 
 RETHINKDB_VERSION_DESCRIBE = os.environ.get("RETHINKDB_VERSION_DESCRIBE")
 VERSION_RE = r"^v(?P<version>\d+\.\d+)\.(?P<patch>\d+)?(\.(?P<post>\w+))?$"

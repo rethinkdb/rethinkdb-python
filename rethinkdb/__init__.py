@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 import imp
+import os
+
 import pkg_resources
 
 from rethinkdb import errors, version
-
 
 # The builtins here defends against re-importing something obscuring `object`.
 try:
@@ -25,7 +25,7 @@ except ImportError:
     import builtins  # Python 3
 
 
-__all__ = ['RethinkDB'] + errors.__all__
+__all__ = ["RethinkDB"] + errors.__all__
 __version__ = version.VERSION
 
 
@@ -41,7 +41,7 @@ class RethinkDB(builtins.object):
             _restore,
             ast,
             query,
-            net
+            net,
         )
 
         self._dump = _dump
@@ -65,15 +65,17 @@ class RethinkDB(builtins.object):
 
         # find module file
         manager = pkg_resources.ResourceManager()
-        libPath = '%(library)s_net/net_%(library)s.py' % {'library': library}
+        libPath = "%(library)s_net/net_%(library)s.py" % {"library": library}
         if not manager.resource_exists(__name__, libPath):
-            raise ValueError('Unknown loop type: %r' % library)
+            raise ValueError("Unknown loop type: %r" % library)
 
         # load the module
         modulePath = manager.resource_filename(__name__, libPath)
-        moduleName = 'net_%s' % library
-        moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
-        module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
+        moduleName = "net_%s" % library
+        moduleFile, pathName, desc = imp.find_module(
+            moduleName, [os.path.dirname(modulePath)]
+        )
+        module = imp.load_module("rethinkdb." + moduleName, moduleFile, pathName, desc)
 
         # set the connection type
         self.connection_type = module.Connection

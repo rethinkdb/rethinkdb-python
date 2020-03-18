@@ -1,8 +1,8 @@
 import os
+
 from rethinkdb import r
 
-
-INTEGRATION_TEST_DB = 'integration_test'
+INTEGRATION_TEST_DB = "integration_test"
 
 
 class IntegrationTestCaseBase(object):
@@ -14,11 +14,9 @@ class IntegrationTestCaseBase(object):
 
     def setup_method(self):
         self.r = r
-        self.rethinkdb_host = os.getenv('RETHINKDB_HOST', '127.0.0.1')
+        self.rethinkdb_host = os.getenv("RETHINKDB_HOST", "127.0.0.1")
 
-        self.conn = self.r.connect(
-            host=self.rethinkdb_host
-        )
+        self.conn = self.r.connect(host=self.rethinkdb_host)
 
         self._create_database(self.conn)
 

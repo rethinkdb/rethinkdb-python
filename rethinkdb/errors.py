@@ -51,22 +51,31 @@ try:
 
     def convertForPrint(inputString):
         if isinstance(inputString, unicode):  # noqa: F821
-            encoding = 'utf-8'
-            if hasattr(sys.stdout, 'encoding') and sys.stdout.encoding:
+            encoding = "utf-8"
+            if hasattr(sys.stdout, "encoding") and sys.stdout.encoding:
                 encoding = sys.stdout.encoding
-            return inputString.encode(encoding or 'utf-8', 'replace')
+            return inputString.encode(encoding or "utf-8", "replace")
         else:
             return str(inputString)
+
+
 except NameError:
+
     def convertForPrint(inputString):
         return inputString
+
 
 try:
     {}.iteritems
 
-    def dict_items(d): return d.iteritems()
+    def dict_items(d):
+        return d.iteritems()
+
+
 except AttributeError:
-    def dict_items(d): return d.items()
+
+    def dict_items(d):
+        return d.items()
 
 
 class ReqlCursorEmpty(Exception):
@@ -90,10 +99,14 @@ class ReqlError(Exception):
         if self.frames is None:
             return convertForPrint(self.message)
         else:
-            return convertForPrint("%s in:\n%s\n%s" % (
-                self.message.rstrip("."),
-                self.query_printer.print_query(),
-                self.query_printer.print_carrots()))
+            return convertForPrint(
+                "%s in:\n%s\n%s"
+                % (
+                    self.message.rstrip("."),
+                    self.query_printer.print_query(),
+                    self.query_printer.print_carrots(),
+                )
+            )
 
     def __repr__(self):
         return "<%s instance: %s >" % (self.__class__.__name__, str(self))
@@ -184,11 +197,16 @@ class _ReqlTimeoutError(ReqlDriverError):
 
 
 try:
+
     class ReqlTimeoutError(_ReqlTimeoutError, TimeoutError):
         pass
+
+
 except NameError:
+
     class ReqlTimeoutError(_ReqlTimeoutError):
         pass
+
 
 RqlTimeoutError = ReqlTimeoutError
 
@@ -199,10 +217,10 @@ class QueryPrinter(object):
         self.frames = list(frames or ())
 
     def print_query(self):
-        return ''.join(self.compose_term(self.root))
+        return "".join(self.compose_term(self.root))
 
     def print_carrots(self):
-        return ''.join(self.compose_carrots(self.root, self.frames))
+        return "".join(self.compose_carrots(self.root, self.frames))
 
     def compose_term(self, term):
         args = [self.compose_term(a) for a in term._args]
@@ -214,12 +232,15 @@ class QueryPrinter(object):
     def compose_carrots(self, term, frames):
         # This term is the cause of the error
         if len(frames) == 0:
-            return ['^' for i in self.compose_term(term)]
+            return ["^" for i in self.compose_term(term)]
 
         cur_frame = frames[0]
-        args = [self.compose_carrots(arg, frames[1:])
-                if cur_frame == i else self.compose_term(arg)
-                for i, arg in enumerate(term._args)]
+        args = [
+            self.compose_carrots(arg, frames[1:])
+            if cur_frame == i
+            else self.compose_term(arg)
+            for i, arg in enumerate(term._args)
+        ]
 
         optargs = {}
         for k, v in dict_items(term.optargs):
@@ -228,7 +249,7 @@ class QueryPrinter(object):
             else:
                 optargs[k] = self.compose_term(v)
 
-        return [' ' if i != '^' else '^' for i in term.compose(args, optargs)]
+        return [" " if i != "^" else "^" for i in term.compose(args, optargs)]
 
 
 # This 'enhanced' tuple recursively iterates over it's elements allowing us to
@@ -239,7 +260,7 @@ class T(object):
     #     In Python 3.x we can rewrite this as `__init__(self, *seq, intsp=''`
     def __init__(self, *seq, **opts):
         self.seq = seq
-        self.intsp = opts.pop('intsp', '')
+        self.intsp = opts.pop("intsp", "")
 
     def __iter__(self):
         itr = iter(self.seq)

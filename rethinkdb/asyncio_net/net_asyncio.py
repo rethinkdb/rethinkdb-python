@@ -22,11 +22,17 @@ import ssl
 import struct
 
 from rethinkdb import ql2_pb2
-from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty
-from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
+from rethinkdb.errors import (
+    ReqlAuthError,
+    ReqlCursorEmpty,
+    ReqlDriverError,
+    ReqlTimeoutError,
+    RqlCursorEmpty,
+)
+from rethinkdb.net import Connection as ConnectionBase
+from rethinkdb.net import Cursor, Query, Response, maybe_profile
 
-
-__all__ = ['Connection']
+__all__ = ["Connection"]
 
 
 pResponse = ql2_pb2.Response.ResponseType
@@ -39,8 +45,8 @@ def _read_until(streamreader, delimiter):
     buffer = bytearray()
 
     while True:
-        c = (yield from streamreader.read(1))
-        if c == b'':
+        c = yield from streamreader.read(1)
+        if c == b"":
             break  # EOF
         buffer.append(c[0])
         if c == delimiter:
@@ -148,9 +154,11 @@ class AsyncioCursor(Cursor):
         return self.items.popleft()
 
     def _maybe_fetch_batch(self):
-        if self.error is None and \
-           len(self.items) < self.threshold and \
-           self.outstanding_requests == 0:
+        if (
+            self.error is None
+            and len(self.items) < self.threshold
+            and self.outstanding_requests == 0
+        ):
             self.outstanding_requests += 1
             asyncio.ensure_future(self.conn._parent._continue(self))
 
@@ -172,11 +180,11 @@ class ConnectionInstance(object):
 
     def client_port(self):
         if self.is_open():
-            return self._streamwriter.get_extra_info('sockname')[1]
+            return self._streamwriter.get_extra_info("sockname")[1]
 
     def client_address(self):
         if self.is_open():
-            return self._streamwriter.get_extra_info('sockname')[0]
+            return self._streamwriter.get_extra_info("sockname")[0]
 
     @asyncio.coroutine
     def connect(self, timeout):
@@ -192,13 +200,22 @@ class ConnectionInstance(object):
                 ssl_context.load_verify_locations(self._parent.ssl["ca_certs"])
 
             self._streamreader, self._streamwriter = yield from asyncio.open_connection(
-                self._parent.host, self._parent.port, loop=self._io_loop, ssl=ssl_context
+                self._parent.host,
+                self._parent.port,
+                loop=self._io_loop,
+                ssl=ssl_context,
             )
-            self._streamwriter.get_extra_info('socket').setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            self._streamwriter.get_extra_info('socket').setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            self._streamwriter.get_extra_info("socket").setsockopt(
+                socket.IPPROTO_TCP, socket.TCP_NODELAY, 1
+            )
+            self._streamwriter.get_extra_info("socket").setsockopt(
+                socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1
+            )
         except Exception as err:
-            raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
-                                  (self._parent.host, self._parent.port, str(err)))
+            raise ReqlDriverError(
+                "Could not connect to %s:%s. Error: %s"
+                % (self._parent.host, self._parent.port, str(err))
+            )
 
         try:
             self._parent.handshake.reset()
@@ -214,8 +231,9 @@ class ConnectionInstance(object):
                         self._streamwriter.write(request)
 
                     response = yield from asyncio.wait_for(
-                        _read_until(self._streamreader, b'\0'),
-                        timeout, loop=self._io_loop,
+                        _read_until(self._streamreader, b"\0"),
+                        timeout,
+                        loop=self._io_loop,
                     )
                     response = response[:-1]
         except ReqlAuthError:
@@ -224,14 +242,15 @@ class ConnectionInstance(object):
         except ReqlTimeoutError as err:
             yield from self.close()
             raise ReqlDriverError(
-                'Connection interrupted during handshake with %s:%s. Error: %s' % (
-                    self._parent.host, self._parent.port, str(err)
-                )
+                "Connection interrupted during handshake with %s:%s. Error: %s"
+                % (self._parent.host, self._parent.port, str(err))
             )
         except Exception as err:
             yield from self.close()
-            raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
-                                  (self._parent.host, self._parent.port, str(err)))
+            raise ReqlDriverError(
+                "Could not connect to %s:%s. Error: %s"
+                % (self._parent.host, self._parent.port, str(err))
+            )
 
         # Start a parallel function to perform reads
         #  store a reference to it so it doesn't get destroyed
@@ -302,12 +321,13 @@ class ConnectionInstance(object):
                     # Do not pop the query from the dict until later, so
                     # we don't lose track of it in case of an exception
                     query, future = self._user_queries[token]
-                    res = Response(token, buf,
-                                   self._parent._get_json_decoder(query))
+                    res = Response(token, buf, self._parent._get_json_decoder(query))
                     if res.type == pResponse.SUCCESS_ATOM:
                         future.set_result(maybe_profile(res.data[0], res))
-                    elif res.type in (pResponse.SUCCESS_SEQUENCE,
-                                      pResponse.SUCCESS_PARTIAL):
+                    elif res.type in (
+                        pResponse.SUCCESS_SEQUENCE,
+                        pResponse.SUCCESS_PARTIAL,
+                    ):
                         cursor = AsyncioCursor(self, query, res)
                         future.set_result(maybe_profile(cursor, res))
                     elif res.type == pResponse.WAIT_COMPLETE:
@@ -330,7 +350,9 @@ class Connection(ConnectionBase):
         try:
             self.port = int(self.port)
         except ValueError:
-            raise ReqlDriverError("Could not convert port %s to an integer." % self.port)
+            raise ReqlDriverError(
+                "Could not convert port %s to an integer." % self.port
+            )
 
     @asyncio.coroutine
     def __aenter__(self):
