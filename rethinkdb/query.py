@@ -1,23 +1,100 @@
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
 __all__ = [
-    'js', 'http', 'json', 'args', 'error', 'random', 'do', 'row', 'branch',
-    'union', 'map', 'object', 'binary', 'uuid', 'type_of', 'info', 'range',
-    'literal', 'asc', 'desc',
-    'db', 'db_create', 'db_drop', 'db_list',
-    'table', 'table_create', 'table_drop', 'table_list', 'grant',
-    'group', 'reduce', 'count', 'sum', 'avg', 'min', 'max', 'distinct',
-    'contains', 'eq', 'ne', 'le', 'ge', 'lt', 'gt', 'and_', 'or_', 'not_',
-    'add', 'sub', 'mul', 'div', 'mod', 'bit_and', 'bit_or', 'bit_xor',
-    'bit_not', 'bit_sal', 'bit_sar', 'floor', 'ceil',
-    'round',
-    'time', 'iso8601', 'epoch_time', 'now', 'make_timezone',
-    'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday',
-    'sunday',
-    'january', 'february', 'march', 'april', 'may', 'june',
-    'july', 'august', 'september', 'october', 'november', 'december',
-    'minval', 'maxval',
-    'geojson', 'point', 'line', 'polygon', 'distance', 'intersects', 'circle'
+    "js",
+    "http",
+    "json",
+    "args",
+    "error",
+    "random",
+    "do",
+    "row",
+    "branch",
+    "union",
+    "map",
+    "object",
+    "binary",
+    "uuid",
+    "type_of",
+    "info",
+    "range",
+    "literal",
+    "asc",
+    "desc",
+    "db",
+    "db_create",
+    "db_drop",
+    "db_list",
+    "table",
+    "table_create",
+    "table_drop",
+    "table_list",
+    "grant",
+    "group",
+    "reduce",
+    "count",
+    "sum",
+    "avg",
+    "min",
+    "max",
+    "distinct",
+    "contains",
+    "eq",
+    "ne",
+    "le",
+    "ge",
+    "lt",
+    "gt",
+    "and_",
+    "or_",
+    "not_",
+    "add",
+    "sub",
+    "mul",
+    "div",
+    "mod",
+    "bit_and",
+    "bit_or",
+    "bit_xor",
+    "bit_not",
+    "bit_sal",
+    "bit_sar",
+    "floor",
+    "ceil",
+    "round",
+    "time",
+    "iso8601",
+    "epoch_time",
+    "now",
+    "make_timezone",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+    "minval",
+    "maxval",
+    "geojson",
+    "point",
+    "line",
+    "polygon",
+    "distance",
+    "intersects",
+    "circle",
 ]
 
 from . import ast, ql2_pb2
@@ -109,9 +186,10 @@ def union(*args):
 def map(*args):
     if len(args) > 0:
         # `func_wrap` only the last argument
-        return ast.Map(*(args[:-1] + (ast.func_wrap(args[-1]), )))
+        return ast.Map(*(args[:-1] + (ast.func_wrap(args[-1]),)))
     else:
         return ast.Map()
+
 
 # aggregation
 
@@ -293,33 +371,33 @@ class RqlConstant(ast.RqlQuery):
         super(RqlConstant, self).__init__()
 
     def compose(self, args, optargs):
-        return 'r.' + self.statement
+        return "r." + self.statement
 
 
 # Time enum values
-monday = RqlConstant('monday', ql2_pb2.Term.TermType.MONDAY)
-tuesday = RqlConstant('tuesday', ql2_pb2.Term.TermType.TUESDAY)
-wednesday = RqlConstant('wednesday', ql2_pb2.Term.TermType.WEDNESDAY)
-thursday = RqlConstant('thursday', ql2_pb2.Term.TermType.THURSDAY)
-friday = RqlConstant('friday', ql2_pb2.Term.TermType.FRIDAY)
-saturday = RqlConstant('saturday', ql2_pb2.Term.TermType.SATURDAY)
-sunday = RqlConstant('sunday', ql2_pb2.Term.TermType.SUNDAY)
+monday = RqlConstant("monday", ql2_pb2.Term.TermType.MONDAY)
+tuesday = RqlConstant("tuesday", ql2_pb2.Term.TermType.TUESDAY)
+wednesday = RqlConstant("wednesday", ql2_pb2.Term.TermType.WEDNESDAY)
+thursday = RqlConstant("thursday", ql2_pb2.Term.TermType.THURSDAY)
+friday = RqlConstant("friday", ql2_pb2.Term.TermType.FRIDAY)
+saturday = RqlConstant("saturday", ql2_pb2.Term.TermType.SATURDAY)
+sunday = RqlConstant("sunday", ql2_pb2.Term.TermType.SUNDAY)
 
-january = RqlConstant('january', ql2_pb2.Term.TermType.JANUARY)
-february = RqlConstant('february', ql2_pb2.Term.TermType.FEBRUARY)
-march = RqlConstant('march', ql2_pb2.Term.TermType.MARCH)
-april = RqlConstant('april', ql2_pb2.Term.TermType.APRIL)
-may = RqlConstant('may', ql2_pb2.Term.TermType.MAY)
-june = RqlConstant('june', ql2_pb2.Term.TermType.JUNE)
-july = RqlConstant('july', ql2_pb2.Term.TermType.JULY)
-august = RqlConstant('august', ql2_pb2.Term.TermType.AUGUST)
-september = RqlConstant('september', ql2_pb2.Term.TermType.SEPTEMBER)
-october = RqlConstant('october', ql2_pb2.Term.TermType.OCTOBER)
-november = RqlConstant('november', ql2_pb2.Term.TermType.NOVEMBER)
-december = RqlConstant('december', ql2_pb2.Term.TermType.DECEMBER)
+january = RqlConstant("january", ql2_pb2.Term.TermType.JANUARY)
+february = RqlConstant("february", ql2_pb2.Term.TermType.FEBRUARY)
+march = RqlConstant("march", ql2_pb2.Term.TermType.MARCH)
+april = RqlConstant("april", ql2_pb2.Term.TermType.APRIL)
+may = RqlConstant("may", ql2_pb2.Term.TermType.MAY)
+june = RqlConstant("june", ql2_pb2.Term.TermType.JUNE)
+july = RqlConstant("july", ql2_pb2.Term.TermType.JULY)
+august = RqlConstant("august", ql2_pb2.Term.TermType.AUGUST)
+september = RqlConstant("september", ql2_pb2.Term.TermType.SEPTEMBER)
+october = RqlConstant("october", ql2_pb2.Term.TermType.OCTOBER)
+november = RqlConstant("november", ql2_pb2.Term.TermType.NOVEMBER)
+december = RqlConstant("december", ql2_pb2.Term.TermType.DECEMBER)
 
-minval = RqlConstant('minval', ql2_pb2.Term.TermType.MINVAL)
-maxval = RqlConstant('maxval', ql2_pb2.Term.TermType.MAXVAL)
+minval = RqlConstant("minval", ql2_pb2.Term.TermType.MINVAL)
+maxval = RqlConstant("maxval", ql2_pb2.Term.TermType.MAXVAL)
 
 
 def make_timezone(*args):

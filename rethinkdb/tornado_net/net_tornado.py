@@ -18,15 +18,22 @@
 import socket
 import struct
 
-from rethinkdb import ql2_pb2
-from rethinkdb.errors import ReqlAuthError, ReqlCursorEmpty, ReqlDriverError, ReqlTimeoutError
-from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
 from tornado import gen, iostream
 from tornado.concurrent import Future
 from tornado.ioloop import IOLoop
 from tornado.tcpclient import TCPClient
 
-__all__ = ['Connection']
+from rethinkdb import ql2_pb2
+from rethinkdb.errors import (
+    ReqlAuthError,
+    ReqlCursorEmpty,
+    ReqlDriverError,
+    ReqlTimeoutError,
+)
+from rethinkdb.net import Connection as ConnectionBase
+from rethinkdb.net import Cursor, Query, Response, maybe_profile
+
+__all__ = ["Connection"]
 
 pResponse = ql2_pb2.Response.ResponseType
 pQuery = ql2_pb2.Query.QueryType
@@ -70,7 +77,9 @@ class TornadoCursor(Cursor):
             yield with_absolute_timeout(deadline, self.new_response)
         # If there is a (non-empty) error to be received, we return True, so the
         # user will receive it on the next `next` call.
-        raise gen.Return(len(self.items) != 0 or not isinstance(self.error, ReqlCursorEmpty))
+        raise gen.Return(
+            len(self.items) != 0 or not isinstance(self.error, ReqlCursorEmpty)
+        )
 
     def _empty_error(self):
         # We do not have ReqlCursorEmpty inherit from StopIteration as that interferes
@@ -118,20 +127,24 @@ class ConnectionInstance(object):
             if len(self._parent.ssl) > 0:
                 ssl_options = {}
                 if self._parent.ssl["ca_certs"]:
-                    ssl_options['ca_certs'] = self._parent.ssl["ca_certs"]
-                    ssl_options['cert_reqs'] = 2  # ssl.CERT_REQUIRED
-                stream_future = TCPClient().connect(self._parent.host, self._parent.port,
-                                                    ssl_options=ssl_options)
+                    ssl_options["ca_certs"] = self._parent.ssl["ca_certs"]
+                    ssl_options["cert_reqs"] = 2  # ssl.CERT_REQUIRED
+                stream_future = TCPClient().connect(
+                    self._parent.host, self._parent.port, ssl_options=ssl_options
+                )
             else:
-                stream_future = TCPClient().connect(self._parent.host, self._parent.port)
+                stream_future = TCPClient().connect(
+                    self._parent.host, self._parent.port
+                )
 
             self._stream = yield with_absolute_timeout(
-                deadline,
-                stream_future,
-                quiet_exceptions=(iostream.StreamClosedError))
+                deadline, stream_future, quiet_exceptions=(iostream.StreamClosedError)
+            )
         except Exception as err:
-            raise ReqlDriverError('Could not connect to %s:%s. Error: %s' %
-                                  (self._parent.host, self._parent.port, str(err)))
+            raise ReqlDriverError(
+                "Could not connect to %s:%s. Error: %s"
+                % (self._parent.host, self._parent.port, str(err))
+            )
 
         self._stream.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self._stream.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -150,8 +163,9 @@ class ConnectionInstance(object):
 
                 response = yield with_absolute_timeout(
                     deadline,
-                    self._stream.read_until(b'\0'),
-                    quiet_exceptions=(iostream.StreamClosedError))
+                    self._stream.read_until(b"\0"),
+                    quiet_exceptions=(iostream.StreamClosedError),
+                )
                 response = response[:-1]
         except ReqlAuthError:
             try:
@@ -171,8 +185,9 @@ class ConnectionInstance(object):
             except iostream.StreamClosedError:
                 pass
             raise ReqlDriverError(
-                'Connection interrupted during handshake with %s:%s. Error: %s' %
-                (self._parent.host, self._parent.port, str(err)))
+                "Connection interrupted during handshake with %s:%s. Error: %s"
+                % (self._parent.host, self._parent.port, str(err))
+            )
 
         # Start a parallel function to perform reads
         self._io_loop.add_callback(self._reader)
@@ -241,12 +256,13 @@ class ConnectionInstance(object):
                     # Do not pop the query from the dict until later, so
                     # we don't lose track of it in case of an exception
                     query, future = self._user_queries[token]
-                    res = Response(token, buf,
-                                   self._parent._get_json_decoder(query))
+                    res = Response(token, buf, self._parent._get_json_decoder(query))
                     if res.type == pResponse.SUCCESS_ATOM:
                         future.set_result(maybe_profile(res.data[0], res))
-                    elif res.type in (pResponse.SUCCESS_SEQUENCE,
-                                      pResponse.SUCCESS_PARTIAL):
+                    elif res.type in (
+                        pResponse.SUCCESS_SEQUENCE,
+                        pResponse.SUCCESS_PARTIAL,
+                    ):
                         cursor = TornadoCursor(self, query, res)
                         future.set_result(maybe_profile(cursor, res))
                     elif res.type == pResponse.WAIT_COMPLETE:

@@ -19,15 +19,27 @@ import struct
 import time
 
 from rethinkdb import ql2_pb2
-from rethinkdb.errors import ReqlAuthError, ReqlDriverError, ReqlTimeoutError, RqlCursorEmpty
-from rethinkdb.net import Connection as ConnectionBase, Cursor, Query, Response, maybe_profile
+from rethinkdb.errors import (
+    ReqlAuthError,
+    ReqlDriverError,
+    ReqlTimeoutError,
+    RqlCursorEmpty,
+)
+from rethinkdb.net import Connection as ConnectionBase
+from rethinkdb.net import Cursor, Query, Response, maybe_profile
 from twisted.internet import defer, reactor
-from twisted.internet.defer import CancelledError, Deferred, DeferredQueue, inlineCallbacks, returnValue
+from twisted.internet.defer import (
+    CancelledError,
+    Deferred,
+    DeferredQueue,
+    inlineCallbacks,
+    returnValue,
+)
 from twisted.internet.endpoints import clientFromString
 from twisted.internet.error import TimeoutError
 from twisted.internet.protocol import ClientFactory, Protocol
 
-__all__ = ['Connection']
+__all__ = ["Connection"]
 
 pResponse = ql2_pb2.Response.ResponseType
 pQuery = ql2_pb2.Query.QueryType
@@ -42,7 +54,7 @@ class DatabaseProtocol(Protocol):
         self.state = DatabaseProtocol.WAITING_FOR_HANDSHAKE
         self._handlers = {
             DatabaseProtocol.WAITING_FOR_HANDSHAKE: self._handleHandshake,
-            DatabaseProtocol.READY: self._handleResponse
+            DatabaseProtocol.READY: self._handleResponse,
         }
 
         self.buf = bytes()
@@ -61,8 +73,9 @@ class DatabaseProtocol(Protocol):
         # Defer a timer which will callback when timed out and errback the
         # wait_for_handshake. Otherwise, it will be cancelled in
         # handleHandshake.
-        self._timeout_defer = reactor.callLater(self.factory.timeout,
-                                                self._handleHandshakeTimeout)
+        self._timeout_defer = reactor.callLater(
+            self.factory.timeout, self._handleHandshakeTimeout
+        )
 
     def connectionLost(self, reason):
         self._open = False
@@ -79,10 +92,10 @@ class DatabaseProtocol(Protocol):
         try:
             self.buf += data
             while True:
-                end_index = self.buf.find(b'\0')
+                end_index = self.buf.find(b"\0")
                 if end_index != -1:
                     response = self.buf[:end_index]
-                    self.buf = self.buf[end_index + 1:]
+                    self.buf = self.buf[end_index + 1 :]
                     request = self.factory.handshake.next_message(response)
 
                     if request is None:
@@ -106,7 +119,7 @@ class DatabaseProtocol(Protocol):
             # 1. Read the header, until we read the length of the awaited payload.
             if self.buf_expected_length == 0:
                 if len(self.buf) >= 12:
-                    token, length = struct.unpack('<qL', self.buf[:12])
+                    token, length = struct.unpack("<qL", self.buf[:12])
                     self.buf_token = token
                     self.buf_expected_length = length
                     self.buf = self.buf[12:]
@@ -120,8 +133,10 @@ class DatabaseProtocol(Protocol):
             if len(self.buf) < self.buf_expected_length:
                 return
 
-            self.factory.response_handler(self.buf_token, self.buf[:self.buf_expected_length])
-            self.buf = self.buf[self.buf_expected_length:]
+            self.factory.response_handler(
+                self.buf_token, self.buf[: self.buf_expected_length]
+            )
+            self.buf = self.buf[self.buf_expected_length :]
             self.buf_token = None
             self.buf_expected_length = 0
 
@@ -131,8 +146,10 @@ class DatabaseProtocol(Protocol):
                 self._handlers[self.state](data)
         except Exception as e:
             self.transport.loseConnection()
-            raise ReqlDriverError('Driver failed to handle received data.'
-                                  'Error: {exc}. Dropping the connection.'.format(exc=str(e)))
+            raise ReqlDriverError(
+                "Driver failed to handle received data."
+                "Error: {exc}. Dropping the connection.".format(exc=str(e))
+            )
 
 
 class DatabaseProtoFactory(ClientFactory):
@@ -186,7 +203,7 @@ class CursorItems(DeferredQueue):
 
 class TwistedCursor(Cursor):
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('items_type', CursorItems)
+        kwargs.setdefault("items_type", CursorItems)
         super(TwistedCursor, self).__init__(*args, **kwargs)
         self.waiting = list()
 
@@ -250,7 +267,6 @@ class TwistedCursor(Cursor):
 
 
 class ConnectionInstance(object):
-
     def __init__(self, parent, start_reactor=False):
         self._parent = parent
         self._closing = False
@@ -276,12 +292,13 @@ class ConnectionInstance(object):
                 cursor._extend(data)
             elif token in self._user_queries:
                 query, deferred = self._user_queries[token]
-                res = Response(token, data,
-                               self._parent._get_json_decoder(query))
+                res = Response(token, data, self._parent._get_json_decoder(query))
                 if res.type == pResponse.SUCCESS_ATOM:
                     deferred.callback(maybe_profile(res.data[0], res))
-                elif res.type in (pResponse.SUCCESS_SEQUENCE,
-                                  pResponse.SUCCESS_PARTIAL):
+                elif res.type in (
+                    pResponse.SUCCESS_SEQUENCE,
+                    pResponse.SUCCESS_PARTIAL,
+                ):
                     cursor = TwistedCursor(self, query, res)
                     deferred.callback(maybe_profile(cursor, res))
                 elif res.type == pResponse.WAIT_COMPLETE:
@@ -315,16 +332,20 @@ class ConnectionInstance(object):
 
     @inlineCallbacks
     def connect(self, timeout):
-        factory = DatabaseProtoFactory(timeout, self._handleResponse,
-                                       self._parent.handshake)
+        factory = DatabaseProtoFactory(
+            timeout, self._handleResponse, self._parent.handshake
+        )
 
         # We connect to the server, and send the handshake payload.
         pConnection = None
         try:
             pConnection = yield self._connectTimeout(factory, timeout)
         except Exception as e:
-            raise ReqlDriverError('Could not connect to {p.host}:{p.port}. Error: {exc}'
-                                  .format(p=self._parent, exc=str(e)))
+            raise ReqlDriverError(
+                "Could not connect to {p.host}:{p.port}. Error: {exc}".format(
+                    p=self._parent, exc=str(e)
+                )
+            )
 
         # Now, we need to wait for the handshake.
         try:
@@ -334,8 +355,11 @@ class ConnectionInstance(object):
         except ReqlTimeoutError as e:
             raise ReqlTimeoutError(self._parent.host, self._parent.port)
         except Exception as e:
-            raise ReqlDriverError('Connection interrupted during handshake with {p.host}:{p.port}. Error: {exc}'
-                                  .format(p=self._parent, exc=str(e)))
+            raise ReqlDriverError(
+                "Connection interrupted during handshake with {p.host}:{p.port}. Error: {exc}".format(
+                    p=self._parent, exc=str(e)
+                )
+            )
 
         self._connection = pConnection
 
@@ -349,7 +373,9 @@ class ConnectionInstance(object):
         self._closing = True
         error_message = "Connection is closed"
         if exception is not None:
-            error_message = "Connection is closed (reason: {exc})".format(exc=str(exception))
+            error_message = "Connection is closed (reason: {exc})".format(
+                exc=str(exception)
+            )
 
         for cursor in list(self._cursor_cache.values()):
             cursor._error(error_message)
@@ -377,7 +403,9 @@ class ConnectionInstance(object):
         if not noreply:
             self._user_queries[query.token] = (query, response_defer)
         # Send the query
-        self._connection.transport.write(query.serialize(self._parent._get_json_encoder(query)))
+        self._connection.transport.write(
+            query.serialize(self._parent._get_json_encoder(query))
+        )
 
         if noreply:
             returnValue(None)
@@ -387,7 +415,6 @@ class ConnectionInstance(object):
 
 
 class Connection(ConnectionBase):
-
     def __init__(self, *args, **kwargs):
         super(Connection, self).__init__(ConnectionInstance, *args, **kwargs)
 

@@ -8,14 +8,14 @@ from tests.helpers import IntegrationTestCaseBase
 class TestCursor(IntegrationTestCaseBase):
     def setup_method(self):
         super(TestCursor, self).setup_method()
-        self.table_name = 'test_cursor'
+        self.table_name = "test_cursor"
         self.r.table_create(self.table_name).run(self.conn)
         self.documents = [
-            {'id': 1, 'name': 'Testing Cursor/Next 1'},
-            {'id': 2, 'name': 'Testing Cursor/Next 2'},
-            {'id': 3, 'name': 'Testing Cursor/Next 3'},
-            {'id': 4, 'name': 'Testing Cursor/Next 4'},
-            {'id': 5, 'name': 'Testing Cursor/Next 5'},
+            {"id": 1, "name": "Testing Cursor/Next 1"},
+            {"id": 2, "name": "Testing Cursor/Next 2"},
+            {"id": 3, "name": "Testing Cursor/Next 3"},
+            {"id": 4, "name": "Testing Cursor/Next 4"},
+            {"id": 5, "name": "Testing Cursor/Next 5"},
         ]
 
     def test_get_next_document(self):
@@ -27,7 +27,7 @@ class TestCursor(IntegrationTestCaseBase):
         for document in reversed(self.documents):
             documents.append(cursor.next())
 
-        assert sorted(documents, key=lambda doc: doc.get('id')) == self.documents
+        assert sorted(documents, key=lambda doc: doc.get("id")) == self.documents
 
     def test_cursor_empty_no_document(self):
         cursor = self.r.table(self.table_name).run(self.conn)
@@ -63,21 +63,21 @@ class TestCursor(IntegrationTestCaseBase):
         for document in self.r.table(self.table_name).run(self.conn):
             documents.append(document)
 
-        assert sorted(documents, key=lambda doc: doc.get('id')) == self.documents
+        assert sorted(documents, key=lambda doc: doc.get("id")) == self.documents
 
     def test_next(self):
         self.r.table(self.table_name).insert(self.documents).run(self.conn)
 
         cursor = self.r.table(self.table_name).run(self.conn)
 
-        assert hasattr(cursor, '__next__')
+        assert hasattr(cursor, "__next__")
 
     def test_iter(self):
         self.r.table(self.table_name).insert(self.documents).run(self.conn)
 
         cursor = self.r.table(self.table_name).run(self.conn)
 
-        assert hasattr(cursor, '__iter__')
+        assert hasattr(cursor, "__iter__")
 
     def test_close_cursor(self):
         cursor = self.r.table(self.table_name).run(self.conn)

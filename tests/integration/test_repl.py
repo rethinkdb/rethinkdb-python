@@ -1,11 +1,10 @@
 import pytest
 
-from tests.helpers import IntegrationTestCaseBase, INTEGRATION_TEST_DB
+from tests.helpers import INTEGRATION_TEST_DB, IntegrationTestCaseBase
 
 
 @pytest.mark.integration
 class TestREPL(IntegrationTestCaseBase):
-
     def setup_method(self):
         super(TestREPL, self).setup_method()
         self.conn = self.conn.repl()

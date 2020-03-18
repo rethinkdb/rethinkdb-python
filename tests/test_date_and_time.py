@@ -1,6 +1,7 @@
 import pytest
-from mock import call, patch, ANY, Mock
-from rethinkdb import r, ast
+from mock import ANY, Mock, call, patch
+
+from rethinkdb import ast, r
 
 
 @pytest.mark.unit

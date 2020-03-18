@@ -1,6 +1,7 @@
 import pytest
-from mock import Mock, ANY
-from rethinkdb.net import make_connection, DefaultConnection, DEFAULT_PORT
+from mock import ANY, Mock
+
+from rethinkdb.net import DEFAULT_PORT, DefaultConnection, make_connection
 
 
 @pytest.mark.unit
@@ -17,7 +18,6 @@ class TestMakeConnection(object):
         self.user = "gabor"
         self.password = "strongpass"
         self.timeout = 20
-
 
     def test_make_connection(self):
         ssl = dict()
@@ -44,9 +44,8 @@ class TestMakeConnection(object):
             self.password,
             self.timeout,
             ssl,
-            _handshake_version
+            _handshake_version,
         )
-
 
     def test_make_connection_db_url(self):
         url = "rethinkdb://gabor:strongpass@myhost:1234/mydb?auth_key=mykey&timeout=30"
@@ -65,9 +64,8 @@ class TestMakeConnection(object):
             self.password,
             30,
             ssl,
-            _handshake_version
+            _handshake_version,
         )
-
 
     def test_make_connection_no_host(self):
         conn = make_connection(
@@ -90,9 +88,8 @@ class TestMakeConnection(object):
             self.password,
             self.timeout,
             ANY,
-            ANY
+            ANY,
         )
-
 
     def test_make_connection_no_port(self):
         conn = make_connection(
@@ -115,9 +112,8 @@ class TestMakeConnection(object):
             self.password,
             self.timeout,
             ANY,
-            ANY
+            ANY,
         )
-
 
     def test_make_connection_no_user(self):
         conn = make_connection(
@@ -140,9 +136,8 @@ class TestMakeConnection(object):
             self.password,
             self.timeout,
             ANY,
-            ANY
+            ANY,
         )
-
 
     def test_make_connection_with_ssl(self):
         ssl = dict()
@@ -169,9 +164,8 @@ class TestMakeConnection(object):
             self.password,
             self.timeout,
             ssl,
-            ANY
+            ANY,
         )
-
 
     def test_make_connection_different_handshake_version(self):
         conn = make_connection(
@@ -196,5 +190,5 @@ class TestMakeConnection(object):
             self.password,
             self.timeout,
             ANY,
-            20
+            20,
         )

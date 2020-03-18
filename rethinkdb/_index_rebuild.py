@@ -30,9 +30,11 @@ import traceback
 
 from rethinkdb import query, utils_common
 
-usage = "rethinkdb index-rebuild [-c HOST:PORT] [-n NUM] [-r (DB | DB.TABLE)] [--tls-cert FILENAME] [-p] " \
-        "[--password-file FILENAME]..."
-help_epilog = '''
+usage = (
+    "rethinkdb index-rebuild [-c HOST:PORT] [-n NUM] [-r (DB | DB.TABLE)] [--tls-cert FILENAME] [-p] "
+    "[--password-file FILENAME]..."
+)
+help_epilog = """
 FILE: the archive file to restore data from
 
 EXAMPLES:
@@ -43,14 +45,16 @@ rethinkdb index-rebuild -c mnemosyne:39500
 rethinkdb index-rebuild -r test -r production.users -n 5
   rebuild all outdated secondary indexes from a local cluster on all tables in the
   'test' database as well as the 'production.users' table, five at a time
-'''
+"""
 
 # Prefix used for indexes that are being rebuilt
-TMP_INDEX_PREFIX = '$reql_temp_index$_'
+TMP_INDEX_PREFIX = "$reql_temp_index$_"
 
 
 def parse_options(argv, prog=None):
-    parser = utils_common.CommonOptionsParser(usage=usage, epilog=help_epilog, prog=prog)
+    parser = utils_common.CommonOptionsParser(
+        usage=usage, epilog=help_epilog, prog=prog
+    )
 
     parser.add_option(
         "-r",
@@ -60,21 +64,32 @@ def parse_options(argv, prog=None):
         default=[],
         help="databases or tables to rebuild indexes on (default: all, may be specified multiple times)",
         action="append",
-        type="db_table")
+        type="db_table",
+    )
     parser.add_option(
         "-n",
         dest="concurrent",
         metavar="NUM",
         default=1,
         help="concurrent indexes to rebuild (default: 1)",
-        type="pos_int")
-    parser.add_option("--force", dest="force", action="store_true", default=False, help="rebuild non-outdated indexes")
+        type="pos_int",
+    )
+    parser.add_option(
+        "--force",
+        dest="force",
+        action="store_true",
+        default=False,
+        help="rebuild non-outdated indexes",
+    )
 
     options, args = parser.parse_args(argv)
 
     # Check validity of arguments
     if len(args) != 0:
-        parser.error("Error: No positional arguments supported. Unrecognized option '%s'" % args[0])
+        parser.error(
+            "Error: No positional arguments supported. Unrecognized option '%s'"
+            % args[0]
+        )
 
     return options
 
@@ -84,44 +99,58 @@ def rebuild_indexes(options):
     # flesh out options.db_table
     if not options.db_table:
         options.db_table = [
-            utils_common.DbTable(x['db'], x['name']) for x in
-            options.retryQuery('all tables', query.db('rethinkdb').table('table_config').pluck(['db', 'name']))
+            utils_common.DbTable(x["db"], x["name"])
+            for x in options.retryQuery(
+                "all tables",
+                query.db("rethinkdb").table("table_config").pluck(["db", "name"]),
+            )
         ]
     else:
         for db_table in options.db_table[:]:  # work from a copy
             if not db_table[1]:
                 options.db_table += [
-                    utils_common.DbTable(db_table[0], x) for x in options.retryQuery('table list of %s' % db_table[0],
-                                                                                     query.db(db_table[0]).table_list())
+                    utils_common.DbTable(db_table[0], x)
+                    for x in options.retryQuery(
+                        "table list of %s" % db_table[0],
+                        query.db(db_table[0]).table_list(),
+                    )
                 ]
                 del options.db_table[db_table]
 
     # wipe out any indexes with the TMP_INDEX_PREFIX
     for db, table in options.db_table:
-        for index in options.retryQuery('list indexes on %s.%s' % (db, table), query.db(db).table(table).index_list()):
+        for index in options.retryQuery(
+            "list indexes on %s.%s" % (db, table),
+            query.db(db).table(table).index_list(),
+        ):
             if index.startswith(TMP_INDEX_PREFIX):
                 options.retryQuery(
-                    'drop index: %s.%s:%s' %
-                    (db,
-                     table,
-                     index),
-                    query.db(
-                        index['db']).table(
-                        index['table']).index_drop(
-                        index['name']))
+                    "drop index: %s.%s:%s" % (db, table, index),
+                    query.db(index["db"])
+                    .table(index["table"])
+                    .index_drop(index["name"]),
+                )
 
     # get the list of indexes to rebuild
     indexes_to_build = []
     for db, table in options.db_table:
         indexes = None
         if not options.force:
-            indexes = options.retryQuery('get outdated indexes from %s.%s' % (db, table), query.db(
-                db).table(table).index_status().filter({'outdated': True}).get_field('index'))
+            indexes = options.retryQuery(
+                "get outdated indexes from %s.%s" % (db, table),
+                query.db(db)
+                .table(table)
+                .index_status()
+                .filter({"outdated": True})
+                .get_field("index"),
+            )
         else:
-            indexes = options.retryQuery('get all indexes from %s.%s' %
-                                         (db, table), query.db(db).table(table).index_status().get_field('index'))
+            indexes = options.retryQuery(
+                "get all indexes from %s.%s" % (db, table),
+                query.db(db).table(table).index_status().get_field("index"),
+            )
         for index in indexes:
-            indexes_to_build.append({'db': db, 'table': table, 'name': index})
+            indexes_to_build.append({"db": db, "table": table, "name": index})
 
     # rebuild selected indexes
 
@@ -132,37 +161,53 @@ def rebuild_indexes(options):
     indexes_in_progress = []
 
     if not options.quiet:
-        print("Rebuilding %d index%s: %s" % (total_indexes, 'es' if total_indexes > 1 else '',
-                                             ", ".join(["`%(db)s.%(table)s:%(name)s`" % i for i in indexes_to_build])))
+        print(
+            "Rebuilding %d index%s: %s"
+            % (
+                total_indexes,
+                "es" if total_indexes > 1 else "",
+                ", ".join(
+                    ["`%(db)s.%(table)s:%(name)s`" % i for i in indexes_to_build]
+                ),
+            )
+        )
 
     while len(indexes_to_build) > 0 or len(indexes_in_progress) > 0:
         # Make sure we're running the right number of concurrent index rebuilds
-        while len(indexes_to_build) > 0 and len(indexes_in_progress) < options.concurrent:
+        while (
+            len(indexes_to_build) > 0 and len(indexes_in_progress) < options.concurrent
+        ):
             index = indexes_to_build.pop()
             indexes_in_progress.append(index)
-            index['temp_name'] = TMP_INDEX_PREFIX + index['name']
-            index['progress'] = 0
-            index['ready'] = False
+            index["temp_name"] = TMP_INDEX_PREFIX + index["name"]
+            index["progress"] = 0
+            index["ready"] = False
 
             existing_indexes = dict(
-                (x['index'],
-                 x['function']) for x in options.retryQuery(
-                    'existing indexes',
-                    query.db(
-                        index['db']).table(
-                        index['table']).index_status().pluck(
-                        'index',
-                        'function')))
+                (x["index"], x["function"])
+                for x in options.retryQuery(
+                    "existing indexes",
+                    query.db(index["db"])
+                    .table(index["table"])
+                    .index_status()
+                    .pluck("index", "function"),
+                )
+            )
 
-            if index['name'] not in existing_indexes:
-                raise AssertionError('{index_name} is not part of existing indexes {indexes}'.format(
-                    index_name=index['name'],
-                    indexes=', '.join(existing_indexes)
-                ))
+            if index["name"] not in existing_indexes:
+                raise AssertionError(
+                    "{index_name} is not part of existing indexes {indexes}".format(
+                        index_name=index["name"], indexes=", ".join(existing_indexes)
+                    )
+                )
 
-            if index['temp_name'] not in existing_indexes:
-                options.retryQuery('create temp index: %(db)s.%(table)s:%(name)s' % index, query.db(index['db']).table(
-                    index['table']).index_create(index['temp_name'], existing_indexes[index['name']]))
+            if index["temp_name"] not in existing_indexes:
+                options.retryQuery(
+                    "create temp index: %(db)s.%(table)s:%(name)s" % index,
+                    query.db(index["db"])
+                    .table(index["table"])
+                    .index_create(index["temp_name"], existing_indexes[index["name"]]),
+                )
 
         # Report progress
         highest_progress = max(highest_progress, progress_ratio)
@@ -174,28 +219,33 @@ def rebuild_indexes(options):
         for index in indexes_in_progress:
             status = options.retryQuery(
                 "progress `%(db)s.%(table)s` index `%(name)s`" % index,
-                query.db(index['db']).table(index['table']).index_status(index['temp_name']).nth(0)
+                query.db(index["db"])
+                .table(index["table"])
+                .index_status(index["temp_name"])
+                .nth(0),
             )
-            if status['ready']:
-                index['ready'] = True
+            if status["ready"]:
+                index["ready"] = True
                 options.retryQuery(
-                    "rename `%(db)s.%(table)s` index `%(name)s`" %
-                    index,
-                    query.db(
-                        index['db']).table(
-                        index['table']).index_rename(
-                        index['temp_name'],
-                        index['name'],
-                        overwrite=True))
+                    "rename `%(db)s.%(table)s` index `%(name)s`" % index,
+                    query.db(index["db"])
+                    .table(index["table"])
+                    .index_rename(index["temp_name"], index["name"], overwrite=True),
+                )
             else:
-                progress_ratio += status.get('progress', 0) / total_indexes
+                progress_ratio += status.get("progress", 0) / total_indexes
 
-        indexes_in_progress = [index for index in indexes_in_progress if not index['ready']]
-        indexes_completed = total_indexes - len(indexes_to_build) - len(indexes_in_progress)
+        indexes_in_progress = [
+            index for index in indexes_in_progress if not index["ready"]
+        ]
+        indexes_completed = (
+            total_indexes - len(indexes_to_build) - len(indexes_in_progress)
+        )
         progress_ratio += float(indexes_completed) / total_indexes
 
-        if len(indexes_in_progress) == options.concurrent or \
-           (len(indexes_in_progress) > 0 and len(indexes_to_build) == 0):
+        if len(indexes_in_progress) == options.concurrent or (
+            len(indexes_in_progress) > 0 and len(indexes_to_build) == 0
+        ):
             # Short sleep to keep from killing the CPU
             time.sleep(0.1)
 

@@ -15,7 +15,6 @@
 # This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-import six
 import base64
 import binascii
 import hashlib
@@ -23,13 +22,14 @@ import hmac
 import struct
 import sys
 import threading
-
 from random import SystemRandom
+
+import six
+
 from rethinkdb import ql2_pb2
 from rethinkdb.errors import ReqlAuthError, ReqlDriverError
-from rethinkdb.helpers import decode_utf8, chain_to_bytes
+from rethinkdb.helpers import chain_to_bytes, decode_utf8
 from rethinkdb.logger import default_logger
-
 
 try:
     xrange
@@ -39,9 +39,12 @@ except NameError:
 
 def compare_digest(digest_a, digest_b):
     if sys.version_info[0] == 3:
+
         def xor_bytes(digest_a, digest_b):
             return digest_a ^ digest_b
+
     else:
+
         def xor_bytes(digest_a, digest_b, _ord=ord):
             return _ord(digest_a) ^ _ord(digest_b)
 
@@ -61,17 +64,21 @@ def compare_digest(digest_a, digest_b):
 
 
 def pbkdf2_hmac(hash_name, password, salt, iterations):
-    if hash_name != 'sha256':
-        raise AssertionError('Hash name {hash_name} is not equal with "sha256"'.format(hash_name=hash_name))
+    if hash_name != "sha256":
+        raise AssertionError(
+            'Hash name {hash_name} is not equal with "sha256"'.format(
+                hash_name=hash_name
+            )
+        )
 
     def from_bytes(value, hexlify=binascii.hexlify, int=int):
         return int(hexlify(value), 16)
 
     def to_bytes(value, unhexlify=binascii.unhexlify):
         try:
-            return unhexlify(bytes('%064x' % value, 'ascii'))
+            return unhexlify(bytes("%064x" % value, "ascii"))
         except TypeError:
-            return unhexlify(bytes('%064x' % value))
+            return unhexlify(bytes("%064x" % value))
 
     cache_key = (password, salt, iterations)
 
@@ -87,7 +94,7 @@ def pbkdf2_hmac(hash_name, password, salt, iterations):
         mac_copy.update(msg)
         return mac_copy.digest()
 
-    t = digest(salt + b'\x00\x00\x00\x01')
+    t = digest(salt + b"\x00\x00\x00\x01")
     u = from_bytes(t)
     for c in xrange(iterations - 1):
         t = digest(t)
@@ -137,7 +144,9 @@ class HandshakeV1_0(object):
         self._json_encoder = json_encoder
         self._host = host
         self._port = port
-        self._username = username.encode('utf-8').replace(b'=', b'=3D').replace(b',', b'=2C')
+        self._username = (
+            username.encode("utf-8").replace(b"=", b"=3D").replace(b",", b"=2C")
+        )
 
         self._password = six.b(password)
 
@@ -158,7 +167,7 @@ class HandshakeV1_0(object):
         Python 2.7.7+ and 3.3+.
         """
 
-        return getattr(hmac, 'compare_digest', compare_digest)
+        return getattr(hmac, "compare_digest", compare_digest)
 
     @staticmethod
     def _get_pbkdf2_hmac():
@@ -168,7 +177,7 @@ class HandshakeV1_0(object):
         Python 2.7.8+ and 3.4+.
         """
 
-        return getattr(hashlib, 'pbkdf2_hmac', pbkdf2_hmac)
+        return getattr(hashlib, "pbkdf2_hmac", pbkdf2_hmac)
 
     @staticmethod
     def _get_authentication_and_first_client_message(response):
@@ -180,8 +189,10 @@ class HandshakeV1_0(object):
         :return: None
         """
 
-        first_client_message = response['authentication'].encode('ascii')
-        authentication = dict(x.split(b'=', 1) for x in first_client_message.split(b','))
+        first_client_message = response["authentication"].encode("ascii")
+        authentication = dict(
+            x.split(b"=", 1) for x in first_client_message.split(b",")
+        )
         return first_client_message, authentication
 
     def _next_state(self):
@@ -206,11 +217,11 @@ class HandshakeV1_0(object):
 
         json_response = self._json_decoder.decode(response)
 
-        if not json_response.get('success'):
-            if 10 <= json_response['error_code'] <= 20:
-                raise ReqlAuthError(json_response['error'], self._host, self._port)
+        if not json_response.get("success"):
+            if 10 <= json_response["error_code"] <= 20:
+                raise ReqlAuthError(json_response["error"], self._host, self._port)
 
-            raise ReqlDriverError(json_response['error'])
+            raise ReqlDriverError(json_response["error"])
 
         return json_response
 
@@ -225,22 +236,28 @@ class HandshakeV1_0(object):
         """
 
         if response is not None:
-            raise ReqlDriverError('Unexpected response')
+            raise ReqlDriverError("Unexpected response")
 
-        self._random_nonce = base64.standard_b64encode(bytes(bytearray(
-            SystemRandom().getrandbits(8) for i in range(18)
-        )))
+        self._random_nonce = base64.standard_b64encode(
+            bytes(bytearray(SystemRandom().getrandbits(8) for i in range(18)))
+        )
 
-        self._first_client_message = chain_to_bytes('n=', self._username, ',r=', self._random_nonce)
+        self._first_client_message = chain_to_bytes(
+            "n=", self._username, ",r=", self._random_nonce
+        )
 
         initial_message = chain_to_bytes(
-            struct.pack('<L', self.VERSION),
-            self._json_encoder.encode({
-                'protocol_version': self._protocol_version,
-                'authentication_method': 'SCRAM-SHA-256',
-                'authentication': chain_to_bytes('n,,', self._first_client_message).decode('ascii')
-            }).encode('utf-8'),
-            b'\0'
+            struct.pack("<L", self.VERSION),
+            self._json_encoder.encode(
+                {
+                    "protocol_version": self._protocol_version,
+                    "authentication_method": "SCRAM-SHA-256",
+                    "authentication": chain_to_bytes(
+                        "n,,", self._first_client_message
+                    ).decode("ascii"),
+                }
+            ).encode("utf-8"),
+            b"\0",
         )
 
         self._next_state()
@@ -257,20 +274,21 @@ class HandshakeV1_0(object):
         :return: An empty string
         """
 
-
         json_response = self._decode_json_response(response)
-        min_protocol_version = json_response['min_protocol_version']
-        max_protocol_version = json_response['max_protocol_version']
+        min_protocol_version = json_response["min_protocol_version"]
+        max_protocol_version = json_response["max_protocol_version"]
 
         if not min_protocol_version <= self._protocol_version <= max_protocol_version:
-            raise ReqlDriverError('Unsupported protocol version {version}, expected between {min} and {max}'.format(
-                version=self._protocol_version,
-                min=min_protocol_version,
-                max=max_protocol_version
-            ))
+            raise ReqlDriverError(
+                "Unsupported protocol version {version}, expected between {min} and {max}".format(
+                    version=self._protocol_version,
+                    min=min_protocol_version,
+                    max=max_protocol_version,
+                )
+            )
 
         self._next_state()
-        return ''
+        return ""
 
     def _prepare_auth_request(self, response):
         """
@@ -282,46 +300,59 @@ class HandshakeV1_0(object):
         """
 
         json_response = self._decode_json_response(response, with_utf8=True)
-        first_client_message, authentication = self._get_authentication_and_first_client_message(json_response)
+        (
+            first_client_message,
+            authentication,
+        ) = self._get_authentication_and_first_client_message(json_response)
 
-        random_nonce = authentication[b'r']
+        random_nonce = authentication[b"r"]
         if not random_nonce.startswith(self._random_nonce):
-            raise ReqlAuthError('Invalid nonce from server', self._host, self._port)
+            raise ReqlAuthError("Invalid nonce from server", self._host, self._port)
 
         salted_password = self._pbkdf2_hmac(
-            'sha256',
+            "sha256",
             self._password,
-            base64.standard_b64decode(authentication[b's']),
-            int(authentication[b'i'])
+            base64.standard_b64decode(authentication[b"s"]),
+            int(authentication[b"i"]),
         )
 
-        message_without_proof = chain_to_bytes('c=biws,r=', random_nonce)
-        auth_message = b','.join((
-            self._first_client_message,
-            first_client_message,
-            message_without_proof
-        ))
+        message_without_proof = chain_to_bytes("c=biws,r=", random_nonce)
+        auth_message = b",".join(
+            (self._first_client_message, first_client_message, message_without_proof)
+        )
 
         self._server_signature = hmac.new(
-            hmac.new(salted_password, b'Server Key', hashlib.sha256).digest(),
+            hmac.new(salted_password, b"Server Key", hashlib.sha256).digest(),
             auth_message,
-            hashlib.sha256
+            hashlib.sha256,
         ).digest()
 
-        client_key = hmac.new(salted_password, b'Client Key', hashlib.sha256).digest()
-        client_signature = hmac.new(hashlib.sha256(client_key).digest(), auth_message, hashlib.sha256).digest()
-        client_proof = struct.pack('32B', *(l ^ random_nonce for l, random_nonce in zip(
-            struct.unpack('32B', client_key),
-            struct.unpack('32B', client_signature)
-        )))
+        client_key = hmac.new(salted_password, b"Client Key", hashlib.sha256).digest()
+        client_signature = hmac.new(
+            hashlib.sha256(client_key).digest(), auth_message, hashlib.sha256
+        ).digest()
+        client_proof = struct.pack(
+            "32B",
+            *(
+                l ^ random_nonce
+                for l, random_nonce in zip(
+                    struct.unpack("32B", client_key),
+                    struct.unpack("32B", client_signature),
+                )
+            )
+        )
 
         authentication_request = chain_to_bytes(
-            self._json_encoder.encode({
-                'authentication': chain_to_bytes(
-                    message_without_proof, ',p=', base64.standard_b64encode(client_proof)
-                ).decode('ascii')
-            }),
-            b'\0'
+            self._json_encoder.encode(
+                {
+                    "authentication": chain_to_bytes(
+                        message_without_proof,
+                        ",p=",
+                        base64.standard_b64encode(client_proof),
+                    ).decode("ascii")
+                }
+            ),
+            b"\0",
         )
 
         self._next_state()
@@ -339,11 +370,14 @@ class HandshakeV1_0(object):
 
         json_response = self._decode_json_response(response, with_utf8=True)
 
-        first_client_message, authentication = self._get_authentication_and_first_client_message(json_response)
-        server_signature = base64.standard_b64decode(authentication[b'v'])
+        (
+            first_client_message,
+            authentication,
+        ) = self._get_authentication_and_first_client_message(json_response)
+        server_signature = base64.standard_b64decode(authentication[b"v"])
 
         if not self._compare_digest(server_signature, self._server_signature):
-            raise ReqlAuthError('Invalid server signature', self._host, self._port)
+            raise ReqlAuthError("Invalid server signature", self._host, self._port)
 
         self._next_state()
 
@@ -355,7 +389,7 @@ class HandshakeV1_0(object):
 
     def next_message(self, response):
         if response is not None:
-            response = response.decode('utf-8')
+            response = response.decode("utf-8")
 
         if self._state == 0:
             return self._init_connection(response)
@@ -369,4 +403,4 @@ class HandshakeV1_0(object):
         elif self._state == 3:
             return self._read_auth_response(response)
 
-        raise ReqlDriverError('Unexpected handshake state')
+        raise ReqlDriverError("Unexpected handshake state")

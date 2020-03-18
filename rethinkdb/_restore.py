@@ -18,7 +18,7 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
 
-'''`rethinkdb restore` loads data into a RethinkDB cluster from an archive'''
+"""`rethinkdb restore` loads data into a RethinkDB cluster from an archive"""
 
 from __future__ import print_function
 
@@ -35,9 +35,11 @@ import traceback
 
 from rethinkdb import _import, utils_common
 
-usage = "rethinkdb restore FILE [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME] [--clients NUM] " \
-        "[--shards NUM_SHARDS] [--replicas NUM_REPLICAS] [--force] [-i (DB | DB.TABLE)]..."
-help_epilog = '''
+usage = (
+    "rethinkdb restore FILE [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME] [--clients NUM] "
+    "[--shards NUM_SHARDS] [--replicas NUM_REPLICAS] [--force] [-i (DB | DB.TABLE)]..."
+)
+help_epilog = """
 FILE:
     the archive file to restore data from;
     if FILE is -, use standard input (note that
@@ -60,11 +62,13 @@ rethinkdb restore rdb_dump.tar.gz -i test.subscribers -c hades -p
 rethinkdb restore rdb_dump.tar.gz --clients 4 --force
   Import data to a local cluster from the named archive file using only 4 client connections
   and overwriting any existing rows with the same primary key.
-'''
+"""
 
 
 def parse_options(argv, prog=None):
-    parser = utils_common.CommonOptionsParser(usage=usage, epilog=help_epilog, prog=prog)
+    parser = utils_common.CommonOptionsParser(
+        usage=usage, epilog=help_epilog, prog=prog
+    )
 
     parser.add_option(
         "-i",
@@ -74,48 +78,80 @@ def parse_options(argv, prog=None):
         default=[],
         help="limit restore to the given database or table (may be specified multiple times)",
         action="append",
-        type="db_table")
+        type="db_table",
+    )
 
-    parser.add_option("--temp-dir", dest="temp_dir", metavar="DIR", default=None,
-                      help="directory to use for intermediary results")
-    parser.add_option("--clients", dest="clients", metavar="CLIENTS", default=8,
-                      help="client connections to use (default: 8)", type="pos_int")
-    parser.add_option("--hard-durability", dest="durability", action="store_const", default="soft",
-                      help="use hard durability writes (slower, uses less memory)", const="hard")
-    parser.add_option("--force", dest="force", action="store_true", default=False,
-                      help="import data even if a table already exists")
-    parser.add_option("--no-secondary-indexes", dest="indexes", action="store_false",
-                      default=None, help="do not create secondary indexes for the restored tables")
+    parser.add_option(
+        "--temp-dir",
+        dest="temp_dir",
+        metavar="DIR",
+        default=None,
+        help="directory to use for intermediary results",
+    )
+    parser.add_option(
+        "--clients",
+        dest="clients",
+        metavar="CLIENTS",
+        default=8,
+        help="client connections to use (default: 8)",
+        type="pos_int",
+    )
+    parser.add_option(
+        "--hard-durability",
+        dest="durability",
+        action="store_const",
+        default="soft",
+        help="use hard durability writes (slower, uses less memory)",
+        const="hard",
+    )
+    parser.add_option(
+        "--force",
+        dest="force",
+        action="store_true",
+        default=False,
+        help="import data even if a table already exists",
+    )
+    parser.add_option(
+        "--no-secondary-indexes",
+        dest="indexes",
+        action="store_false",
+        default=None,
+        help="do not create secondary indexes for the restored tables",
+    )
 
     parser.add_option(
         "--writers-per-table",
         dest="writers",
         default=multiprocessing.cpu_count(),
         help=optparse.SUPPRESS_HELP,
-        type="pos_int")
+        type="pos_int",
+    )
     parser.add_option(
         "--batch-size",
         dest="batch_size",
         default=utils_common.default_batch_size,
         help=optparse.SUPPRESS_HELP,
-        type="pos_int")
+        type="pos_int",
+    )
 
     # Replication settings
-    replication_options_group = optparse.OptionGroup(parser, 'Replication Options')
+    replication_options_group = optparse.OptionGroup(parser, "Replication Options")
     replication_options_group.add_option(
         "--shards",
         dest="create_args",
         metavar="SHARDS",
         help="shards to setup on created tables (default: 1)",
         type="pos_int",
-        action="add_key")
+        action="add_key",
+    )
     replication_options_group.add_option(
         "--replicas",
         dest="create_args",
         metavar="REPLICAS",
         help="replicas to setup on created tables (default: 1)",
         type="pos_int",
-        action="add_key")
+        action="add_key",
+    )
     parser.add_option_group(replication_options_group)
 
     options, args = parser.parse_args(argv)
@@ -124,11 +160,13 @@ def parse_options(argv, prog=None):
 
     # - archive
     if len(args) == 0:
-        parser.error("Archive to import not specified. Provide an archive file created by rethinkdb-dump.")
+        parser.error(
+            "Archive to import not specified. Provide an archive file created by rethinkdb-dump."
+        )
     elif len(args) != 1:
         parser.error("Only one positional argument supported")
     options.in_file = args[0]
-    if options.in_file == '-':
+    if options.in_file == "-":
         options.in_file = sys.stdin
     else:
         if not os.path.isfile(options.in_file):
@@ -138,7 +176,10 @@ def parse_options(argv, prog=None):
     # - temp_dir
     if options.temp_dir:
         if not os.path.isdir(options.temp_dir):
-            parser.error("Temporary directory doesn't exist or is not a directory: %s" % options.temp_dir)
+            parser.error(
+                "Temporary directory doesn't exist or is not a directory: %s"
+                % options.temp_dir
+            )
         if not os.access(options["temp_dir"], os.W_OK):
             parser.error("Temporary directory inaccessible: %s" % options.temp_dir)
 
@@ -152,7 +193,7 @@ def parse_options(argv, prog=None):
 
 
 def do_unzip(temp_dir, options):
-    '''extract the tarfile to the filesystem'''
+    """extract the tarfile to the filesystem"""
 
     tables_to_export = set(options.db_tables)
     top_level = None
@@ -161,7 +202,7 @@ def do_unzip(temp_dir, options):
     archive = None
     tarfile_options = {
         "mode": "r|*",
-        "fileobj" if hasattr(options.in_file, "read") else "name": options.in_file
+        "fileobj" if hasattr(options.in_file, "read") else "name": options.in_file,
     }
     try:
         archive = tarfile.open(**tarfile_options)
@@ -171,7 +212,9 @@ def do_unzip(temp_dir, options):
                 continue  # skip everything but files
 
             # normalize the path
-            relpath = os.path.relpath(os.path.realpath(tarinfo.name.strip().lstrip(os.sep)))
+            relpath = os.path.relpath(
+                os.path.realpath(tarinfo.name.strip().lstrip(os.sep))
+            )
 
             # skip things that try to jump out of the folder
             if relpath.startswith(os.path.pardir):
@@ -187,18 +230,24 @@ def do_unzip(temp_dir, options):
             try:
                 top, db, file_name = relpath.split(os.sep)
             except ValueError:
-                raise RuntimeError("Error: Archive file has an unexpected directory structure: %s" % tarinfo.name)
+                raise RuntimeError(
+                    "Error: Archive file has an unexpected directory structure: %s"
+                    % tarinfo.name
+                )
 
             if not top_level:
                 top_level = top
             elif top != top_level:
                 raise RuntimeError(
-                    "Error: Archive file has an unexpected directory structure (%s vs %s)" %
-                    (top, top_level))
+                    "Error: Archive file has an unexpected directory structure (%s vs %s)"
+                    % (top, top_level)
+                )
 
             # filter out tables we are not looking for
             table = os.path.splitext(file_name)
-            if tables_to_export and not ((db, table) in tables_to_export or (db, None) in tables_to_export):
+            if tables_to_export and not (
+                (db, table) in tables_to_export or (db, None) in tables_to_export
+            ):
                 continue  # skip without comment
 
             # write the file out
@@ -208,7 +257,7 @@ def do_unzip(temp_dir, options):
             if not os.path.exists(os.path.dirname(dest_path)):
                 os.makedirs(os.path.dirname(dest_path))
 
-            with open(dest_path, 'wb') as dest:
+            with open(dest_path, "wb") as dest:
                 source = archive.extractfile(tarinfo)
                 chunk = True
                 while chunk:
@@ -217,7 +266,11 @@ def do_unzip(temp_dir, options):
                 source.close()
 
             if not os.path.isfile(dest_path):
-                raise AssertionError('Was not able to write {destination_path}'.format(destination_path=dest_path))
+                raise AssertionError(
+                    "Was not able to write {destination_path}".format(
+                        destination_path=dest_path
+                    )
+                )
 
     finally:
         if archive:
@@ -264,11 +317,13 @@ def do_restore(options):
             if options.debug:
                 traceback.print_exc()
             if str(ex) == "Warnings occurred during import":
-                raise RuntimeError("Warning: import did not create some secondary indexes.")
+                raise RuntimeError(
+                    "Warning: import did not create some secondary indexes."
+                )
             else:
                 error_string = str(ex)
-                if error_string.startswith('Error: '):
-                    error_string = error_string[len('Error: '):]
+                if error_string.startswith("Error: "):
+                    error_string = error_string[len("Error: ") :]
                 raise RuntimeError("Error: import failed: %s" % error_string)
         # 'Done' message will be printed by the import script
     finally:
