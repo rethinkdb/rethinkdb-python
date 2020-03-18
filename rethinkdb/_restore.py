@@ -20,7 +20,6 @@
 
 """`rethinkdb restore` loads data into a RethinkDB cluster from an archive"""
 
-from __future__ import print_function
 
 import copy
 import multiprocessing

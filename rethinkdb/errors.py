@@ -44,38 +44,13 @@ __all__ = [
     "RqlTimeoutError",
 ]
 
-import sys
 
-try:
-    unicode
-
-    def convertForPrint(inputString):
-        if isinstance(inputString, unicode):  # noqa: F821
-            encoding = "utf-8"
-            if hasattr(sys.stdout, "encoding") and sys.stdout.encoding:
-                encoding = sys.stdout.encoding
-            return inputString.encode(encoding or "utf-8", "replace")
-        else:
-            return str(inputString)
+def convertForPrint(inputString):
+    return inputString
 
 
-except NameError:
-
-    def convertForPrint(inputString):
-        return inputString
-
-
-try:
-    {}.iteritems
-
-    def dict_items(d):
-        return d.iteritems()
-
-
-except AttributeError:
-
-    def dict_items(d):
-        return d.items()
+def dict_items(d):
+    return list(d.items())
 
 
 class ReqlCursorEmpty(Exception):

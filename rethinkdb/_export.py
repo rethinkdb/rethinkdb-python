@@ -17,7 +17,6 @@
 # This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-from __future__ import print_function
 
 import csv
 import ctypes
@@ -41,9 +40,9 @@ from rethinkdb import errors, query, utils_common
 from rethinkdb.logger import default_logger
 
 try:
-    unicode
+    str
 except NameError:
-    unicode = str
+    str = str
 
 
 usage = """rethinkdb export [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert filename] [-d DIR]
@@ -244,13 +243,8 @@ def csv_writer(filename, fields, delimiter, task_queue, error_queue):
                         info.append(str(row[field]))
                     elif isinstance(row[field], str):
                         info.append(row[field])
-                    elif isinstance(row[field], unicode):
-                        info.append(row[field].encode("utf-8"))
                     else:
-                        if str == unicode:
-                            info.append(json.dumps(row[field]))
-                        else:
-                            info.append(json.dumps(row[field]).encode("utf-8"))
+                        info.append(json.dumps(row[field]))
                 out_writer.writerow(info)
                 item = task_queue.get()
     except BaseException:

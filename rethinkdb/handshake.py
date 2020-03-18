@@ -31,11 +31,6 @@ from rethinkdb.errors import ReqlAuthError, ReqlDriverError
 from rethinkdb.helpers import chain_to_bytes, decode_utf8
 from rethinkdb.logger import default_logger
 
-try:
-    xrange
-except NameError:
-    xrange = range
-
 
 def compare_digest(digest_a, digest_b):
     if sys.version_info[0] == 3:
@@ -96,7 +91,7 @@ def pbkdf2_hmac(hash_name, password, salt, iterations):
 
     t = digest(salt + b"\x00\x00\x00\x01")
     u = from_bytes(t)
-    for c in xrange(iterations - 1):
+    for c in range(iterations - 1):
         t = digest(t)
         u ^= from_bytes(t)
 
@@ -339,7 +334,7 @@ class HandshakeV1_0(object):
                     struct.unpack("32B", client_key),
                     struct.unpack("32B", client_signature),
                 )
-            )
+            ),
         )
 
         authentication_request = chain_to_bytes(

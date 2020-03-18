@@ -24,6 +24,7 @@ import socket
 import ssl
 import struct
 import time
+from urllib.parse import parse_qs, urlparse
 
 from rethinkdb import ql2_pb2
 from rethinkdb.ast import DB, Repl, ReQLDecoder, ReQLEncoder, expr
@@ -46,12 +47,6 @@ from rethinkdb.errors import (
 )
 from rethinkdb.handshake import HandshakeV1_0
 from rethinkdb.logger import default_logger
-
-try:
-    from urllib.parse import urlparse, parse_qs
-except ImportError:
-    from urlparse import urlparse, parse_qs
-
 
 __all__ = [
     "Connection",
@@ -78,13 +73,13 @@ try:
     {}.iteritems
 
     def dict_items(d):
-        return d.iteritems()
+        return iter(d.items())
 
 
 except AttributeError:
 
     def dict_items(d):
-        return d.items()
+        return list(d.items())
 
 
 def maybe_profile(value, res):
@@ -633,7 +628,7 @@ class Connection(object):
         timeout,
         ssl,
         _handshake_version,
-        **kwargs
+        **kwargs,
     ):
         self.db = db
 
@@ -783,7 +778,7 @@ def make_connection(
     ssl=None,
     url=None,
     _handshake_version=10,
-    **kwargs
+    **kwargs,
 ):
     if url:
         connection_string = urlparse(url)
@@ -826,6 +821,6 @@ def make_connection(
         timeout,
         ssl,
         _handshake_version,
-        **kwargs
+        **kwargs,
     )
     return conn.reconnect(timeout=timeout)

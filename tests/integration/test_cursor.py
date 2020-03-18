@@ -25,7 +25,7 @@ class TestCursor(IntegrationTestCaseBase):
         cursor = self.r.table(self.table_name).run(self.conn)
 
         for document in reversed(self.documents):
-            documents.append(cursor.next())
+            documents.append(next(cursor))
 
         assert sorted(documents, key=lambda doc: doc.get("id")) == self.documents
 
@@ -33,7 +33,7 @@ class TestCursor(IntegrationTestCaseBase):
         cursor = self.r.table(self.table_name).run(self.conn)
 
         with pytest.raises(ReqlCursorEmpty):
-            cursor.next()
+            next(cursor)
 
     def test_cursor_empty_iteration(self):
         self.r.table(self.table_name).insert(self.documents).run(self.conn)
@@ -41,10 +41,10 @@ class TestCursor(IntegrationTestCaseBase):
         cursor = self.r.table(self.table_name).run(self.conn)
 
         for i in range(0, len(self.documents)):
-            cursor.next()
+            next(cursor)
 
         with pytest.raises(ReqlCursorEmpty):
-            cursor.next()
+            next(cursor)
 
     def test_stop_iteration(self):
         self.r.table(self.table_name).insert(self.documents).run(self.conn)
@@ -53,7 +53,7 @@ class TestCursor(IntegrationTestCaseBase):
 
         with pytest.raises(StopIteration):
             for i in range(0, len(self.documents) + 1):
-                cursor.next()
+                next(cursor)
 
     def test_for_loop(self):
         self.r.table(self.table_name).insert(self.documents).run(self.conn)

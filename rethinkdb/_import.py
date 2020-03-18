@@ -19,7 +19,6 @@
 
 """`rethinkdb import` loads data into a RethinkDB cluster"""
 
-from __future__ import print_function
 
 import codecs
 import collections
@@ -34,22 +33,12 @@ import sys
 import time
 import traceback
 from multiprocessing.queues import Queue, SimpleQueue
+from queue import Empty, Full
 
 import six
 
 from rethinkdb import ast, errors, query, utils_common
 from rethinkdb.logger import default_logger
-
-try:
-    unicode
-except NameError:
-    unicode = str
-
-try:
-    from Queue import Empty, Full
-except ImportError:
-    from queue import Empty, Full
-
 
 # json parameters
 JSON_READ_CHUNK_SIZE = 128 * 1024
@@ -125,8 +114,8 @@ class SourceFile(object):
 
         # source
         if hasattr(source, "read"):
-            if unicode != str or "b" in source.mode:
-                # Python2.x or binary file, assume utf-8 encoding
+            if "b" in source.mode:
+                # binary file, assume utf-8 encoding
                 self._source = codecs.getreader("utf-8")(source)
             else:
                 # assume that it has the right encoding on it
@@ -277,7 +266,7 @@ class SourceFile(object):
                     query.row,
                     **self.source_options["create_args"]
                     if "create_args" in self.source_options
-                    else {}
+                    else {},
                 )
             ),
         )
@@ -657,12 +646,7 @@ class CsvSourceFile(SourceFile):
 
         for line in self._source:
             self._bytes_read.value += len(line)
-            if unicode != str:
-                yield line.encode(
-                    "utf-8"
-                )  # Python2.x csv module does not really handle unicode
-            else:
-                yield line
+            yield line
 
     def setup_file(self, warning_queue=None):
         # - setup csv.reader with a byte counter wrapper
@@ -699,7 +683,7 @@ class CsvSourceFile(SourceFile):
             # treat empty fields as no entry rather than empty string
             if value == "":
                 continue
-            row[key] = value if str == unicode else unicode(value, encoding="utf-8")
+            row[key] = value
 
         return row
 

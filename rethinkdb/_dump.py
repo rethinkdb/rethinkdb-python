@@ -20,7 +20,6 @@
 
 """`rethinkdb-dump` creates an archive of data from a RethinkDB cluster"""
 
-from __future__ import print_function
 
 import datetime
 import os

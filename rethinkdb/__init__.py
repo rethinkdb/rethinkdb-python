@@ -11,19 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# The builtins here defends against re-importing something obscuring `object`.
+import builtins
 import imp
 import os
 
 import pkg_resources
 
 from rethinkdb import errors, version
-
-# The builtins here defends against re-importing something obscuring `object`.
-try:
-    import __builtin__ as builtins  # Python 2
-except ImportError:
-    import builtins  # Python 3
-
 
 __all__ = ["RethinkDB"] + errors.__all__
 __version__ = version.VERSION
