@@ -15,7 +15,6 @@
 # This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-from __future__ import print_function
 
 import collections
 import copy

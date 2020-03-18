@@ -190,7 +190,7 @@ docsSource = [
         b"cursor.close()\n\nClose a cursor. Closing a cursor cancels the corresponding query and frees the memory\nassociated with the open request.\n\n*Example* Close a cursor.\n\n    cursor.close()\n",
     ),
     (
-        rethinkdb.net.Cursor.next,
+        rethinkdb.net.Cursor.__next__,
         b"cursor.next([wait=True])\n\nGet the next element in the cursor.\n\nThe optional `wait` argument specifies whether to wait for the next available element and how long to wait:\n\n* `True`: Wait indefinitely (the default).\n* `False`: Do not wait at all. If data is immediately available, it will be returned; if it is not available, a `ReqlTimeoutError` will be raised.\n* number: Wait up to the specified number of seconds for data to be available before raising `ReqlTimeoutError`.\n\nThe behavior of `next` will be identical with `False`, `None` or the number `0`.\n\nCalling `next` the first time on a cursor provides the first element of the cursor. If the data set is exhausted (e.g., you have retrieved all the documents in a table), a `ReqlCursorEmpty` error will be raised when `next` is called.\n\n*Example* Retrieve the next element.\n\n    cursor = r.table('superheroes').run(conn)\n    doc = cursor.next()\n\n*Example* Retrieve the next element on a [changefeed](http://rethinkdb.com/docs/changefeeds/python), waiting up to five seconds.\n\n    cursor = r.table('superheroes').changes().run(conn)\n    doc = cursor.next(wait=5)\n\n__Note:__ RethinkDB sequences can be iterated through via the Python Iterable interface. The canonical way to retrieve all the results is to use a [for...in](../each/) loop or [list()](../to_array/).\n\n",
     ),
     (

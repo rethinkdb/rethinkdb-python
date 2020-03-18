@@ -30,16 +30,6 @@ from rethinkdb.errors import QueryPrinter, ReqlDriverCompileError, ReqlDriverErr
 
 P_TERM = ql2_pb2.Term.TermType
 
-try:
-    unicode
-except NameError:
-    unicode = str
-
-try:
-    xrange
-except NameError:
-    xrange = range
-
 
 def dict_items(dictionary):
     return list(dictionary.items())
@@ -101,7 +91,7 @@ def expr(val, nesting_depth=20):
         return ISO8601(val.isoformat())
     elif isinstance(val, RqlBinary):
         return Binary(val)
-    elif isinstance(val, (str, unicode)):
+    elif isinstance(val, str):
         return Datum(val)
     elif isinstance(val, bytes):
         return Binary(val)
@@ -635,7 +625,7 @@ class RqlBoolOperQuery(RqlQuery):
     def compose(self, args, optargs):
         t_args = [
             T("r.expr(", args[i], ")") if needs_wrap(self._args[i]) else args[i]
-            for i in xrange(len(args))
+            for i in range(len(args))
         ]
 
         if self.infix:
@@ -648,7 +638,7 @@ class RqlBiOperQuery(RqlQuery):
     def compose(self, args, optargs):
         t_args = [
             T("r.expr(", args[i], ")") if needs_wrap(self._args[i]) else args[i]
-            for i in xrange(len(args))
+            for i in range(len(args))
         ]
         return T("(", T(*t_args, intsp=[" ", self.statement, " "]), ")")
 
@@ -901,7 +891,7 @@ class MakeObj(RqlQuery):
     def __init__(self, obj_dict):
         super(MakeObj, self).__init__()
         for key, value in dict_items(obj_dict):
-            if not isinstance(key, (str, unicode)):
+            if not isinstance(key, str):
                 raise ReqlDriverCompileError("Object keys must be strings.")
             self.optargs[key] = expr(value)
 
@@ -913,7 +903,7 @@ class MakeObj(RqlQuery):
             "r.expr({",
             T(
                 *[T(repr(key), ": ", value) for key, value in dict_items(optargs)],
-                intsp=", "
+                intsp=", ",
             ),
             "})",
         )
@@ -1712,7 +1702,7 @@ class RqlBinary(bytes):
 
     def __repr__(self):
         excerpt = binascii.hexlify(self[0:6]).decode("utf-8")
-        excerpt = " ".join([excerpt[i : i + 2] for i in xrange(0, len(excerpt), 2)])
+        excerpt = " ".join([excerpt[i : i + 2] for i in range(0, len(excerpt), 2)])
         excerpt = (
             ", '%s%s'" % (excerpt, "..." if len(self) > 6 else "")
             if len(self) > 0
@@ -1737,7 +1727,7 @@ class Binary(RqlTopLevelQuery):
         # Python 3 - `unicode` is equivalent to `str`, neither will be accepted
         if isinstance(data, RqlQuery):
             RqlTopLevelQuery.__init__(self, data)
-        elif isinstance(data, unicode):
+        elif isinstance(data, str):
             raise ReqlDriverCompileError(
                 "Cannot convert a unicode string to binary, "
                 "use `unicode.encode()` to specify the "
@@ -1956,11 +1946,9 @@ class Func(RqlQuery):
         super(Func, self).__init__()
         vrs = []
         vrids = []
-        try:
-            code = lmbd.func_code
-        except AttributeError:
-            code = lmbd.__code__
-        for i in xrange(code.co_argcount):
+        code = lmbd.__code__
+
+        for i in range(code.co_argcount):
             Func.lock.acquire()
             var_id = Func.nextVarId
             Func.nextVarId += 1
@@ -1976,7 +1964,7 @@ class Func(RqlQuery):
             "lambda ",
             T(
                 *[v.compose([v._args[0].compose(None, None)], []) for v in self.vrs],
-                intsp=", "
+                intsp=", ",
             ),
             ": ",
             args[1],
