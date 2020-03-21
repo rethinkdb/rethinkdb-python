@@ -39,8 +39,7 @@ pResponse = ql2_pb2.Response.ResponseType
 pQuery = ql2_pb2.Query.QueryType
 
 
-@asyncio.coroutine
-def _read_until(streamreader, delimiter):
+async def _read_until(streamreader, delimiter):
     """Naive implementation of reading until a delimiter"""
     buffer = bytearray()
 
@@ -69,8 +68,7 @@ def reusable_waiter(loop, timeout):
     else:
         deadline = None
 
-    @asyncio.coroutine
-    def wait(future):
+    async def wait(future):
         if deadline is not None:
             new_timeout = max(deadline - loop.time(), 0)
         else:
@@ -101,15 +99,13 @@ class AsyncioCursor(Cursor):
     def __aiter__(self):
         return self
 
-    @asyncio.coroutine
-    def __anext__(self):
+    async def __anext__(self):
         try:
             return (yield from self._get_next(None))
         except ReqlCursorEmpty:
             raise StopAsyncIteration
 
-    @asyncio.coroutine
-    def close(self):
+    async def close(self):
         if self.error is None:
             self.error = self._empty_error()
             if self.conn.is_open():
@@ -123,8 +119,7 @@ class AsyncioCursor(Cursor):
 
     # Convenience function so users know when they've hit the end of the cursor
     # without having to catch an exception
-    @asyncio.coroutine
-    def fetch_next(self, wait=True):
+    async def fetch_next(self, wait=True):
         timeout = Cursor._wait_to_timeout(wait)
         waiter = reusable_waiter(self.conn._io_loop, timeout)
         while len(self.items) == 0 and self.error is None:
@@ -142,8 +137,7 @@ class AsyncioCursor(Cursor):
         # with mechanisms to return from a coroutine.
         return RqlCursorEmpty()
 
-    @asyncio.coroutine
-    def _get_next(self, timeout):
+    async def _get_next(self, timeout):
         waiter = reusable_waiter(self.conn._io_loop, timeout)
         while len(self.items) == 0:
             self._maybe_fetch_batch()
@@ -186,8 +180,7 @@ class ConnectionInstance(object):
         if self.is_open():
             return self._streamwriter.get_extra_info("sockname")[0]
 
-    @asyncio.coroutine
-    def connect(self, timeout):
+    async def connect(self, timeout):
         try:
             ssl_context = None
             if len(self._parent.ssl) > 0:
@@ -260,8 +253,7 @@ class ConnectionInstance(object):
     def is_open(self):
         return not (self._closing or self._streamreader.at_eof())
 
-    @asyncio.coroutine
-    def close(self, noreply_wait=False, token=None, exception=None):
+    async def close(self, noreply_wait=False, token=None, exception=None):
         self._closing = True
         if exception is not None:
             err_message = "Connection is closed (%s)." % str(exception)
@@ -291,8 +283,7 @@ class ConnectionInstance(object):
 
         return None
 
-    @asyncio.coroutine
-    def run_query(self, query, noreply):
+    async def run_query(self, query, noreply):
         self._streamwriter.write(query.serialize(self._parent._get_json_encoder(query)))
         if noreply:
             return None
@@ -306,8 +297,7 @@ class ConnectionInstance(object):
     # This is shut down as a consequence of closing the stream, or an error in the
     # socket/protocol from the server.  Unexpected errors in this coroutine will
     # close the ConnectionInstance and be passed to any open Futures or Cursors.
-    @asyncio.coroutine
-    def _reader(self):
+    async def _reader(self):
         try:
             while True:
                 buf = yield from self._streamreader.readexactly(12)
@@ -354,30 +344,25 @@ class Connection(ConnectionBase):
                 "Could not convert port %s to an integer." % self.port
             )
 
-    @asyncio.coroutine
-    def __aenter__(self):
+    async def __aenter__(self):
         return self
 
-    @asyncio.coroutine
-    def __aexit__(self, exception_type, exception_val, traceback):
+    async def __aexit__(self, exception_type, exception_val, traceback):
         yield from self.close(False)
 
-    @asyncio.coroutine
-    def _stop(self, cursor):
+    async def _stop(self, cursor):
         self.check_open()
         q = Query(pQuery.STOP, cursor.query.token, None, None)
         return (yield from self._instance.run_query(q, True))
 
-    @asyncio.coroutine
-    def reconnect(self, noreply_wait=True, timeout=None):
+    async def reconnect(self, noreply_wait=True, timeout=None):
         # We close before reconnect so reconnect doesn't try to close us
         # and then fail to return the Future (this is a little awkward).
         yield from self.close(noreply_wait)
         self._instance = self._conn_type(self, **self._child_kwargs)
         return (yield from self._instance.connect(timeout))
 
-    @asyncio.coroutine
-    def close(self, noreply_wait=True):
+    async def close(self, noreply_wait=True):
         if self._instance is None:
             return None
         return (yield from ConnectionBase.close(self, noreply_wait=noreply_wait))
