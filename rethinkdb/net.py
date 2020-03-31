@@ -431,7 +431,6 @@ class SocketWrapper(object):
                         self.close()
                         raise ReqlDriverError("Connection is closed.")
                     elif ex.errno == errno.EWOULDBLOCK:
-                        self.close()
                         # This should only happen with a timeout of 0
                         raise ReqlTimeoutError(self.host, self.port)
                     elif ex.errno != errno.EINTR:

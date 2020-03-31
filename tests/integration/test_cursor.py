@@ -1,6 +1,6 @@
 import pytest
 
-from rethinkdb.errors import ReqlCursorEmpty
+from rethinkdb.errors import ReqlCursorEmpty, ReqlTimeoutError
 from tests.helpers import IntegrationTestCaseBase
 
 
@@ -54,6 +54,23 @@ class TestCursor(IntegrationTestCaseBase):
         with pytest.raises(StopIteration):
             for i in range(0, len(self.documents) + 1):
                 cursor.next()
+
+    def test_iteration_after_timeout(self):
+        """Getting a `ReqlTimeoutError` while using a cursor, should not
+        close the underlying connection to the server.
+        """
+        # Note that this cursor is different to the others - it uses `.changes()`
+        cursor = self.r.table(self.table_name).changes().run(self.conn)
+
+        # Attempting to set `wait=False` on this changes query will timeout,
+        # as data is not available yet
+        with pytest.raises(ReqlTimeoutError):
+            cursor.next(wait=False)
+
+        # We should be able to call the cursor again after a timeout,
+        # such a timeout should not cause the underlying connection to close
+        with pytest.raises(ReqlTimeoutError):
+            cursor.next(wait=False)
 
     def test_for_loop(self):
         self.r.table(self.table_name).insert(self.documents).run(self.conn)
