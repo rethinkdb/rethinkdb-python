@@ -1,5 +1,5 @@
 import sys
-from asyncio import coroutine
+# from asyncio import coroutine
 
 import pytest
 
@@ -22,21 +22,20 @@ class TestAsyncio(IntegrationTestCaseBase):
         super(TestAsyncio, self).teardown_method()
         self.r.set_loop_type(None)
 
-    @coroutine
-    def test_flow_coroutine_paradigm(self):
-        connection = yield from self.conn
+    async def test_flow_coroutine_paradigm(self):
+        connection = yield self.conn
 
-        yield from self.r.table_create(self.table_name).run(connection)
+        yield self.r.table_create(self.table_name).run(connection)
 
         table = self.r.table(self.table_name)
-        yield from table.insert(
+        yield table.insert(
             {"id": 1, "name": "Iron Man", "first_appearance": "Tales of Suspense #39"}
         ).run(connection)
 
-        cursor = yield from table.run(connection)
+        cursor = yield table.run(connection)
 
-        while (yield from cursor.fetch_next()):
-            hero = yield from cursor.__anext__()
+        while (yield cursor.fetch_next()):
+            hero = yield cursor.__anext__()
             assert hero["name"] == "Iron Man"
 
-        yield from connection.close()
+        yield connection.close()

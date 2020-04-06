@@ -44,14 +44,14 @@ async def _read_until(streamreader, delimiter):
     buffer = bytearray()
 
     while True:
-        c = yield from streamreader.read(1)
+        c = yield streamreader.read(1)
         if c == b"":
             break  # EOF
         buffer.append(c[0])
         if c == delimiter:
             break
 
-    return bytes(buffer)
+    yield bytes(buffer)
 
 
 def reusable_waiter(loop, timeout):
@@ -61,7 +61,7 @@ def reusable_waiter(loop, timeout):
 
         waiter = reusable_waiter(event_loop, 10.0)
         while some_condition:
-            yield from waiter(some_future)
+            yield waiter(some_future)
     """
     if timeout is not None:
         deadline = loop.time() + timeout
@@ -73,9 +73,10 @@ def reusable_waiter(loop, timeout):
             new_timeout = max(deadline - loop.time(), 0)
         else:
             new_timeout = None
-        return (yield from asyncio.wait_for(future, new_timeout, loop=loop))
+            yield asyncio.wait_for(future, new_timeout, loop=loop)
+            return
 
-    return wait
+    yield wait
 
 
 @contextlib.contextmanager
@@ -101,7 +102,7 @@ class AsyncioCursor(Cursor):
 
     async def __anext__(self):
         try:
-            return (yield from self._get_next(None))
+            yield self._get_next(None)
         except ReqlCursorEmpty:
             raise StopAsyncIteration
 
@@ -110,7 +111,7 @@ class AsyncioCursor(Cursor):
             self.error = self._empty_error()
             if self.conn.is_open():
                 self.outstanding_requests += 1
-                yield from self.conn._parent._stop(self)
+                yield self.conn._parent._stop(self)
 
     def _extend(self, res_buf):
         Cursor._extend(self, res_buf)
@@ -127,10 +128,11 @@ class AsyncioCursor(Cursor):
             if self.error is not None:
                 raise self.error
             with translate_timeout_errors():
-                yield from waiter(asyncio.shield(self.new_response))
+                yield waiter(asyncio.shield(self.new_response))
         # If there is a (non-empty) error to be received, we return True, so the
         # user will receive it on the next `next` call.
-        return len(self.items) != 0 or not isinstance(self.error, RqlCursorEmpty)
+        yield len(self.items) != 0 or not isinstance(self.error, RqlCursorEmpty)
+        return
 
     def _empty_error(self):
         # We do not have RqlCursorEmpty inherit from StopIteration as that interferes
@@ -144,8 +146,9 @@ class AsyncioCursor(Cursor):
             if self.error is not None:
                 raise self.error
             with translate_timeout_errors():
-                yield from waiter(asyncio.shield(self.new_response))
-        return self.items.popleft()
+                yield waiter(asyncio.shield(self.new_response))
+        yield self.items.popleft()
+        return
 
     def _maybe_fetch_batch(self):
         if (
@@ -192,7 +195,7 @@ class ConnectionInstance(object):
                 ssl_context.check_hostname = True  # redundant with match_hostname
                 ssl_context.load_verify_locations(self._parent.ssl["ca_certs"])
 
-            self._streamreader, self._streamwriter = yield from asyncio.open_connection(
+            self._streamreader, self._streamwriter = yield asyncio.open_connection(
                 self._parent.host,
                 self._parent.port,
                 loop=self._io_loop,
@@ -223,23 +226,23 @@ class ConnectionInstance(object):
                     if request is not "":
                         self._streamwriter.write(request)
 
-                    response = yield from asyncio.wait_for(
+                    response = yield asyncio.wait_for(
                         _read_until(self._streamreader, b"\0"),
                         timeout,
                         loop=self._io_loop,
                     )
                     response = response[:-1]
         except ReqlAuthError:
-            yield from self.close()
+            yield self.close()
             raise
         except ReqlTimeoutError as err:
-            yield from self.close()
+            yield self.close()
             raise ReqlDriverError(
                 "Connection interrupted during handshake with %s:%s. Error: %s"
                 % (self._parent.host, self._parent.port, str(err))
             )
         except Exception as err:
-            yield from self.close()
+            yield self.close()
             raise ReqlDriverError(
                 "Could not connect to %s:%s. Error: %s"
                 % (self._parent.host, self._parent.port, str(err))
@@ -248,7 +251,8 @@ class ConnectionInstance(object):
         # Start a parallel function to perform reads
         #  store a reference to it so it doesn't get destroyed
         self._reader_task = asyncio.ensure_future(self._reader(), loop=self._io_loop)
-        return self._parent
+        yield self._parent
+        return
 
     def is_open(self):
         return not (self._closing or self._streamreader.at_eof())
@@ -273,24 +277,25 @@ class ConnectionInstance(object):
 
         if noreply_wait:
             noreply = Query(pQuery.NOREPLY_WAIT, token, None, None)
-            yield from self.run_query(noreply, False)
+            yield self.run_query(noreply, False)
 
         self._streamwriter.close()
         # We must not wait for the _reader_task if we got an exception, because that
         # means that we were called from it. Waiting would lead to a deadlock.
         if self._reader_task and exception is None:
-            yield from self._reader_task
+            yield self._reader_task
 
-        return None
+        return
 
     async def run_query(self, query, noreply):
         self._streamwriter.write(query.serialize(self._parent._get_json_encoder(query)))
         if noreply:
-            return None
+            return
 
         response_future = asyncio.Future()
         self._user_queries[query.token] = (query, response_future)
-        return (yield from response_future)
+        yield response_future
+        return
 
     # The _reader coroutine runs in parallel, reading responses
     # off of the socket and forwarding them to the appropriate Future or Cursor.
@@ -300,9 +305,9 @@ class ConnectionInstance(object):
     async def _reader(self):
         try:
             while True:
-                buf = yield from self._streamreader.readexactly(12)
+                buf = yield self._streamreader.readexactly(12)
                 (token, length,) = struct.unpack("<qL", buf)
-                buf = yield from self._streamreader.readexactly(length)
+                buf = yield self._streamreader.readexactly(length)
 
                 cursor = self._cursor_cache.get(token)
                 if cursor is not None:
@@ -331,7 +336,7 @@ class ConnectionInstance(object):
                     raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
-                yield from self.close(exception=ex)
+                yield self.close(exception=ex)
 
 
 class Connection(ConnectionBase):
@@ -348,21 +353,25 @@ class Connection(ConnectionBase):
         return self
 
     async def __aexit__(self, exception_type, exception_val, traceback):
-        yield from self.close(False)
+        yield self.close(False)
 
     async def _stop(self, cursor):
         self.check_open()
         q = Query(pQuery.STOP, cursor.query.token, None, None)
-        return (yield from self._instance.run_query(q, True))
+        yield self._instance.run_query(q, True)
+        return
 
     async def reconnect(self, noreply_wait=True, timeout=None):
         # We close before reconnect so reconnect doesn't try to close us
         # and then fail to return the Future (this is a little awkward).
-        yield from self.close(noreply_wait)
+        yield self.close(noreply_wait)
         self._instance = self._conn_type(self, **self._child_kwargs)
-        return (yield from self._instance.connect(timeout))
+        yield self._instance.connect(timeout)
+        return
 
     async def close(self, noreply_wait=True):
         if self._instance is None:
-            return None
-        return (yield from ConnectionBase.close(self, noreply_wait=noreply_wait))
+            yield None
+            return
+        yield ConnectionBase.close(self, noreply_wait=noreply_wait)
+        return
