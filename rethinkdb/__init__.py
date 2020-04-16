@@ -15,7 +15,7 @@
 import builtins
 try:
     import imp
-except Exception:
+except ImportError:
     import importlib as imp
 
 import os
