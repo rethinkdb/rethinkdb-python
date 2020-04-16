@@ -1,6 +1,4 @@
 import sys
-# from asyncio import coroutine
-
 import pytest
 
 from tests.helpers import INTEGRATION_TEST_DB, IntegrationTestCaseBase
