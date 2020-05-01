@@ -13,7 +13,11 @@
 # limitations under the License.
 # The builtins here defends against re-importing something obscuring `object`.
 import builtins
-import imp
+try:
+    import imp
+except ImportError:
+    import importlib as imp
+
 import os
 
 import pkg_resources

@@ -20,7 +20,7 @@ __all__ = ["expr", "RqlQuery", "ReQLEncoder", "ReQLDecoder", "Repl"]
 
 import base64
 import binascii
-import collections
+import collections.abc
 import datetime
 import json
 import threading
@@ -74,7 +74,7 @@ def expr(val, nesting_depth=20):
 
     if isinstance(val, RqlQuery):
         return val
-    elif isinstance(val, collections.Callable):
+    elif isinstance(val, collections.abc.Callable):
         return Func(val)
     elif isinstance(val, (datetime.datetime, datetime.date)):
         if not hasattr(val, "tzinfo") or not val.tzinfo:
@@ -95,14 +95,14 @@ def expr(val, nesting_depth=20):
         return Datum(val)
     elif isinstance(val, bytes):
         return Binary(val)
-    elif isinstance(val, collections.Mapping):
+    elif isinstance(val, collections.abc.Mapping):
         # MakeObj doesn't take the dict as a keyword args to avoid
         # conflicting with the `self` parameter.
         obj = {}
         for k, v in dict_items(val):
             obj[k] = expr(v, nesting_depth - 1)
         return MakeObj(obj)
-    elif isinstance(val, collections.Iterable):
+    elif isinstance(val, collections.abc.Iterable):
         val = [expr(v, nesting_depth - 1) for v in val]
         return MakeArray(*val)
     else:
