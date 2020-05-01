@@ -158,7 +158,7 @@ class ConnectionInstance(object):
                     break
                 # This may happen in the `V1_0` protocol where we send two requests as
                 # an optimization, then need to read each separately
-                if request is not "":
+                if request != "":
                     self._stream.write(request)
 
                 response = yield with_absolute_timeout(

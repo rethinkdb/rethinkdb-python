@@ -283,7 +283,7 @@ class ConnectionInstance:
                     break
                 # This may happen in the `V1_0` protocol where we send two requests as
                 # an optimization, then need to read each separately
-                if request is not "":
+                if request != "":
                     await self._send(request)
                 with _reql_timeout(timeout):
                     response = await self._read_until(b"\0")
