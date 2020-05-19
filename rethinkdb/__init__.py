@@ -50,9 +50,15 @@ class RethinkDB(builtins.object):
         self._index_rebuild = _index_rebuild
         self._restore = _restore
 
+        # Re-export internal modules for backward compatibility
+        self.ast = ast
+        self.errors = errors
+        self.net = net
+        self.query = query
+
         net.Connection._r = self
 
-        for module in (net, query, ast, errors):
+        for module in (self.net, self.query, self.ast, self.errors):
             for function_name in module.__all__:
                 setattr(self, function_name, getattr(module, function_name))
 
@@ -60,22 +66,22 @@ class RethinkDB(builtins.object):
 
     def set_loop_type(self, library=None):
         if library is None:
-            self.connection_type = net.DefaultConnection
+            self.connection_type = self.net.DefaultConnection
             return
 
         # find module file
         manager = pkg_resources.ResourceManager()
-        libPath = "%(library)s_net/net_%(library)s.py" % {"library": library}
-        if not manager.resource_exists(__name__, libPath):
+        lib_path = "%(library)s_net/net_%(library)s.py" % {"library": library}
+        if not manager.resource_exists(__name__, lib_path):
             raise ValueError("Unknown loop type: %r" % library)
 
         # load the module
-        modulePath = manager.resource_filename(__name__, libPath)
-        moduleName = "net_%s" % library
-        moduleFile, pathName, desc = imp.find_module(
-            moduleName, [os.path.dirname(modulePath)]
+        module_path = manager.resource_filename(__name__, lib_path)
+        module_name = "net_%s" % library
+        module_file, pathName, desc = imp.find_module(
+            module_name, [os.path.dirname(module_path)]
         )
-        module = imp.load_module("rethinkdb." + moduleName, moduleFile, pathName, desc)
+        module = imp.load_module("rethinkdb." + module_name, module_file, pathName, desc)
 
         # set the connection type
         self.connection_type = module.Connection
