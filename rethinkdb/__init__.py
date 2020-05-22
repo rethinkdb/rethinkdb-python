@@ -67,27 +67,28 @@ class RethinkDB(builtins.object):
     def set_loop_type(self, library=None):
         if library is None:
             self.connection_type = self.net.DefaultConnection
-            return
 
-        # find module file
-        manager = pkg_resources.ResourceManager()
-        lib_path = "%(library)s_net/net_%(library)s.py" % {"library": library}
-        if not manager.resource_exists(__name__, lib_path):
-            raise ValueError("Unknown loop type: %r" % library)
+        if library == "asyncio":
+            from rethinkdb.asyncio_net import net_asyncio
+            self.connection_type = net_asyncio.Connection
 
-        # load the module
-        module_path = manager.resource_filename(__name__, lib_path)
-        module_name = "net_%s" % library
-        module_file, pathName, desc = imp.find_module(
-            module_name, [os.path.dirname(module_path)]
-        )
-        module = imp.load_module("rethinkdb." + module_name, module_file, pathName, desc)
+        if library == "gevent":
+            from rethinkdb.gevent_net import net_gevent
+            self.connection_type = net_gevent.Connection
 
-        # set the connection type
-        self.connection_type = module.Connection
+        if library == "tornado":
+            from rethinkdb.tornado_net import net_tornado
+            self.connection_type = net_tornado.Connection
 
-        # cleanup
-        manager.cleanup_resources()
+        if library == "trio":
+            from rethinkdb.trio_net import net_trio
+            self.connection_type = net_trio.Connection
+
+        if library == "twisted":
+            from rethinkdb.twisted_net import net_twisted
+            self.connection_type = net_twisted.Connection
+
+        return
 
     def connect(self, *args, **kwargs):
         return self.make_connection(self.connection_type, *args, **kwargs)
