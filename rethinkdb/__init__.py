@@ -61,9 +61,6 @@ class RethinkDB(builtins.object):
         self.set_loop_type(None)
 
     def set_loop_type(self, library=None):
-        if library is None:
-            self.connection_type = self.net.DefaultConnection
-
         if library == "asyncio":
             from rethinkdb.asyncio_net import net_asyncio
             self.connection_type = net_asyncio.Connection
@@ -83,6 +80,9 @@ class RethinkDB(builtins.object):
         if library == "twisted":
             from rethinkdb.twisted_net import net_twisted
             self.connection_type = net_twisted.Connection
+
+        if library is None or self.connection_type is None:
+            self.connection_type = self.net.DefaultConnection
 
         return
 
