@@ -180,7 +180,7 @@ def parse_options(argv, prog=None):
                 "Temporary directory doesn't exist or is not a directory: %s"
                 % options.temp_dir
             )
-        if not os.access(options["temp_dir"], os.W_OK):
+        if not os.access(options.temp_dir, os.W_OK):
             parser.error("Temporary directory inaccessible: %s" % options.temp_dir)
 
     # - create_args
