@@ -237,8 +237,11 @@ class ConnectionInstance:
         return bytes(buffer)
 
     async def _read_exactly(self, num):
+        data = b''
         try:
-            return await self._stream.receive_some(num)
+            while len(data) < num:
+                data += await self._stream.receive_some(num - len(data))
+            return data
         except (trio.BrokenResourceError, trio.ClosedResourceError):
             self._closed = True
 
