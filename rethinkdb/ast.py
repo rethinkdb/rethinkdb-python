@@ -152,7 +152,7 @@ class RqlQuery(object):
     # Compile this query to a json-serializable object
     def build(self):
         res = [self.term_type, self._args]
-        if len(self.optargs) > 0:
+        if self.optargs:
             res.append(self.optargs)
         return res
 
@@ -643,8 +643,8 @@ class RqlBoolOperQuery(RqlQuery):
         ]
 
         if self.infix:
-            return T("(", T(*t_args, intsp=[" ", self.statement_infix, " "]),
-                     ")")
+            t_args = T(*t_args, intsp=[" ", self.statement_infix, " "])
+            return T("(", t_args, ")")
         else:
             return T("r.", self.statement, "(", T(*t_args, intsp=", "), ")")
 
@@ -900,12 +900,13 @@ class MakeObj(RqlQuery):
         return self.optargs
 
     def compose(self, args, optargs):
+        list_comp = [
+            T(repr(key), ": ", value) for key, value in dict_items(optargs)
+        ]
+        t_value = T(*list_compt, intsp=", ")
         return T(
             "r.expr({",
-            T(*[
-                T(repr(key), ": ", value) for key, value in dict_items(optargs)
-            ],
-                intsp=", "),
+            t_value,
             "})",
         )
 
@@ -1708,8 +1709,8 @@ class RqlBinary(bytes):
         excerpt = binascii.hexlify(self[0:6]).decode("utf-8")
         excerpt = " ".join(
             [excerpt[i:i + 2] for i in xrange(0, len(excerpt), 2)])
-        excerpt = (", '%s%s'" % (excerpt, "..." if len(self) > 6 else "")
-                   if len(self) > 0 else "")
+        excerpt = (", '%s%s'" %
+                   (excerpt, "..." if len(self) > 6 else "") if self else "")
         return "<binary, %d byte%s%s>" % (
             len(self),
             "s" if len(self) != 1 else "",
@@ -1746,13 +1747,13 @@ class Binary(RqlTopLevelQuery):
             self.optargs = {}
 
     def compose(self, args, optargs):
-        if len(self._args) == 0:
+        if self._args:
             return T("r.", self.statement, "(bytes(<data>))")
         else:
             return RqlTopLevelQuery.compose(self, args, optargs)
 
     def build(self):
-        if len(self._args) == 0:
+        if self._args:
             return {
                 "$reql_type$": "BINARY",
                 "data": self.base64_data.decode("utf-8")

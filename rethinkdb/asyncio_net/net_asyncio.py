@@ -44,11 +44,11 @@ async def _read_until(streamreader, delimiter):
     try:
         result = await streamreader.readuntil(delimiter)
         return bytes(result)
-    except asyncio.IncompleteReadError as ie:
-        return bytes(b"")
-    except asyncio.LimitOverrunError as lo:
+    except asyncio.IncompleteReadError as ie_error:
+        return bytes(ie_error.partial)
+    except asyncio.LimitOverrunError as lo_error:
         print("Amount of data exceeds the configured stream limit")
-        raise lo
+        raise lo_error
 
 
 def reusable_waiter(loop, timeout):
@@ -71,7 +71,8 @@ def reusable_waiter(loop, timeout):
         else:
             new_timeout = None
         # loop parameter deprecated on py3.8
-        return (await asyncio.wait_for(future, new_timeout))
+        result = await asyncio.wait_for(future, new_timeout)
+        return result
 
     return wait
 
@@ -368,16 +369,19 @@ class Connection(ConnectionBase):
     async def _stop(self, cursor):
         self.check_open()
         q = Query(pQuery.STOP, cursor.query.token, None, None)
-        return (await self._instance.run_query(q, True))
+        result = await self._instance.run_query(q, True)
+        return result
 
     async def reconnect(self, noreply_wait=True, timeout=None):
         # We close before reconnect so reconnect doesn't try to close us
         # and then fail to return the Future (this is a little awkward).
         await self.close(noreply_wait)
         self._instance = self._conn_type(self, **self._child_kwargs)
-        return (await self._instance.connect(timeout))
+        result = await self._instance.connect(timeout)
+        return result
 
     async def close(self, noreply_wait=True):
         if self._instance is None:
             return None
-        return (await self._instance.close())
+        result = await self._instance.close()
+        return result
