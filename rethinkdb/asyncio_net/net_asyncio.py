@@ -32,7 +32,6 @@ from rethinkdb.errors import (
 from rethinkdb.net import Connection as ConnectionBase
 from rethinkdb.net import Cursor, Query, Response, maybe_profile
 from tasktools.taskloop import TaskLoop
-from networktools.colorprint import gprint, bprint, rprint
 
 __all__ = ["Connection"]
 
@@ -293,9 +292,6 @@ class ConnectionInstance(object):
     async def run_query(self, query, noreply):
         serialized_query = query.serialize(
             self._parent._get_json_encoder(query))
-        gprint("_" * 30)
-        bprint(f"query {serialized_query}")
-        gprint("_" * 30)
         self._streamwriter.write(serialized_query)
         await self._streamwriter.drain()
         if noreply:
