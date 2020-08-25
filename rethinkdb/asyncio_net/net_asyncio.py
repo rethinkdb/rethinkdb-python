@@ -309,6 +309,7 @@ class ConnectionInstance(object):
     # close the ConnectionInstance and be passed to any open Futures or Cursors.
     async def _reader(self, *args, **kwargs):
         # now the loop is on the taskloop
+        this_task = asyncio.current_task()
         try:
             nbytes = 12
             buf = b""
@@ -344,8 +345,14 @@ class ConnectionInstance(object):
                     future.set_exception(res.make_error(query))
                 del self._user_queries[token]
             elif not self._closing:
-                raise ReqlDriverError("Unexpected response received.")
+                """
+                This error must be handled by TaskLoop to preserve the loop
+                """
+                kwargs["exception"] = ReqlDriverError(
+                    "Unexpected response received.")
         except Exception as ex:
+            result = args, kwargs
+            this_task.set_result(result)
             if not self._closing:
                 await self.close(exception=ex)
         return args, kwargs
