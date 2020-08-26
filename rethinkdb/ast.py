@@ -628,10 +628,11 @@ def needs_wrap(arg):
 
 
 class RqlBoolOperQuery(RqlQuery):
+    statement_infix = None
+
     def __init__(self, *args, **optargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, **optargs)
         self.infix = False
-        RqlQuery.__init__(self, *args, **optargs)
 
     def set_infix(self):
         self.infix = True
@@ -1758,8 +1759,7 @@ class Binary(RqlTopLevelQuery):
                 "$reql_type$": "BINARY",
                 "data": self.base64_data.decode("utf-8")
             }
-        else:
-            return RqlTopLevelQuery.build(self)
+        return RqlTopLevelQuery.build(self)
 
 
 class Range(RqlTopLevelQuery):

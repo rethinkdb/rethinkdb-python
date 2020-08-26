@@ -609,9 +609,9 @@ class Connection(object):
     _json_decoder = ReQLDecoder
     _json_encoder = ReQLEncoder
 
-    def __init__(self, conn_type, host, port, db, auth_key, user, password,
-                 timeout, _ssl, _handshake_version, **kwargs):
-        self.db = db
+    def __init__(self, conn_type, host, port, db_name, auth_key, user,
+                 password, timeout, _ssl, _handshake_version, **kwargs):
+        self.db = db_name
 
         self.host = host
         try:
@@ -771,7 +771,7 @@ def make_connection(connection_type,
         host = connection_string.hostname
         port = connection_string.port
 
-        db = connection_string.path.replace("/", "") or None
+        db_name = connection_string.path.replace("/", "") or None
         auth_key = query_string.get("auth_key")
         timeout = query_string.get("timeout")
 
