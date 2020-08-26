@@ -611,7 +611,7 @@ class Connection(object):
 
     def __init__(self, conn_type, host, port, db_name, auth_key, user,
                  password, timeout, _ssl, _handshake_version, **kwargs):
-        self.db = db_name
+        self.db_name = db_name
 
         self.host = host
         try:
@@ -687,7 +687,7 @@ class Connection(object):
         self.close(noreply_wait=False)
 
     def use(self, db):
-        self.db = db
+        self.db_name = db
 
     def is_open(self):
         return self._instance is not None and self._instance.is_open()
@@ -721,8 +721,8 @@ class Connection(object):
 
     def _start(self, term, **global_optargs):
         self.check_open()
-        if "db" in global_optargs or self.db is not None:
-            global_optargs["db"] = DB(global_optargs.get("db", self.db))
+        if "db" in global_optargs or self.db_name is not None:
+            global_optargs["db"] = DB(global_optargs.get("db", self.db_name))
         q = Query(pQuery.START, self._new_token(), term, global_optargs)
         return self._instance.run_query(q,
                                         global_optargs.get("noreply", False))
