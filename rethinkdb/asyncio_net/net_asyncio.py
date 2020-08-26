@@ -286,21 +286,26 @@ class ConnectionInstance(object):
         # We must not wait for the _reader_task if we got an exception, because that
         # means that we were called from it. Waiting would lead to a deadlock.
         if self._reader_task and exception is None:
-            await self._reader_task
+            await asyncio.wrap_future(self._reader_task)
 
         return None
 
     async def run_query(self, query, noreply):
-        serialized_query = query.serialize(
-            self._parent._get_json_encoder(query))
-        self._streamwriter.write(serialized_query)
-        await self._streamwriter.drain()
-        if noreply:
-            return None
-        response_future = self._io_loop.create_future()
-        self._user_queries[query.token] = (query, response_future)
-        result = await response_future
-        return result
+        try:
+            serialized_query = query.serialize(
+                self._parent._get_json_encoder(query))
+            self._streamwriter.write(serialized_query)
+            await self._streamwriter.drain()
+            if noreply:
+                return None
+            response_future = self._io_loop.create_future()
+            self._user_queries[query.token] = (query, response_future)
+            result = await response_future
+            return result
+        except asyncio.CancelledError as c_error:
+            raise c_error
+        except Exception as e:
+            raise e
 
     # The _reader coroutine runs in parallel, reading responses
     # off of the socket and forwarding them to the appropriate Future or Cursor.
