@@ -610,7 +610,7 @@ class Connection(object):
     _json_encoder = ReQLEncoder
 
     def __init__(self, conn_type, host, port, db, auth_key, user, password,
-                 timeout, ssl, _handshake_version, **kwargs):
+                 timeout, _ssl, _handshake_version, **kwargs):
         self.db = db
 
         self.host = host
@@ -622,7 +622,7 @@ class Connection(object):
 
         self.connect_timeout = timeout
 
-        self.ssl = ssl
+        self.ssl = _ssl
 
         self._conn_type = conn_type
         self._child_kwargs = kwargs
@@ -753,7 +753,7 @@ class DefaultConnection(Connection):
 def make_connection(connection_type,
                     host=None,
                     port=None,
-                    db=None,
+                    db_name=None,
                     auth_key=None,
                     user=None,
                     password=None,
@@ -793,6 +793,6 @@ def make_connection(connection_type,
     if not password and not password is None:
         password = None
 
-    conn = connection_type(host, port, db, auth_key, user, password, timeout,
-                           ssl, _handshake_version, **kwargs)
+    conn = connection_type(host, port, db_name, auth_key, user, password,
+                           timeout, ssl, _handshake_version, **kwargs)
     return conn.reconnect(timeout=timeout)

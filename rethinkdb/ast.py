@@ -629,6 +629,7 @@ def needs_wrap(arg):
 
 class RqlBoolOperQuery(RqlQuery):
     def __init__(self, *args, **optargs):
+        super().__init__(*args, **kwargs)
         self.infix = False
         RqlQuery.__init__(self, *args, **optargs)
 
@@ -903,7 +904,7 @@ class MakeObj(RqlQuery):
         list_comp = [
             T(repr(key), ": ", value) for key, value in dict_items(optargs)
         ]
-        t_value = T(*list_compt, intsp=", ")
+        t_value = T(*list_comp, intsp=", ")
         return T(
             "r.expr({",
             t_value,
@@ -1749,8 +1750,7 @@ class Binary(RqlTopLevelQuery):
     def compose(self, args, optargs):
         if self._args:
             return T("r.", self.statement, "(bytes(<data>))")
-        else:
-            return RqlTopLevelQuery.compose(self, args, optargs)
+        return RqlTopLevelQuery.compose(self, args, optargs)
 
     def build(self):
         if self._args:
@@ -1963,13 +1963,12 @@ class Func(RqlQuery):
         self._args.extend([MakeArray(*vrids), expr(lmbd(*vrs))])
 
     def compose(self, args, optargs):
+        list_comp = [
+            v.compose([v._args[0].compose(None, None)], []) for v in self.vrs
+        ]
         return T(
             "lambda ",
-            T(*[
-                v.compose([v._args[0].compose(None, None)], [])
-                for v in self.vrs
-            ],
-                intsp=", "),
+            T(*list_comp, intsp=", "),
             ": ",
             args[1],
         )

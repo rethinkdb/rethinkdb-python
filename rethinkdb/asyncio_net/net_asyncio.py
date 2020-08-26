@@ -100,7 +100,8 @@ class AsyncioCursor(Cursor):
 
     async def __anext__(self):
         try:
-            return (await self._get_next(None))
+            result = await self._get_next(None)
+            return result
         except ReqlCursorEmpty:
             raise StopAsyncIteration
 
@@ -304,8 +305,8 @@ class ConnectionInstance(object):
             return result
         except asyncio.CancelledError as c_error:
             raise c_error
-        except Exception as e:
-            raise e
+        except Exception as error:
+            raise error
 
     # The _reader coroutine runs in parallel, reading responses
     # off of the socket and forwarding them to the appropriate Future or Cursor.
