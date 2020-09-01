@@ -357,8 +357,7 @@ class ConnectionInstance(object):
                 kwargs["exception"] = ReqlDriverError(
                     "Unexpected response received.")
         except Exception as ex:
-            result = args, kwargs
-            this_task.set_result(result)
+            print(f"Exception on _reader, {ex}")
             if not self._closing:
                 await self.close(exception=ex)
         return args, kwargs
