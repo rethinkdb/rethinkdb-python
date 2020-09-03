@@ -360,6 +360,7 @@ class ConnectionInstance(object):
             print(f"Exception on _reader, {ex}")
             if not self._closing:
                 await self.close(exception=ex)
+            raise ex
         return args, kwargs
 
 
