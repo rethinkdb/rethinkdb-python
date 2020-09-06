@@ -356,6 +356,11 @@ class ConnectionInstance(object):
                 """
                 kwargs["exception"] = ReqlDriverError(
                     "Unexpected response received.")
+        except asyncio.IncompleteReadError as read_error:
+            print(f"Exception on _reader, incomplete_read, {read_error}")
+            if not self._closing:
+                await self.close(exception=ex)
+            raise read_error
         except Exception as ex:
             print(f"Exception on _reader, {ex}")
             if not self._closing:
