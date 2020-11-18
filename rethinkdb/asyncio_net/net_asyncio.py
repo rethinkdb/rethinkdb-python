@@ -315,7 +315,6 @@ class ConnectionInstance(object):
     # close the ConnectionInstance and be passed to any open Futures or Cursors.
     async def _reader(self, *args, **kwargs):
         # now the loop is on the taskloop
-        this_task = asyncio.current_task()
         try:
             nbytes = 12
             buf = b""
@@ -351,18 +350,13 @@ class ConnectionInstance(object):
                     future.set_exception(res.make_error(query))
                 del self._user_queries[token]
             elif not self._closing:
-                """
-                This error must be handled by TaskLoop to preserve the loop
-                """
                 kwargs["exception"] = ReqlDriverError(
                     "Unexpected response received.")
         except asyncio.IncompleteReadError as read_error:
-            print(f"Exception on _reader, incomplete_read, {read_error}")
             if not self._closing:
-                await self.close(exception=ex)
+                await self.close(exception=read_error)
             raise read_error
         except Exception as ex:
-            print(f"Exception on _reader, {ex}")
             if not self._closing:
                 await self.close(exception=ex)
             raise ex
@@ -379,9 +373,15 @@ class Connection(ConnectionBase):
                                   self.port)
 
     async def __aenter__(self):
+        """
+        async context manager enter
+        """
         return self
 
     async def __aexit__(self, exception_type, exception_val, traceback):
+        """
+        async context manager exit
+        """
         await self.close(False)
 
     async def _stop(self, cursor):
