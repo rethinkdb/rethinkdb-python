@@ -502,7 +502,7 @@ class TrioConnectionPool:
                 # still connected.
                 conn = self._connections.popleft()
         except IndexError:
-            conn = await make_connection(*self._args, **self._kwargs)
+            conn = await make_connection(Connection, *self._args, **self._kwargs)
 
         self._lent_out.add(conn)
         return conn
