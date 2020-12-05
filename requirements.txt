@@ -10,5 +10,6 @@ six==1.15.0
 tornado==5.1.1; python_version<"3.6"
 tornado==6.0.4; python_version>="3.6"
 trio==0.16.0; python_version>="3.6"
-outcome==1.1.0; python_version>="3.5"
+outcome==1.1.0; python_version>="3.6"
+outcome==1.0.1; python_version<="3.5"
 attrs==20.3.0; python_version>="3.5"
