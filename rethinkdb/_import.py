@@ -32,7 +32,7 @@ import signal
 import sys
 import time
 import traceback
-from multiprocessing.queues import Queue, SimpleQueue
+from multiprocessing.queues import SimpleQueue
 from queue import Empty, Full
 
 import six
@@ -400,7 +400,7 @@ class SourceFile(object):
                     yield batch
                     batch = []
 
-        except StopIteration as e:
+        except StopIteration:
             # yield any final batch
             if batch:
                 yield batch

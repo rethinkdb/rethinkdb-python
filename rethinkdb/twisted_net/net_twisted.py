@@ -350,9 +350,9 @@ class ConnectionInstance(object):
         # Now, we need to wait for the handshake.
         try:
             yield pConnection.wait_for_handshake
-        except ReqlAuthError as e:
+        except ReqlAuthError:
             raise
-        except ReqlTimeoutError as e:
+        except ReqlTimeoutError:
             raise ReqlTimeoutError(self._parent.host, self._parent.port)
         except Exception as e:
             raise ReqlDriverError(

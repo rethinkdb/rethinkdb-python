@@ -424,7 +424,7 @@ class SocketWrapper(object):
                 .replace("sending to", "during handshake with")
             )
             raise ReqlDriverError(error)
-        except socket.timeout as ex:
+        except socket.timeout:
             self.close()
             raise ReqlTimeoutError(self.host, self.port)
         except Exception as ex:
@@ -807,7 +807,7 @@ def make_connection(
 
     # The internal APIs will wait for none to deal with auth_key and password
     # TODO: refactor when we drop python2
-    if not password and not password is None:
+    if not password and password is not None:
         password = None
 
     conn = connection_type(

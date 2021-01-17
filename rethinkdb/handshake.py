@@ -29,7 +29,6 @@ import six
 from rethinkdb import ql2_pb2
 from rethinkdb.errors import ReqlAuthError, ReqlDriverError
 from rethinkdb.helpers import chain_to_bytes, decode_utf8
-from rethinkdb.logger import default_logger
 
 
 def compare_digest(digest_a, digest_b):
