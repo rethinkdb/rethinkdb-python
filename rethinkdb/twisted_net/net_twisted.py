@@ -380,7 +380,7 @@ class ConnectionInstance(object):
         for cursor in list(self._cursor_cache.values()):
             cursor._error(error_message)
 
-        for query, deferred in iter(self._user_queries.values()):
+        for query, deferred in iter(list(self._user_queries.values())):
             if not deferred.called:
                 deferred.errback(fail=ReqlDriverError(error_message))
 

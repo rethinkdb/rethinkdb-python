@@ -448,7 +448,7 @@ class SourceFile(object):
                 # apply the fields filter
                 if fields:
                     for row in batch:
-                        for key in [x for x in row.keys() if x not in fields]:
+                        for key in [x for x in list(row.keys()) if x not in fields]:
                             del row[key]
 
                 while not exit_event.is_set():
@@ -943,7 +943,7 @@ def parse_options(argv, prog=None):
             parser.error(
                 "table create options are not valid when importing a directory: %s"
                 % ", ".join(
-                    [x.lower().replace("_", " ") for x in options.custom_header.keys()]
+                    [x.lower().replace("_", " ") for x in list(options.custom_header.keys())]
                 )
             )
 
@@ -1475,7 +1475,7 @@ def import_tables(options, sources, files_ignored=None):
             # report debug statistics
             if options.debug:
                 print("Debug timing:")
-                for key, value in sorted(timing_sums.items(), key=lambda x: x[0]):
+                for key, value in sorted(list(timing_sums.items()), key=lambda x: x[0]):
                     print("  %s: %.2f" % (key, value))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)

@@ -208,7 +208,7 @@ class ConnectionInstance(object):
         for cursor in list(self._cursor_cache.values()):
             cursor._error(err_message)
 
-        for query, future in iter(self._user_queries.values()):
+        for query, future in iter(list(self._user_queries.values())):
             future.set_exception(ReqlDriverError(err_message))
 
         self._user_queries = {}

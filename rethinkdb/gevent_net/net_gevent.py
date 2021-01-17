@@ -258,7 +258,7 @@ class ConnectionInstance(object):
         for cursor in list(self._cursor_cache.values()):
             cursor._error(err_message)
 
-        for query, async_res in iter(self._user_queries.values()):
+        for query, async_res in iter(list(self._user_queries.values())):
             async_res.set_exception(RqlDriverError(err_message))
 
         self._user_queries = {}

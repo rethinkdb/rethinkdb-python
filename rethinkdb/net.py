@@ -73,7 +73,7 @@ try:
     {}.iteritems
 
     def dict_items(d):
-        return iter(d.items())
+        return iter(list(d.items()))
 
 
 except AttributeError:

@@ -707,7 +707,7 @@ class RqlBracketQuery(RqlMethodQuery):
 
 class RqlTzinfo(datetime.tzinfo):
     def __init__(self, offsetstr):
-        hours, minutes = map(int, offsetstr.split(":"))
+        hours, minutes = list(map(int, offsetstr.split(":")))
 
         self.offsetstr = offsetstr
         self.delta = datetime.timedelta(hours=hours, minutes=minutes)
