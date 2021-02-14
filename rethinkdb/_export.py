@@ -279,6 +279,16 @@ def export_table(
 
     writer = None
 
+    options.retryQuery = utils_common.RetryQuery(
+        connect_options={
+            "host": options.hostname,
+            "port": options.driver_port,
+            "user": options.user,
+            "password": options.password,
+            "ssl": options.ssl,
+        }
+    )
+
     has_write_hooks = utils_common.check_minimum_version(options, "2.3.7", False)
 
     try:
@@ -507,6 +517,7 @@ def run_clients(options, workingDir, db_table_set):
                 )
             )
 
+        arg_lists[0][3].retryQuery = None
         # Wait for all tables to finish
         while processes or arg_lists:
             time.sleep(0.1)
