@@ -247,16 +247,16 @@ def json_writer(filename, fields, task_queue, error_queue, format):
             pass
 
 
-def json_gz_writer(filename, fields, task_queue, error_queue, format, compression_level):
+def jsongz_writer(filename, fields, task_queue, error_queue, format, compression_level):
     try:
         with open(filename, "wb") as out:
             # wbits 31 = MAX_WBITS + gzip header and trailer
             compressor = zlib.compressobj(compression_level, zlib.DEFLATED, 31)
-            def compress_write(str):
+            def compress_and_write(str):
                 out.write(compressor.compress(str.encode("utf-8")))
 
             first = True
-            compress_write("[")
+            compress_and_write("[")
             item = task_queue.get()
             while not isinstance(item, StopIteration):
                 row = item[0]
@@ -265,15 +265,15 @@ def json_gz_writer(filename, fields, task_queue, error_queue, format, compressio
                         if item not in fields:
                             del row[item]
                 if first:
-                    compress_write("\n")
+                    compress_and_write("\n")
                     first = False
                 else:
-                    compress_write(",\n")
+                    compress_and_write(",\n")
 
-                compress_write(json.dumps(row))
+                compress_and_write(json.dumps(row))
                 item = task_queue.get()
 
-            compress_write("\n]\n")
+            compress_and_write("\n]\n")
             out.write(compressor.flush())
     except BaseException:
         ex_type, ex_class, tb = sys.exc_info()
@@ -392,7 +392,7 @@ def export_table(
         elif options.format == "jsongz":
             filename = directory + "/%s/%s.jsongz" % (db, table)
             writer = multiprocessing.Process(
-                target=json_gz_writer,
+                target=jsongz_writer,
                 args=(
                     filename,
                     options.fields,
