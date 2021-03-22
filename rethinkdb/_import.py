@@ -1085,10 +1085,6 @@ def parse_options(argv, prog=None):
             if options.custom_header is not None:
                 parser.error("--custom-header option is not valid for json files")
 
-            if options.max_document_size > 0:
-                global JSON_MAX_BUFFER_SIZE
-                JSON_MAX_BUFFER_SIZE = options.max_document_size
-
             options.file = os.path.abspath(options.file)
 
         else:
@@ -1098,6 +1094,11 @@ def parse_options(argv, prog=None):
         parser.error("Either -f/--file or -d/--directory is required")
 
     # --
+
+    # max_document_size - json
+    if options.max_document_size > 0:
+        global JSON_MAX_BUFFER_SIZE
+        JSON_MAX_BUFFER_SIZE = options.max_document_size
 
     # max_nesting_depth
     if options.max_nesting_depth > 0:
