@@ -895,11 +895,11 @@ def parse_options(argv, prog=None):
     file_import_group.add_option(
         "--format",
         dest="format",
-        metavar="json|csv",
+        metavar="json|jsongz|csv",
         default=None,
         help="format of the file (default: json, accepts newline delimited json)",
         type="choice",
-        choices=["json", "csv"],
+        choices=["json", "jsongz", "csv"],
     )
     file_import_group.add_option(
         "--pkey",
@@ -1076,7 +1076,7 @@ def parse_options(argv, prog=None):
             if options.custom_header:
                 options.custom_header = options.custom_header.split(",")
 
-        elif options.format == "json":
+        elif (options.format == "json" or options.format == "jsongz") :
             # disallow invalid options
             if options.delimiter is not None:
                 parser.error("--delimiter option is not valid for json files")
@@ -1084,9 +1084,6 @@ def parse_options(argv, prog=None):
                 parser.error("--no-header option is not valid for json files")
             if options.custom_header is not None:
                 parser.error("--custom-header option is not valid for json files")
-
-            # default options
-            options.format = "json"
 
             if options.max_document_size > 0:
                 global JSON_MAX_BUFFER_SIZE
