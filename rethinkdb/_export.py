@@ -200,7 +200,7 @@ def parse_options(argv, prog=None):
     if options.format == "jsongz":
         if options.compression_level is None:
             options.compression_level = -1
-        elif options.compression_level < 0 or options.compression_level > 9:
+        elif options.compression_level < -1 or options.compression_level > 9:
             parser.error("--compression-level must be an integer from 0 and 9")
     else:
         if options.compression_level:
