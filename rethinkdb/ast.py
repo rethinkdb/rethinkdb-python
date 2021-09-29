@@ -20,13 +20,21 @@ __all__ = ["expr", "RqlQuery", "ReQLEncoder", "ReQLDecoder", "Repl"]
 
 import base64
 import binascii
-import collections
 import datetime
 import json
+import sys
 import threading
 
 from rethinkdb import ql2_pb2
-from rethinkdb.errors import QueryPrinter, ReqlDriverCompileError, ReqlDriverError, T
+from rethinkdb.errors import (QueryPrinter, ReqlDriverCompileError,
+                              ReqlDriverError, T)
+
+if sys.version_info < (3, 3):
+    # python < 3.3 uses collections
+    import collections
+else:
+    # but collections is deprecated from python >= 3.3
+    import collections.abc as collections
 
 P_TERM = ql2_pb2.Term.TermType
 
@@ -74,7 +82,7 @@ class Repl(object):
 
 def expr(val, nesting_depth=20):
     """
-        Convert a Python primitive into a RQL primitive value
+    Convert a Python primitive into a RQL primitive value
     """
     if not isinstance(nesting_depth, int):
         raise ReqlDriverCompileError("Second argument to `r.expr` must be a number.")
@@ -759,7 +767,7 @@ def recursively_make_hashable(obj):
 
 class ReQLEncoder(json.JSONEncoder):
     """
-        Default JSONEncoder subclass to handle query conversion.
+    Default JSONEncoder subclass to handle query conversion.
     """
 
     def __init__(self):
@@ -779,7 +787,7 @@ class ReQLEncoder(json.JSONEncoder):
 
 class ReQLDecoder(json.JSONDecoder):
     """
-        Default JSONDecoder subclass to handle pseudo-type conversion.
+    Default JSONDecoder subclass to handle pseudo-type conversion.
     """
 
     def __init__(self, reql_format_opts=None):
