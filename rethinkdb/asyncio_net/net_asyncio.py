@@ -69,7 +69,6 @@ def reusable_waiter(loop, timeout):
     else:
         deadline = None
 
-    @asyncio.coroutine
     def wait(future):
         if deadline is not None:
             new_timeout = max(deadline - loop.time(), 0)
@@ -284,6 +283,7 @@ class ConnectionInstance(object):
             yield from self.run_query(noreply, False)
 
         self._streamwriter.close()
+        await self._streamwriter.wait_closed()
         # We must not wait for the _reader_task if we got an exception, because that
         # means that we were called from it. Waiting would lead to a deadlock.
         if self._reader_task and exception is None:
