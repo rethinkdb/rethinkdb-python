@@ -75,7 +75,7 @@ def reusable_waiter(loop, timeout):
             new_timeout = max(deadline - loop.time(), 0)
         else:
             new_timeout = None
-        return (yield from asyncio.wait_for(future, new_timeout, loop=loop))
+        return (yield from asyncio.wait_for(future, new_timeout))
 
     return wait
 
@@ -176,7 +176,8 @@ class ConnectionInstance(object):
         self._ready = asyncio.Future()
         self._io_loop = io_loop
         if self._io_loop is None:
-            self._io_loop = asyncio.get_event_loop()
+            # self._io_loop = asyncio.get_event_loop()
+            self._io_loop = asyncio.get_running_loop()
 
     def client_port(self):
         if self.is_open():
@@ -202,7 +203,6 @@ class ConnectionInstance(object):
             self._streamreader, self._streamwriter = yield from asyncio.open_connection(
                 self._parent.host,
                 self._parent.port,
-                loop=self._io_loop,
                 ssl=ssl_context,
             )
             self._streamwriter.get_extra_info("socket").setsockopt(
@@ -233,7 +233,6 @@ class ConnectionInstance(object):
                     response = yield from asyncio.wait_for(
                         _read_until(self._streamreader, b"\0"),
                         timeout,
-                        loop=self._io_loop,
                     )
                     response = response[:-1]
         except ReqlAuthError:
@@ -254,7 +253,7 @@ class ConnectionInstance(object):
 
         # Start a parallel function to perform reads
         #  store a reference to it so it doesn't get destroyed
-        self._reader_task = asyncio.ensure_future(self._reader(), loop=self._io_loop)
+        self._reader_task = asyncio.ensure_future(self._reader())
         return self._parent
 
     def is_open(self):
