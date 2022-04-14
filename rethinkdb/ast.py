@@ -92,7 +92,7 @@ def expr(val, nesting_depth=20):
 
     if isinstance(val, RqlQuery):
         return val
-    elif isinstance(val, collections.Callable):
+    elif isinstance(val, collections.abc.Callable):
         return Func(val)
     elif isinstance(val, (datetime.datetime, datetime.date)):
         if not hasattr(val, "tzinfo") or not val.tzinfo:

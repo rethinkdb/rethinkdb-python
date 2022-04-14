@@ -202,7 +202,7 @@ class ConnectionInstance(object):
             self._streamreader, self._streamwriter = yield from asyncio.open_connection(
                 self._parent.host,
                 self._parent.port,
-                loop=self._io_loop,
+                #loop=self._io_loop, droped at py3.10
                 ssl=ssl_context,
             )
             self._streamwriter.get_extra_info("socket").setsockopt(
