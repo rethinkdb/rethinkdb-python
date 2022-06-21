@@ -1,14 +1,12 @@
 [run]
-include = rethinkdb/*
+source = rethinkdb
+branch = True
+omit = *tests*
+       *__init__*
+       rethinkdb/ql2_pb2.py
 
 [report]
-exclude_lines =
-    pragma: no cover
-
-    def __unicode__
-    def __repr__
-
-omit =
-    rethinkdb/version.py
-
-show_missing = True
+sort = cover
+fail_under = 72
+exclude_lines = pragma: no cover
+                if __name__ == .__main__.:
