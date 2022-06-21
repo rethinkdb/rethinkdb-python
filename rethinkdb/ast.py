@@ -545,6 +545,9 @@ class ReqlQuery:  # pylint: disable=too-many-public-methods
     def match(self, *args):
         return Match(self, *args)
 
+    def format(self, *args, **kwargs):
+        return Format(self, *args, **kwargs)
+
     def split(self, *args):
         return Split(self, *args)
 
@@ -1622,6 +1625,13 @@ class Match(ReqlMethodQuery):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MATCH
         self.statement = "match"
+
+
+class Format(ReqlMethodQuery):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.term_type = P_TERM.FORMAT
+        self.statement = "format"
 
 
 class ToJsonString(ReqlMethodQuery):

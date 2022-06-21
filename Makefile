@@ -17,7 +17,7 @@
 PACKAGE_NAME = rethinkdb
 
 PROTO_FILE_NAME = ql2.proto
-PROTO_FILE_URL = https://raw.githubusercontent.com/rethinkdb/rethinkdb/next/src/rdb_protocol/${PROTO_FILE_NAME}
+PROTO_FILE_URL = https://raw.githubusercontent.com/rethinkdb/rethinkdb/70654faefe29bb0b4f6010fa82bd30a207d014d8/src/rdb_protocol/${PROTO_FILE_NAME}
 TARGET_PROTO_FILE = ${PROTO_FILE_NAME}
 
 FILE_CONVERTER_NAME = ./scripts/convert_protofile.py
@@ -118,12 +118,12 @@ test-unit: ## run unit tests and generate coverage
 
 .PHONY: test-integration
 test-integration: ## run unit tests and generate coverage
-	coverage run -m pytest -m "integration" -vv
+	coverage run -m pytest -m "integration" -m "not v2_5" -vv
 	coverage report
 
 .PHONY: test
 test: ## run all tests and generate coverage
-	coverage run -m pytest -vv
+	coverage run -m pytest -m "not v2_5" -vv
 	coverage report
 	coverage xml
 

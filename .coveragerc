@@ -7,6 +7,6 @@ omit = *tests*
 
 [report]
 sort = cover
-fail_under = 72
+fail_under = 70
 exclude_lines = pragma: no cover
                 if __name__ == .__main__.:

@@ -390,6 +390,31 @@ def test_floor(conn):
 
 
 @pytest.mark.integration
+@pytest.mark.v2_5
+def test_format(conn):
+    scenarios = [
+        Scenario(
+            name="text", args=["hello {name}", {"name": "bob"}], expected="hello bob"
+        ),
+        Scenario(
+            name="numbers", args=["1..2..{count}", {"count": 3}], expected="1..2..3"
+        ),
+        Scenario(
+            name="object",
+            args=["object: {obj}", {"obj": {"foo": "bar"}}],
+            expected='object: {"foo":"bar"}',
+        ),
+        Scenario(
+            name="array",
+            args=["array: {arr}", {"arr": [1, 2, 3]}],
+            expected="array: [1,2,3]",
+        ),
+    ]
+
+    assert_test_table(query.format, conn, scenarios)
+
+
+@pytest.mark.integration
 def test_ge(conn):
     scenarios = [
         Scenario(name="int equal", args=[2, 2], expected=True),

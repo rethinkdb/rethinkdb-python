@@ -50,6 +50,7 @@ __all__ = [
     "error",
     "february",
     "floor",
+    "format",
     "friday",
     "ge",
     "geojson",
@@ -785,6 +786,16 @@ def circle(*arguments, **kwargs):
     consisting of a specified number of vertices (default 32).
     """
     return ast.Circle(*arguments, **kwargs)
+
+
+def format(*arguments, **kwargs):  # pylint: disable=redefined-builtin
+    """
+    Format command takes a string as a template and formatting parameters as an
+    object. The parameters in the template string must exist as keys in the
+    object, otherwise, an error raised. The template must be a string literal
+    and cannot be the result of other commands.
+    """
+    return ast.Format(*arguments, **kwargs)
 
 
 row = ast.ImplicitVar()
