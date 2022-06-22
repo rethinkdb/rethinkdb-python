@@ -104,7 +104,7 @@ lint: ## run linters against the package
 	mypy rethinkdb
 	bandit -q -r rethinkdb
 	pylint rethinkdb
-	flake8 rethinkdb --count --ignore=E203,E501,W503 --show-source --statistics
+	flake8 rethinkdb --count --show-source --statistics
 
 .PHONY: ql2.proto
 ql2.proto: ## download and convert protobuf file
