@@ -36,14 +36,22 @@ maintainers = [
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/rethinkdb/rethinkdb-python/issues/"
 
-# this should be shipped with the C++ code not the python client
-# [tool.poetry.scripts]
-# rethinkdb-import = 'rethinkdb.main:app'
+# RethinkDB is aliasing the commands to `rethinkdb <command>`, therefore it
+# can be executed as `rethinkdb dump` or `rethinkdb-dump`.
+[tool.poetry.scripts]
+rethinkdb = "rethinkdb.cli.main:cmd_main"
+rethinkdb-dump = "rethinkdb.cli._dump:cmd_dump"
+rethinkdb-export = "rethinkdb.cli._export:cmd_export"
+rethinkdb-import = "rethinkdb.cli._import:cmd_import"
+rethinkdb-index-rebuild = "rethinkdb.cli._index_rebuild:cmd_index_rebuild"
+rethinkdb-repl = "rethinkdb.cli._repl:cmd_repl"
+rethinkdb-restore = "rethinkdb.cli._restore:cmd_restore"
 
 [tool.poetry.dependencies]
 pydantic = "^1.9"
 python = "^3.7"
 ujson = "^5.2.0"
+click = "^8.1.3"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7"
