@@ -1,0 +1,86 @@
+[tool.poetry]
+name = "rethinkdb"
+version = "2.5.0"
+license = "Apache-2.0"
+description = "Python client for RethinkDB."
+documentation = "https://rethinkdb.com/api/python/"
+repository = "https://github.com/rethinkdb/rethinkdb-python/"
+readme = "README.rst"
+keywords = ["database", "rethinkdb", "client"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Topic :: Software Development",
+    "Topic :: Database",
+    "Topic :: Database :: Front-Ends",
+    "Typing :: Typed",
+
+]
+authors = [
+    "RethinkDB <bugs@rethinkdb.com>",
+]
+maintainers = [
+    "RethinkDB <bugs@rethinkdb.com>",
+]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/rethinkdb/rethinkdb-python/issues/"
+
+# RethinkDB is aliasing the commands to `rethinkdb <command>`, therefore it
+# can be executed as `rethinkdb dump` or `rethinkdb-dump`.
+[tool.poetry.scripts]
+rethinkdb = "rethinkdb.cli.main:cmd_main"
+rethinkdb-dump = "rethinkdb.cli._dump:cmd_dump"
+rethinkdb-export = "rethinkdb.cli._export:cmd_export"
+rethinkdb-import = "rethinkdb.cli._import:cmd_import"
+rethinkdb-index-rebuild = "rethinkdb.cli._index_rebuild:cmd_index_rebuild"
+rethinkdb-repl = "rethinkdb.cli._repl:cmd_repl"
+rethinkdb-restore = "rethinkdb.cli._restore:cmd_restore"
+
+[tool.poetry.dependencies]
+pydantic = "^1.9"
+python = "^3.7"
+ujson = "^5.2.0"
+click = "^8.1.3"
+
+[tool.poetry.dev-dependencies]
+bandit = "^1.7"
+black = "^22.3"
+coverage = "^6.3"
+flake8 = "^4.0"
+hypothesis = "^6.46.3"
+mypy = "^0.950"
+pylint = "^2.13"
+pytest = "^7.1"
+sphinx_rtd_theme = "^1.0"
+
+[tool.poetry.extras]
+# Here comes the Trio, Twisted, etc extras
+all = []
+
+[tool.black]
+target-version = ['py38']
+
+[tool.isort]
+atomic = true
+case_sensitive = true
+combine_star = true
+force_sort_within_sections = true
+include_trailing_comma = true
+order_by_type = true
+line_length = 88  # Same as Black's line length
+multi_line_output = 3
+
+[build-system]
+requires = ["poetry>=1.1.13"]
+build-backend = "poetry.masonry.api"

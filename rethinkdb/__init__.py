@@ -1,4 +1,4 @@
-# Copyright 2018 RethinkDB
+# Copyright 2022 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -11,40 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# This file incorporates work covered by the following copyright:
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
-from rethinkdb import errors, version
+import warnings
 
-# The builtins here defends against re-importing something obscuring `object`.
-try:
-    import __builtin__ as builtins  # Python 2
-except ImportError:
-    import builtins  # Python 3
+from rethinkdb import errors  # , version
 
-
-__all__ = ["RethinkDB"] + errors.__all__
-__version__ = version.VERSION
+__all__ = ["r", "RethinkDB"]
+__version__ = "2.5.0"
 
 
-class RethinkDB(builtins.object):
+class RethinkDB:
+    """
+    RethinkDB serves as an entrypoint for queries.
+
+    It constructs the connection handlers and event loops, re-exports internal modules for easier
+    use, and sets the event loop.
+    """
+
     def __init__(self):
-        super(RethinkDB, self).__init__()
+        super().__init__()
 
-        from rethinkdb import (
-            _dump,
-            _export,
-            _import,
-            _index_rebuild,
-            _restore,
-            ast,
-            query,
-            net,
-        )
-
-        self._dump = _dump
-        self._export = _export
-        self._import = _import
-        self._index_rebuild = _index_rebuild
-        self._restore = _restore
+        # pylint: disable=import-outside-toplevel
+        from rethinkdb import ast, net, query
 
         # Re-export internal modules for backward compatibility
         self.ast = ast
@@ -53,40 +44,50 @@ class RethinkDB(builtins.object):
         self.query = query
 
         net.Connection._r = self
+        self.connection_type = None
 
+        # Dynamically assign every re-exported internal module's function to self
         for module in (self.net, self.query, self.ast, self.errors):
             for function_name in module.__all__:
                 setattr(self, function_name, getattr(module, function_name))
 
+        # Ensure the `make_connection` function is not overridden accidentally
+        self.make_connection = self.net.make_connection
         self.set_loop_type(None)
 
-    def set_loop_type(self, library=None):
+    def set_loop_type(self, library=None) -> None:
+        """
+        Set event loop type for the requested library.
+        """
+
         if library == "asyncio":
-            from rethinkdb.asyncio_net import net_asyncio
-            self.connection_type = net_asyncio.Connection
+            warnings.warn(f"{library} is not yet supported, using the default one")
+            library = None
 
         if library == "gevent":
-            from rethinkdb.gevent_net import net_gevent
-            self.connection_type = net_gevent.Connection
+            warnings.warn(f"{library} is not yet supported, using the default one")
+            library = None
 
         if library == "tornado":
-            from rethinkdb.tornado_net import net_tornado
-            self.connection_type = net_tornado.Connection
+            warnings.warn(f"{library} is not yet supported, using the default one")
+            library = None
 
         if library == "trio":
-            from rethinkdb.trio_net import net_trio
-            self.connection_type = net_trio.Connection
+            warnings.warn(f"{library} is not yet supported, using the default one")
+            library = None
 
         if library == "twisted":
-            from rethinkdb.twisted_net import net_twisted
-            self.connection_type = net_twisted.Connection
+            warnings.warn(f"{library} is not yet supported, using the default one")
+            library = None
 
         if library is None or self.connection_type is None:
             self.connection_type = self.net.DefaultConnection
 
-        return
-
     def connect(self, *args, **kwargs):
+        """
+        Make a connection to the database.
+        """
+
         return self.make_connection(self.connection_type, *args, **kwargs)
 
 

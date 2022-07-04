@@ -1,0 +1,59 @@
+---
+name: Build
+
+on: [push, release]
+
+jobs:
+    build:
+        name: Test Python ${{ matrix.python-version }}
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                python-version: ['3.8']
+
+        steps:
+            - uses: actions/checkout@v3
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v3
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install requirements
+              run: |
+                  pip install poetry pre-commit
+                  poetry install
+
+            - name: Install RethinkDB and compile proto file
+              run: |
+                  ./scripts/install-db.sh
+                  make ql2.proto
+
+            - name: Run linters
+              run: |
+                  pre-commit run --all-files
+                  poetry run make lint
+
+            - name: Run tests
+              run: |
+                  # Download and install test reporter
+                  make download-test-reporter
+                  make test-reporter-before
+                  # Start DB and run tests
+                  rethinkdb&
+                  poetry run make test
+                  killall rethinkdb
+
+            - name: Upload coverage report
+              if: ${{ matrix.python-version == '3.8' }}
+              env:
+                  CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+              run: |
+                  make upload-coverage
+
+            - name: Deploy to PyPi
+              env:
+                  POETRY_HTTP_BASIC_PYPI_USERNAME: ${{ secrets.POETRY_HTTP_BASIC_PYPI_USERNAME }}
+                  POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.POETRY_HTTP_BASIC_PYPI_PASSWORD }}
+              if: ${{ github.event_name == 'release' && matrix.python-version == '3.8' }}
+              run: poetry publish --build
