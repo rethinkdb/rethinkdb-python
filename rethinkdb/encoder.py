@@ -187,7 +187,7 @@ class ReqlDecoder(json.JSONDecoder):
             None: lambda x: x,
             "GEOMETRY": lambda x: x,
             "BINARY": lambda x: self.__convert_pseudo_type(
-                x, "binary_format", self.convert_time
+                x, "binary_format", self.convert_binary
             ),
             "GROUPED_DATA": lambda x: self.__convert_pseudo_type(
                 x, "group_format", self.convert_grouped_data

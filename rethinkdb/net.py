@@ -1034,7 +1034,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """
         Return the related json decoder.
         """
-        return (query.json_decoder or self._json_decoder)(query.kwargs)
+        return (query.json_decoder or self._json_decoder)(reql_format_opts=query.kwargs)
 
     def get_json_encoder(self, query):
         """
