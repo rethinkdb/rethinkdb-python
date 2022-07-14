@@ -597,7 +597,7 @@ def run(options):
                 db_table_set.update(set([x for x in all_tables if x.db == db]))
             else:
                 if utils_common.DbTable(db, table) not in all_tables:
-                    raise RuntimeError(f"Error: Table not found: '{db}.{table}'" % (db, table))
+                    raise RuntimeError(f"Error: Table not found: '{db}.{table}'")
                 db_table_set.add(db_table)
 
     # Determine the actual number of client processes we'll have
