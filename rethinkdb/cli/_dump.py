@@ -32,8 +32,8 @@ import tempfile
 import time
 import traceback
 
-from rethinkdb import _export, utils_common
-from rethinkdb.logger import default_logger
+from rethinkdb import cmd_export, utils_common
+# from rethinkdb.logger import default_logger
 
 
 usage = (
@@ -202,9 +202,9 @@ def cmd_dump():
                 print("  Exporting to temporary directory...")
 
             try:
-                _export.run(options)
+                cmd_export.run(options)
             except Exception as exc:
-                default_logger.exception(exc)
+                # default_logger.exception(exc)
 
                 if options.debug:
                     sys.stderr.write(f"\n{traceback.format_exc()}\n")

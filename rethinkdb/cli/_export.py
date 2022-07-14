@@ -39,7 +39,7 @@ import traceback
 from multiprocessing.queues import SimpleQueue
 
 from rethinkdb import errors, query, utils_common
-from rethinkdb.logger import default_logger
+# from rethinkdb.logger import default_logger
 
 # STATIC INFORMATION ABOUT THE EXOIRT FEATURE
 usage = """rethinkdb export [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert filename] [-d DIR]
@@ -392,7 +392,8 @@ def export_table(
                 try:
                     cursor.close()
                 except errors.ReqlError as exc:
-                    default_logger.exception(exc)
+                    # default_logger.exception(exc)
+					pass
 
                 cursor = options.retryQuery(
                     f"backup cursor for {db}.{table}",
