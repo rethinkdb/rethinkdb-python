@@ -60,6 +60,7 @@ Error = collections.namedtuple("Error", ["message", "traceback", "file"])
 
 NEW_LINE = "\n"
 
+
 class SourceFile(object):
     format = None  # set by subclasses
 
@@ -136,10 +137,10 @@ class SourceFile(object):
             try:
                 self._source = codecs.open(source, mode="r", encoding="utf-8")
             except IOError as exc:
-                default_logger.exception(exc)
+                # default_logger.exception(exc)
                 raise ValueError(
-                    f'Unable to open source file "{str(source)}": ' \
-					f'{str(exc)}'
+                    f'Unable to open source file "{str(source)}": '
+                    f'{str(exc)}'
                 )
 
         if (
@@ -298,8 +299,8 @@ class SourceFile(object):
             self.primary_key = primary_key
         elif primary_key != self.primary_key:
             raise RuntimeError(
-                f"Error: table {self.db}.{self.table} primary key was " \
-				f"`{primary_key}` rather than the expected: {self.primary_key}"
+                f"Error: table {self.db}.{self.table} primary key was "
+                f"`{primary_key}` rather than the expected: {self.primary_key}"
             )
 
     def restore_indexes(self, warning_queue):
@@ -411,7 +412,7 @@ class SourceFile(object):
                     yield batch
                     batch = []
 
-        except StopIteration as e:
+        except StopIteration:
             # yield any final batch
             if batch:
                 yield batch
@@ -476,7 +477,7 @@ class SourceFile(object):
 
         # - report relevant errors
         except Exception as exc:
-            default_logger.exception(exc)
+            # default_logger.exception(exc)
             error_queue.put(Error(str(exc), traceback.format_exc(), self.name))
             exit_event.set()
             raise
@@ -509,9 +510,9 @@ class JsonSourceFile(SourceFile):
             # double the buffer under the assumption that the documents are too large to fit
             if self._buffer_size == JSON_MAX_BUFFER_SIZE:
                 raise Exception(
-                    f"Error: JSON max buffer size exceeded on file " \
-					f"{self.name} (from position {self.bytes_processed}). " \
-					f"Use '--max-document-size' to extend your buffer."
+                    f"Error: JSON max buffer size exceeded on file "
+                    f"{self.name} (from position {self.bytes_processed}). "
+                    f"Use '--max-document-size' to extend your buffer."
                 )
             self._buffer_size = min(self._buffer_size * 2, JSON_MAX_BUFFER_SIZE)
 
@@ -614,8 +615,8 @@ class JsonSourceFile(SourceFile):
                     else f" and {len(snippit) - 100} more characters"
                 )
                 raise ValueError(
-                    f"Error: JSON array did not end cleanly, " \
-					f"rather with: <<{snippit[:100]}>>{extra}"
+                    f"Error: JSON array did not end cleanly, "
+                    f"rather with: <<{snippit[:100]}>>{extra}"
                 )
             self._buffer_pos += 1
 
@@ -631,8 +632,8 @@ class JsonSourceFile(SourceFile):
                 else f" and {len(snippit) - 100} more characters"
             )
             raise ValueError(
-                f"Error: extra data after JSON data: <<{snippit[:100]}>>" \
-				f"{extra}"
+                f"Error: extra data after JSON data: <<{snippit[:100]}>>"
+                f"{extra}"
             )
 
 
@@ -680,8 +681,8 @@ class CsvSourceFile(SourceFile):
         if self.custom_header is not None:
             if not self.no_header_row:
                 warning_queue.put(
-                    f"Ignoring header row on {self.name}: " \
-					f"{str(self._columns)}"
+                    f"Ignoring header row on {self.name}: "
+                    f"{str(self._columns)}"
                 )
             self._columns = self.custom_header
         elif self.no_header_row:
@@ -691,8 +692,8 @@ class CsvSourceFile(SourceFile):
         raw_row = next(self._reader)
         if len(self._columns) != len(raw_row):
             raise Exception(
-                f"Error: '{self.name}' line {self._reader.line_num} " \
-				f"has an inconsistent number of columns: {str(raw_row)}"
+                f"Error: '{self.name}' line {self._reader.line_num} "
+                f"has an inconsistent number of columns: {str(raw_row)}"
             )
 
         row = {}
