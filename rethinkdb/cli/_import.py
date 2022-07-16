@@ -314,13 +314,13 @@ class SourceFile(object):
                 for index in self.indexes:
                     if index["index"] in existing_indexes:  # drop existing versions
                         self.query_runner(
-                            f"drop index: {self.db}.{self.table}:{index['index']}"
+                            f"drop index: {self.db}.{self.table}:{index['index']}",
                             query.db(self.db)
                             .table(self.table)
                             .index_drop(index["index"]),
                         )
                     self.query_runner(
-                        f"create index: {self.db}.{self.table}:{index['index']}"
+                        f"create index: {self.db}.{self.table}:{index['index']}",
                         query.db(self.db)
                         .table(self.table)
                         .index_create(index["index"], index["function"]),
@@ -967,9 +967,9 @@ def parse_options(argv, prog=None):
             parser.error(
                 f"table create options are not valid when importing " \
 				f"a directory: " \
-				f"{', '.join(
+				f"""{', '.join(
                     [x.lower().replace('_', ' ') for x in options.custom_header.keys()]
-                )}
+                )}"""
             )
 
         # check valid options
@@ -1709,7 +1709,7 @@ def parse_sources(options, files_ignored=None):
                 file=sys.stderr,
             )
             for ignored_file in files_ignored:
-                print(f"{str(ignored_file), file=sys.stderr}")
+                print(f"{str(ignored_file)} {sys.stderr}")
     else:
         raise RuntimeError("Error: Neither --directory or --file specified")
 
