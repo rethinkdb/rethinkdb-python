@@ -925,8 +925,8 @@ def parse_options(argv, prog=None):
 
     if len(args) != 0:
         raise parser.error(
-            f"No positional arguments supported. " \
-			f"Unrecognized option(s): {args}"
+            f"No positional arguments supported. "
+            f"Unrecognized option(s): {args}"
         )
 
     # - create_args
@@ -941,12 +941,12 @@ def parse_options(argv, prog=None):
     elif options.directory:
         if not os.path.exists(options.directory):
             parser.error(
-				f"-d/--directory does not exist: {options.directory}"
-			)
+                f"-d/--directory does not exist: {options.directory}"
+            )
         if not os.path.isdir(options.directory):
             parser.error(
-				f"-d/--directory is not a directory: {options.directory}"
-			)
+                f"-d/--directory is not a directory: {options.directory}"
+            )
         options.directory = os.path.realpath(options.directory)
 
         # disallow invalid options
@@ -965,9 +965,9 @@ def parse_options(argv, prog=None):
             parser.error("--no-header option is not valid when importing a directory")
         if options.custom_header:
             parser.error(
-                f"table create options are not valid when importing " \
-				f"a directory: " \
-				f"""{', '.join(
+                f"table create options are not valid when importing "
+                f"a directory: "
+                f"""{', '.join(
                     [x.lower().replace('_', ' ') for x in options.custom_header.keys()]
                 )}"""
             )
@@ -975,8 +975,8 @@ def parse_options(argv, prog=None):
         # check valid options
         if not os.path.isdir(options.directory):
             parser.error(
-				f"Directory to import does not exist: {options.directory}"
-			)
+                f"Directory to import does not exist: {options.directory}"
+            )
 
         if options.fields and (
             len(options.db_tables) > 1 or options.db_tables[0].table is None
@@ -1005,8 +1005,8 @@ def parse_options(argv, prog=None):
                 )
             else:
                 parser.error(
-					f"Invalid --table option: {options.import_table}"
-				)
+                    f"Invalid --table option: {options.import_table}"
+                )
         else:
             parser.error("A value is required for --table when importing from a file")
 
@@ -1035,8 +1035,8 @@ def parse_options(argv, prog=None):
                 options.delimiter = "\t"
             elif len(options.delimiter) != 1:
                 parser.error(
-                    f"Specify exactly one character for the --delimiter " \
-					f"option: {options.delimiter}"
+                    f"Specify exactly one character for the --delimiter "
+                    f"option: {options.delimiter}"
                 )
 
             # no_header
@@ -1127,15 +1127,15 @@ def table_writer(
 
                 if res["errors"] > 0:
                     raise RuntimeError(
-                        f"Error when importing into table " \
-						f"'{db}.{table}': {res['first_error']}"
+                        f"Error when importing into table "
+                        f"'{db}.{table}': {res['first_error']}"
                     )
                 modified = res["inserted"] + res["replaced"] + res["unchanged"]
                 if modified != len(batch):
                     raise RuntimeError(
-                        f"The inserted/replaced/unchanged number did not " \
-						f"match when importing into table " \
-						f"'{db}.{table}': {res['first_error']}"
+                        f"The inserted/replaced/unchanged number did not "
+                        f"match when importing into table "
+                        f"'{db}.{table}': {res['first_error']}"
                     )
 
                 table_info.add_rows_written(modified)
@@ -1146,9 +1146,9 @@ def table_writer(
                 for row in batch:
                     if table_info.primary_key not in row:
                         raise RuntimeError(
-                            f"Connection error while importing.  " \
-							f"Current row does not have the specified " \
-							f"primary key ({table_info.primary_key}), " \
+                            f"Connection error while importing.  "
+                            f"Current row does not have the specified "
+                            f"primary key ({table_info.primary_key}), "
                             f"so cannot guarantee absence of duplicates"
                         )
                     res = None
@@ -1179,20 +1179,20 @@ def table_writer(
                             )
                         elif existingRow != row:
                             raise RuntimeError(
-                                f"Duplicate primary key `{table_info.primary_key}`:" \
-								f"{NEW_LINE}{str(row)}{NEW_LINE}{str(existingRow)}"
+                                f"Duplicate primary key `{table_info.primary_key}`:"
+                                f"{NEW_LINE}{str(row)}{NEW_LINE}{str(existingRow)}"
                             )
 
                     if res["errors"] > 0:
                         raise RuntimeError(
-                            f"Error when importing into table " \
-							f"'{db}.{table}': {res['first_error']}"
+                            f"Error when importing into table "
+                            f"'{db}.{table}': {res['first_error']}"
                         )
                     if res["inserted"] + res["replaced"] + res["unchanged"] != 1:
                         raise RuntimeError(
-                            f"The inserted/replaced/unchanged number was " \
-							f"not 1 when inserting on " \
-							f"'{db}.{table}': {res}"
+                            f"The inserted/replaced/unchanged number was "
+                            f"not 1 when inserting on "
+                            f"'{db}.{table}': {res}"
                         )
                     table_info.add_rows_written(1)
             timing_queue.put(("writer_work", time.time() - timePoint))
@@ -1200,8 +1200,8 @@ def table_writer(
 
     except Exception as e:
         error_queue.put(
-			Error(str(e), traceback.format_exc(), f"{db}.{table}")
-		)
+            Error(str(e), traceback.format_exc(), f"{db}.{table}")
+        )
         exit_event.set()
 
 
