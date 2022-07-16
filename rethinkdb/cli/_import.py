@@ -1344,23 +1344,23 @@ def import_tables(options, sources, files_ignored=None):
                 source.primary_key = existing_tables[(source.db, source.table)]
             elif source.primary_key != existing_tables[(source.db, source.table)]:
                 raise RuntimeError(
-                    f"Error: Table '{source.db}.{source.table}' " \
-					f"already exists with a different primary key: " \
-					f"{existing_tables[(source.db, source.table)]} "\
-					f"(expected: {source.primary_key})"
+                    f"Error: Table '{source.db}.{source.table}' "
+                    f"already exists with a different primary key: "
+                    f"{existing_tables[(source.db, source.table)]} "
+                    f"(expected: {source.primary_key})"
                 )
 
     if len(already_exist) == 1:
         raise RuntimeError(
-            f"Error: Table '{already_exist[0]}' already exists, run with" \
+            f"Error: Table '{already_exist[0]}' already exists, run with"
             f" --force to import into the existing table"
         )
     elif len(already_exist) > 1:
         already_exist.sort()
         raise RuntimeError(
-            f"Error: The following tables already exist, " \
-            f"run with --force to import into the existing tables:" \
-            f"{NEW_LINE} " \
+            f"Error: The following tables already exist, "
+            f"run with --force to import into the existing tables:"
+            f"{NEW_LINE} "
             f"{(NEW_LINE + ' ').join(already_exist)}"
         )
 
@@ -1452,7 +1452,8 @@ def import_tables(options, sources, files_ignored=None):
                 try:
                     reader.join(0.1)
                 except Exception as exc:
-                    default_logger.exception(exc)
+                    # default_logger.exception(exc)
+                    pass
                 if not reader.is_alive():
                     readers.remove(reader)
 
@@ -1498,8 +1499,8 @@ def import_tables(options, sources, files_ignored=None):
                 return f"{num} {text}{'' if num == 1 else 's'}"
 
             print(
-                f"  {plural(sum(x.rows_written for x in sources), 'row')}" \
-                f" imported to {plural(len(sources), 'table')} in " \
+                f"  {plural(sum(x.rows_written for x in sources), 'row')}"
+                f" imported to {plural(len(sources), 'table')} in "
                 f"{time.time() - start_time}:.2f secs"
             )
 
