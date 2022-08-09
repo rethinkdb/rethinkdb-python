@@ -511,7 +511,7 @@ class JsonSourceFile(SourceFile):
             if self._buffer_size == JSON_MAX_BUFFER_SIZE:
                 raise Exception(
                     f"Error: JSON max buffer size exceeded on file "
-                    f"{self.name} (from position {self.bytes_processed}). "
+                    f"{self.name} (from position {self._bytes_read}). "
                     f"Use '--max-document-size' to extend your buffer."
                 )
             self._buffer_size = min(self._buffer_size * 2, JSON_MAX_BUFFER_SIZE)
