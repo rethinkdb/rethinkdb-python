@@ -172,6 +172,7 @@ def main(argv=None, prog=None):
     options = parse_options(argv or sys.argv[1:], prog=prog)
     try:
         if not options.quiet:
+            pass #ssmith, remove options
             # Print a warning about the capabilities of dump, so no one is confused (hopefully)
             # print(
                 # """\
