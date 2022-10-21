@@ -173,12 +173,12 @@ def main(argv=None, prog=None):
     try:
         if not options.quiet:
             # Print a warning about the capabilities of dump, so no one is confused (hopefully)
-            print(
-                """\
-            NOTE: 'rethinkdb-dump' saves data, secondary indexes, and write hooks, but does *not* save
-            cluster metadata.  You will need to recreate your cluster setup yourself after
-            you run 'rethinkdb-restore'."""
-            )
+            # print(
+                # """\
+            # NOTE: 'rethinkdb-dump' saves data, secondary indexes, and write hooks, but does *not* save
+            # cluster metadata.  You will need to recreate your cluster setup yourself after
+            # you run 'rethinkdb-restore'."""
+            # )
 
         try:
             start_time = time.time()
