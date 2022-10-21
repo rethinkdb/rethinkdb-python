@@ -29,7 +29,7 @@ import json
 import multiprocessing
 import optparse
 import os
-import signal
+# import signal
 import sys
 import time
 import traceback
@@ -441,10 +441,10 @@ class SourceFile(object):
         ignore_signals=True,
         batch_size=None,
     ):
-        if (
-            ignore_signals
-        ):  # ToDo: work out when we are in a worker process automatically
-            signal.signal(signal.SIGINT, signal.SIG_IGN)  # workers should ignore these
+        # if (
+            # ignore_signals
+        # ):  # ToDo: work out when we are in a worker process automatically
+            # signal.signal(signal.SIGINT, signal.SIG_IGN)  # workers should ignore these
 
         if batch_size is None:
             batch_size = utils_common.default_batch_size
@@ -1078,7 +1078,7 @@ def parse_options(argv, prog=None):
 def table_writer(
     tables, options, work_queue, error_queue, warning_queue, exit_event, timing_queue
 ):
-    signal.signal(signal.SIGINT, signal.SIG_IGN)  # workers should ignore these
+    # signal.signal(signal.SIGINT, signal.SIG_IGN)  # workers should ignore these
     db = table = batch = None
 
     try:
@@ -1188,7 +1188,7 @@ def table_writer(
 
 
 def update_progress(tables, debug, exit_event, sleep=0.2):
-    signal.signal(signal.SIGINT, signal.SIG_IGN)  # workers should not get these
+    # signal.signal(signal.SIGINT, signal.SIG_IGN)  # workers should not get these
 
     # give weights to each of the tables based on file size
     totalSize = sum([x.bytes_size for x in tables])
@@ -1269,7 +1269,7 @@ def import_tables(options, sources, files_ignored=None):
     progress_bar_sleep = 0.2
 
     # - setup KeyboardInterupt handler
-    signal.signal(signal.SIGINT, lambda a, b: utils_common.abort(pools, exit_event))
+    # signal.signal(signal.SIGINT, lambda a, b: utils_common.abort(pools, exit_event))
 
     # - queue draining
     def drain_queues():
@@ -1494,7 +1494,8 @@ def import_tables(options, sources, files_ignored=None):
                 for key, value in sorted(timing_sums.items(), key=lambda x: x[0]):
                     print("  %s: %.2f" % (key, value))
     finally:
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        pass
+        # signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     drain_queues()
 

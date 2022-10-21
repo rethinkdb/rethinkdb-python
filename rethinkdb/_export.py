@@ -28,7 +28,7 @@ import numbers
 import optparse
 import os
 import platform
-import signal
+# import signal
 import sys
 import tempfile
 import time
@@ -273,9 +273,9 @@ def export_table(
     hook_counter,
     exit_event,
 ):
-    signal.signal(
-        signal.SIGINT, signal.SIG_DFL
-    )  # prevent signal handlers from being set in child processes
+    # signal.signal(
+        # signal.SIGINT, signal.SIG_DFL
+    # )  # prevent signal handlers from being set in child processes
 
     writer = None
 
@@ -470,9 +470,9 @@ def run_clients(options, workingDir, db_table_set):
     sindex_counter = multiprocessing.Value(ctypes.c_longlong, 0)
     hook_counter = multiprocessing.Value(ctypes.c_longlong, 0)
 
-    signal.signal(
-        signal.SIGINT, lambda a, b: abort_export(a, b, exit_event, interrupt_event)
-    )
+    # signal.signal(
+        # signal.SIGINT, lambda a, b: abort_export(a, b, exit_event, interrupt_event)
+    # )
     errors = []
 
     try:
@@ -552,7 +552,8 @@ def run_clients(options, workingDir, db_table_set):
                 )
             )
     finally:
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        pass
+        # signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     if interrupt_event.is_set():
         raise RuntimeError("Interrupted")
