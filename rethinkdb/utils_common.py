@@ -308,7 +308,7 @@ class CommonOptionsParser(optparse.OptionParser, object):
 
                     values.ensure_value(dest, {})[self.metavar.lower()] = value
                 elif action == "get_password":
-                    values[dest] = getpass.getpass("Password for `admin`: ")
+                    values.ensure_value('password', getpass.getpass("Password for `admin`: "))
                 else:
                     super(CommonOptionChecker, self).take_action(
                         action, dest, opt, value, values, parser
