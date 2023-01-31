@@ -234,7 +234,8 @@ class ConnectionInstance(object):
                         break
                     # This may happen in the `V1_0` protocol where we send two requests as
                     # an optimization, then need to read each separately
-                    if request is not "":
+                    # if request is not "": # SyntaxWarning: "is not" with a literal. Did you mean "!="?
+                    if request != "":
                         self._streamwriter.write(request)
 
                     # response = yield from asyncio.wait_for(
