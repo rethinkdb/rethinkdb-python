@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2022 RethinkDB
+# Copyright 2022 - present RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -20,11 +20,13 @@
 """
 Dump creates an archive of data from a RethinkDB cluster.
 """
+
 import click
 
 
 @click.command
-def cmd_dump():
+@click.pass_context
+def cmd_dump(ctx):
     """
     Dump creates an archive of data from a RethinkDB cluster.
     """
