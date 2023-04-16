@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2022 RethinkDB
+# Copyright 2022 - present RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -18,24 +18,23 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
 """
-The main command is a special group that is the root of the command tree.
-
-This command creates a subcommand tree that with the following commands for
-those cases when the rethinkdb binary is not installed:
-    - dump
-    - export
-    - import
-    - index_rebuild
-    - repl
-    - restore
+Start an interactive Python shell (repl) with the RethinkDB driver imported.
 """
 
 import click
 
+BANNER = """
+The RethinkDB driver has been imported as `r`.
+
+A connection to %s:%d has been established as `conn`
+and can be used by calling `run()` on a query without any arguments.
+"""
 
 @click.command
-def cmd_repl():
+@click.pass_context
+def cmd_repl(ctx):
     """
-    Rebuild outdated secondary indexes.
+    Start an interactive Python shell (repl) with the RethinkDB driver imported.
     """
-    click.echo("repl command")
+
+    click.echo(f"repl command: {ctx}")

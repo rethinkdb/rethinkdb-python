@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2022 RethinkDB
+# Copyright 2022 - present RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,8 @@ import click
 
 
 @click.command
-def cmd_index_rebuild():
+@click.pass_context
+def cmd_index_rebuild(ctx):
     """
     Rebuild outdated secondary indexes.
     """
