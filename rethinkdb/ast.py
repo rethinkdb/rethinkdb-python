@@ -647,7 +647,7 @@ class RqlBoolOperQuery(RqlQuery):
         ]
 
         if self.infix:
-            return T("(", T(*t_args, intsp=[" ", self.statement_infix, " "]), ")")
+            return T("(", T(*t_args, intsp=[" ", self.st_infix, " "]), ")")
         else:
             return T("r.", self.statement, "(", T(*t_args, intsp=", "), ")")
 
