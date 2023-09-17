@@ -20,8 +20,6 @@
 """
 Dump creates an archive of data from a RethinkDB cluster.
 """
-import click
-
 import datetime
 import os
 import platform
@@ -165,25 +163,10 @@ def parse_options(argv, prog=None):
     return options
 
 
-@click.command
-@click.option("--directory", default="", help="The target directory of the dump")
-@click.option("--fields", default=None, help="The fields to be dumped")
-@click.option("--delimiter", default=None, help="The delimiter of the exported data")
-@click.option("--format", default="json", help="The format of the export data")
-@click.option("--quiet", default=True, help="Verbose dump")
-@click.opton("--debug", default=False, help="Whether to debug or not")
-@click.option("--out_file", help="The output file name")
-def cmd_dump(directory, fields, delimiter, format, quiet, debug, out_file):
-    """
-    Dump creates an archive of data from a RethinkDB cluster.
-    """
-    click.echo("dump command")
-    # argv = None
-    # prog = None
-
-    # options = parse_options(argv or sys.argv[1:], prog=prog)
+def main(argv=None, prog=None):
+    options = parse_options(argv or sys.argv[1:], prog=prog)
     try:
-        if not quiet:
+        if not options.quiet:
             # Print a warning about the capabilities of dump, so no one is confused (hopefully)
             print(
                 """\
@@ -198,60 +181,42 @@ def cmd_dump(directory, fields, delimiter, format, quiet, debug, out_file):
 
             # -- _export options - need to be kep in-sync with _export
 
-            # options.directory = os.path.realpath(tempfile.mkdtemp(dir=options.temp_dir))
-            # options.fields = None
-            # options.delimiter = None
-            # options.format = "json"
+            options.directory = os.path.realpath(tempfile.mkdtemp(dir=options.temp_dir))
+            options.fields = None
+            options.delimiter = None
+            options.format = "json"
 
             # -- export to a directory
 
-            # if not options.quiet:
-            #     print("  Exporting to temporary directory...")
-            if not quiet:
+            if not options.quiet:
                 print("  Exporting to temporary directory...")
 
             try:
-                # cmd_export.run(options)
-                cmd_export.run({
-                    "directory": directory,
-                    "quiet": quiet,
-                    "fields": fields,
-                    "delimter": delimiter,
-                    "format": format
-                })
+                _export.run(options)
             except Exception as exc:
-                # default_logger.exception(exc)
+                default_logger.exception(exc)
 
-                # if options.debug:
-                if debug:
-                    sys.stderr.write(f"\n{traceback.format_exc()}\n")
+                if options.debug:
+                    sys.stderr.write("\n%s\n" % traceback.format_exc())
 
-                raise Exception(f"Error: export failed, {exc}")
+                raise Exception("Error: export failed, %s" % exc)
 
             # -- zip directory
 
-            # if not options.quiet:
-            if not quiet:
+            if not options.quiet:
                 print("  Zipping export directory...")
 
             try:
-                # if hasattr(options.out_file, "read"):
-                if hasattr(out_file, "read")
-                    # archive = tarfile.open(fileobj=options.out_file, mode="w:gz")
-                    archive = tarfile.open(fileobj=out_file, mode="w:gz")
+                if hasattr(options.out_file, "read"):
+                    archive = tarfile.open(fileobj=options.out_file, mode="w:gz")
                 else:
-                    # archive = tarfile.open(name=options.out_file, mode="w:gz")
-                    archive = tarfile.open(name=out_file, mode="w:gz")
-                # for curr, _, files in os.walk(os.path.realpath(options.directory)):
-                for curr, _, files in os.walk(os.path.realpath(directory)):
+                    archive = tarfile.open(name=options.out_file, mode="w:gz")
+                for curr, _, files in os.walk(os.path.realpath(options.directory)):
                     for data_file in files:
-                        # full_path = os.path.join(options.directory, curr, data_file)
-                        full_path = os.path.join(directory, curr, data_file)
+                        full_path = os.path.join(options.directory, curr, data_file)
                         archive_path = os.path.join(
-                            # options.dump_name,
-                            dump_name
-                            # os.path.relpath(full_path, options.directory),
-                            os.path.relpath(full_path, directory),
+                            options.dump_name,
+                            os.path.relpath(full_path, options.directory),
                         )
                         archive.add(full_path, arcname=archive_path)
                         os.unlink(full_path)
@@ -261,32 +226,30 @@ def cmd_dump(directory, fields, delimiter, format, quiet, debug, out_file):
 
             # --
 
-            # if not options.quiet:
-            if not quiet:
+            if not options.quiet:
                 print(
                     "Done (%.2f seconds): %s"
                     % (
                         time.time() - start_time,
-                        # options.out_file.name
-                        out_file.name
-                        # if hasattr(options.out_file, "name")
-                        if hasattr(out_file, "name")
-                        # else options.out_file,
-                        else out_file,
+                        options.out_file.name
+                        if hasattr(options.out_file, "name")
+                        else options.out_file,
                     )
                 )
         except KeyboardInterrupt:
             time.sleep(0.2)
             raise RuntimeError("Interrupted")
         finally:
-            # if os.path.exists(options.directory):
-            #    shutil.rmtree(options.directory)
-            if os.path.exists(directory):
-                shutil.rmtree(directory)
+            if os.path.exists(options.directory):
+                shutil.rmtree(options.directory)
 
     except Exception as ex:
-        # if options.debug:
-        if debug:
+        if options.debug:
             traceback.print_exc()
         print(ex, file=sys.stderr)
         return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
