@@ -32,14 +32,12 @@ import signal
 import sys
 import time
 import traceback
-# Unused. Delete if all tests pass even when commented
-# from multiprocessing.queues import Queue, SimpleQueue
 
-import six
+from multiprocessing.queues import SimpleQueue
+
 
 from rethinkdb import ast, errors, query
 from rethinkdb.cli import utils_common
-# from rethinkdb.logger import default_logger
 
 try:
     unicode
@@ -1263,6 +1261,11 @@ def import_tables(options, sources, files_ignored=None):
 
     tables = dict(((x.db, x.table), x) for x in sources)  # (db, table) => table
 
+    ctx = multiprocessing.get_context(multiprocessing.get_start_method())
+    error_queue = SimpleQueue(ctx=ctx)
+    warning_queue = SimpleQueue(ctx=ctx)
+    timing_queue = SimpleQueue(ctx=ctx)
+    """
     if six.PY3:
         ctx = multiprocessing.get_context(multiprocessing.get_start_method())
         error_queue = SimpleQueue(ctx=ctx)
@@ -1272,7 +1275,7 @@ def import_tables(options, sources, files_ignored=None):
         error_queue = SimpleQueue()
         warning_queue = SimpleQueue()
         timing_queue = SimpleQueue()
-
+    """
     max_queue_size = options.clients * 3
     work_queue = multiprocessing.Manager().Queue(max_queue_size)
 
