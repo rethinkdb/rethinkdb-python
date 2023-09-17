@@ -20,7 +20,6 @@
 """
 Export exports data from a RethinkDB cluster into a directory.
 """
-import click
 import csv
 import ctypes
 import datetime
@@ -647,14 +646,7 @@ def run(options):
             f"Failed to move temporary directory to output directory ({options.directory}): {e.strerror}"
         )
 
-@click.command
-def cmd_export():
-    """
-    Export data from a RethinkDB cluster into a directory.
-    """
-    click.echo("export command")
-    argv = []
-    prog = []
+def main(argv=None, prog=None):
     options = parse_options(argv or sys.argv[1:], prog=prog)
 
     start_time = time.time()
@@ -666,5 +658,9 @@ def cmd_export():
         print(ex, file=sys.stderr)
         return 1
     if not options.quiet:
-        print(f"  Done ({time.time() - start_time}:.2f seconds)")
+        print("  Done (%.2f seconds)" % (time.time() - start_time))
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
