@@ -20,8 +20,6 @@
 """
 Import loads data into a RethinkDB cluster.
 """
-
-import click
 import codecs
 import collections
 import csv
@@ -1718,14 +1716,7 @@ def parse_sources(options, files_ignored=None):
     return sources
 
 
-@click.command
-def cmd_import():
-    """
-    Import loads data into a RethinkDB cluster.
-    """
-    click.echo("import command")
-    argv = []
-    prog = []
+def main(argv=None, prog=None):
     start_time = time.time()
 
     if argv is None:
@@ -1741,5 +1732,9 @@ def cmd_import():
             return 2
         return 1
     if not options.quiet:
-        print(f"  Done ({time.time() - start_time} seconds)")
+        print("  Done (%d seconds)" % (time.time() - start_time))
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
