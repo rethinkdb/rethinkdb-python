@@ -392,7 +392,7 @@ def export_table(
                     cursor.close()
                 except errors.ReqlError as exc:
                     # default_logger.exception(exc)
-					pass
+                    pass
 
                 cursor = options.retryQuery(
                     f"backup cursor for {db}.{table}",
