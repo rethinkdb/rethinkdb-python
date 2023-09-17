@@ -35,8 +35,8 @@ import click
 
 @click.command
 def cmd_repl():
-    """
+
     #Rebuild outdated secondary indexes.
-    """
+
     click.echo("repl command")
 """
