@@ -23,8 +23,6 @@ Index rebuild recreates outdated secondary indexes in a cluster.
 This should be used after upgrading to a newer version of rethinkdb. There
 will be a notification in the web UI if any secondary indexes are out-of-date.
 """
-
-import click
 import sys
 import time
 import traceback
@@ -257,17 +255,9 @@ def rebuild_indexes(options):
         print("")
 
 
-@click.command
-def cmd_index_rebuild():
-    """
-    Rebuild outdated secondary indexes.
-    """
-    click.echo("index rebuild command")
-    argv = []
-    prog = []
-    start_time = time.time()
+def main(argv=None, prog=None):
     options = parse_options(argv or sys.argv[1:], prog=prog)
-
+    start_time = time.time()
     try:
         rebuild_indexes(options)
     except Exception as ex:
@@ -277,5 +267,9 @@ def cmd_index_rebuild():
             print(ex, file=sys.stderr)
         return 1
     if not options.quiet:
-        print(f"Done ({time.time() - start_time} seconds)")
+        print("Done (%d seconds)" % (time.time() - start_time))
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
