@@ -29,7 +29,7 @@ those cases when the rethinkdb binary is not installed:
     - repl
     - restore
 """
-
+"""
 import click
 
 from rethinkdb.cli import (
@@ -44,9 +44,9 @@ from rethinkdb.cli import (
 
 @click.group
 def cmd_main():
-    """
-    Group of commands for the RethinkDB database.
-    """
+
+Group of commands for the RethinkDB database.
+
 
 
 cmd_main.add_command(cmd_dump, "dump")
@@ -55,3 +55,4 @@ cmd_main.add_command(cmd_import, "import")
 cmd_main.add_command(cmd_index_rebuild, "index_rebuild")
 cmd_main.add_command(cmd_repl, "repl")
 cmd_main.add_command(cmd_restore, "restore")
+"""
