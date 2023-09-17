@@ -31,7 +31,8 @@ import tempfile
 import time
 import traceback
 
-from rethinkdb import _import, utils_common
+from rethinkdb import utils_common
+from rethinkdb.cli import _import
 
 usage = (
     "rethinkdb restore FILE [-c HOST:PORT] [--tls-cert FILENAME] [-p] [--password-file FILENAME] [--clients NUM] "
