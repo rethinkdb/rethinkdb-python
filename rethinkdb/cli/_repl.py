@@ -29,13 +29,14 @@ those cases when the rethinkdb binary is not installed:
     - repl
     - restore
 """
-
+"""
 import click
 
 
 @click.command
 def cmd_repl():
     """
-    Rebuild outdated secondary indexes.
+    #Rebuild outdated secondary indexes.
     """
     click.echo("repl command")
+"""
