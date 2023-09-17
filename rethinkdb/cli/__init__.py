@@ -19,10 +19,11 @@ interact with the database. These commands are for exporting/importing data.
 Although these commands can be used to prepare data for backup, depending on
 your needs, you may want to evaluate more mature backup backup solutions.
 """
-
+"""
 from rethinkdb.cli._dump import cmd_dump
 from rethinkdb.cli._export import cmd_export
 from rethinkdb.cli._import import cmd_import
 from rethinkdb.cli._index_rebuild import cmd_index_rebuild
 from rethinkdb.cli._repl import cmd_repl
 from rethinkdb.cli._restore import cmd_restore
+"""
