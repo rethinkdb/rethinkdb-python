@@ -30,7 +30,7 @@ import tempfile
 import time
 import traceback
 
-from rethinkdb import cmd_export, utils_common
+from rethinkdb import export, utils_common
 # from rethinkdb.logger import default_logger
 
 
