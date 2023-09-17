@@ -20,8 +20,6 @@
 """
 Restore loads data into a RethinkDB cluster from an archive.
 """
-
-import click
 import copy
 import multiprocessing
 import optparse
@@ -325,16 +323,7 @@ def do_restore(options):
         shutil.rmtree(temp_dir)
 
 
-@click.command
-def cmd_restore():
-    """
-    Restore loads data into a RethinkDB cluster from an archive.
-    """
-    click.echo("restore command")
-    argv = []
-    prog = []
-    start_time = time.time()
-
+def main(argv=None, prog=None):
     if argv is None:
         argv = sys.argv[1:]
     options = parse_options(argv, prog=prog)
@@ -344,5 +333,8 @@ def cmd_restore():
     except RuntimeError as ex:
         print(ex, file=sys.stderr)
         return 1
-    print(f"Restore done in {time.time() - start_time}")
     return 0
+
+
+if __name__ == "__main__":
+    exit(main())
