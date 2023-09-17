@@ -27,7 +27,8 @@ import sys
 import time
 import traceback
 
-from rethinkdb import query, utils_common
+from rethinkdb import query
+from rethinkdb.cli import utils_common
 
 usage = (
     "rethinkdb index-rebuild [-c HOST:PORT] [-n NUM] "

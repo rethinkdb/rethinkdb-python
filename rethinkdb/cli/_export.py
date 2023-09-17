@@ -37,7 +37,8 @@ import traceback
 
 from multiprocessing.queues import SimpleQueue
 
-from rethinkdb import errors, query, utils_common
+from rethinkdb import errors, query
+from rethinkdb.cli import utils_common
 # from rethinkdb.logger import default_logger
 
 # STATIC INFORMATION ABOUT THE EXOIRT FEATURE

@@ -32,11 +32,13 @@ import signal
 import sys
 import time
 import traceback
-from multiprocessing.queues import Queue, SimpleQueue
+# Unused. Delete if all tests pass even when commented
+# from multiprocessing.queues import Queue, SimpleQueue
 
 import six
 
-from rethinkdb import ast, errors, query, utils_common
+from rethinkdb import ast, errors, query
+from rethinkdb.cli import utils_common
 # from rethinkdb.logger import default_logger
 
 try:
