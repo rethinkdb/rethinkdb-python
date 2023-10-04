@@ -39,13 +39,11 @@ pResponse = ql2_pb2.Response.ResponseType
 pQuery = ql2_pb2.Query.QueryType
 
 
-# @asyncio.coroutine
 async def _read_until(streamreader, delimiter):
     """Naive implementation of reading until a delimiter"""
     buffer = bytearray()
 
     while True:
-        # c = yield from streamreader.read(1)
         c = await streamreader.read(1)
         if c == b"":
             break  # EOF
@@ -70,13 +68,11 @@ def reusable_waiter(loop, timeout):
     else:
         deadline = None
 
-    # @asyncio.coroutine
     async def wait(future):
         if deadline is not None:
             new_timeout = max(deadline - loop.time(), 0)
         else:
             new_timeout = None
-        # return (yield from asyncio.wait_for(future, new_timeout))
         return (await asyncio.wait_for(future, new_timeout))
 
     return wait
@@ -103,21 +99,17 @@ class AsyncioCursor(Cursor):
     def __aiter__(self):
         return self
 
-    # @asyncio.coroutine
     async def __anext__(self):
         try:
-            # return (yield from self._get_next(None))
             return (await self._get_next(None))
         except ReqlCursorEmpty:
             raise StopAsyncIteration
 
-    # @asyncio.coroutine
     async def close(self):
         if self.error is None:
             self.error = self._empty_error()
             if self.conn.is_open():
                 self.outstanding_requests += 1
-                # yield from self.conn._parent._stop(self)
                 await self.conn._parent._stop(self)
 
     def _extend(self, res_buf):
@@ -127,7 +119,6 @@ class AsyncioCursor(Cursor):
 
     # Convenience function so users know when they've hit the end of the cursor
     # without having to catch an exception
-    # @asyncio.coroutine
     async def fetch_next(self, wait=True):
         timeout = Cursor._wait_to_timeout(wait)
         waiter = reusable_waiter(self.conn._io_loop, timeout)
@@ -136,7 +127,6 @@ class AsyncioCursor(Cursor):
             if self.error is not None:
                 raise self.error
             with translate_timeout_errors():
-                # yield from waiter(asyncio.shield(self.new_response))
                 await waiter(asyncio.shield(self.new_response))
         # If there is a (non-empty) error to be received, we return True, so the
         # user will receive it on the next `next` call.
@@ -147,7 +137,6 @@ class AsyncioCursor(Cursor):
         # with mechanisms to return from a coroutine.
         return RqlCursorEmpty()
 
-    # @asyncio.coroutine
     async def _get_next(self, timeout):
         waiter = reusable_waiter(self.conn._io_loop, timeout)
         while len(self.items) == 0:
@@ -155,7 +144,6 @@ class AsyncioCursor(Cursor):
             if self.error is not None:
                 raise self.error
             with translate_timeout_errors():
-                # yield from waiter(asyncio.shield(self.new_response))
                 await waiter(asyncio.shield(self.new_response))
         return self.items.popleft()
 
@@ -192,7 +180,6 @@ class ConnectionInstance(object):
         if self.is_open():
             return self._streamwriter.get_extra_info("sockname")[0]
 
-    # @asyncio.coroutine
     async def connect(self, timeout):
         try:
             ssl_context = None
@@ -205,7 +192,6 @@ class ConnectionInstance(object):
                 ssl_context.check_hostname = True  # redundant with match_hostname
                 ssl_context.load_verify_locations(self._parent.ssl["ca_certs"])
 
-            # self._streamreader, self._streamwriter = yield from asyncio.open_connection(
             self._streamreader, self._streamwriter = await asyncio.open_connection(
                 self._parent.host,
                 self._parent.port,
@@ -236,25 +222,21 @@ class ConnectionInstance(object):
                     if request != "":
                         self._streamwriter.write(request)
 
-                    # response = yield from asyncio.wait_for(
                     response = await asyncio.wait_for(
                         _read_until(self._streamreader, b"\0"),
                         timeout,
                     )
                     response = response[:-1]
         except ReqlAuthError:
-            # yield from self.close()
             await self.close()
             raise
         except ReqlTimeoutError as err:
-            # yield from self.close()
             await self.close()
             raise ReqlDriverError(
                 "Connection interrupted during handshake with %s:%s. Error: %s"
                 % (self._parent.host, self._parent.port, str(err))
             )
         except Exception as err:
-            # yield from self.close()
             await self.close()
             raise ReqlDriverError(
                 "Could not connect to %s:%s. Error: %s"
@@ -269,7 +251,6 @@ class ConnectionInstance(object):
     def is_open(self):
         return not (self._closing or self._streamreader.at_eof())
 
-    # @asyncio.coroutine
     async def close(self, noreply_wait=False, token=None, exception=None):
         self._closing = True
         if exception is not None:
@@ -290,19 +271,16 @@ class ConnectionInstance(object):
 
         if noreply_wait:
             noreply = Query(pQuery.NOREPLY_WAIT, token, None, None)
-            # yield from self.run_query(noreply, False)
             await self.run_query(noreply, False)
 
         self._streamwriter.close()
         # We must not wait for the _reader_task if we got an exception, because that
         # means that we were called from it. Waiting would lead to a deadlock.
         if self._reader_task and exception is None:
-            # yield from self._reader_task
             await self._reader_task
 
         return None
 
-    # @asyncio.coroutine
     async def run_query(self, query, noreply):
         self._streamwriter.write(query.serialize(self._parent._get_json_encoder(query)))
         if noreply:
@@ -310,7 +288,6 @@ class ConnectionInstance(object):
 
         response_future = asyncio.Future()
         self._user_queries[query.token] = (query, response_future)
-        # return (yield from response_future)
         return (await response_future)
 
     # The _reader coroutine runs in parallel, reading responses
@@ -318,14 +295,11 @@ class ConnectionInstance(object):
     # This is shut down as a consequence of closing the stream, or an error in the
     # socket/protocol from the server.  Unexpected errors in this coroutine will
     # close the ConnectionInstance and be passed to any open Futures or Cursors.
-    # @asyncio.coroutine
     async def _reader(self):
         try:
             while True:
-                # buf = yield from self._streamreader.readexactly(12)
                 buf = await self._streamreader.readexactly(12)
                 (token, length,) = struct.unpack("<qL", buf)
-                # buf = yield from self._streamreader.readexactly(length)
                 buf = await self._streamreader.readexactly(length)
 
                 cursor = self._cursor_cache.get(token)
@@ -355,7 +329,6 @@ class ConnectionInstance(object):
                     raise ReqlDriverError("Unexpected response received.")
         except Exception as ex:
             if not self._closing:
-                # yield from self.close(exception=ex)
                 await self.close(exception=ex)
 
 
@@ -369,35 +342,25 @@ class Connection(ConnectionBase):
                 "Could not convert port %s to an integer." % self.port
             )
 
-    # @asyncio.coroutine
     async def __aenter__(self):
         return self
 
-    # @asyncio.coroutine
     async def __aexit__(self, exception_type, exception_val, traceback):
-        # yield from self.close(False)
         await self.close(False)
 
-    # @asyncio.coroutine
     async def _stop(self, cursor):
         self.check_open()
         q = Query(pQuery.STOP, cursor.query.token, None, None)
-        # return (yield from self._instance.run_query(q, True))
         return (await self._instance.run_query(q, True))
 
-    # @asyncio.coroutine
     async def reconnect(self, noreply_wait=True, timeout=None):
         # We close before reconnect so reconnect doesn't try to close us
         # and then fail to return the Future (this is a little awkward).
-        # yield from self.close(noreply_wait)
         await self.close(noreply_wait)
         self._instance = self._conn_type(self, **self._child_kwargs)
-        # return (yield from self._instance.connect(timeout))
         return (await self._instance.connect(timeout))
 
-    # @asyncio.coroutine
     async def close(self, noreply_wait=True):
         if self._instance is None:
             return None
-        # return (yield from ConnectionBase.close(self, noreply_wait=noreply_wait))
         return (await ConnectionBase.close(self, noreply_wait=noreply_wait))
