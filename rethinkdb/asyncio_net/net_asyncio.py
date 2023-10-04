@@ -75,7 +75,7 @@ def reusable_waiter(loop, timeout):
             new_timeout = max(deadline - loop.time(), 0)
         else:
             new_timeout = None
-        return (yield from asyncio.wait_for(future, new_timeout, loop=loop))
+        return (yield from asyncio.wait_for(future, new_timeout))
 
     return wait
 
@@ -202,7 +202,6 @@ class ConnectionInstance(object):
             self._streamreader, self._streamwriter = yield from asyncio.open_connection(
                 self._parent.host,
                 self._parent.port,
-                loop=self._io_loop,
                 ssl=ssl_context,
             )
             self._streamwriter.get_extra_info("socket").setsockopt(
@@ -233,7 +232,6 @@ class ConnectionInstance(object):
                     response = yield from asyncio.wait_for(
                         _read_until(self._streamreader, b"\0"),
                         timeout,
-                        loop=self._io_loop,
                     )
                     response = response[:-1]
         except ReqlAuthError:
