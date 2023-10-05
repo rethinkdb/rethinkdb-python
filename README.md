@@ -57,36 +57,35 @@ for hero in marvel_heroes.run(connection):
 ```
 
 ### Asyncio mode
-Asyncio mode is compatible with Python ≥ 3.4, which is when asyncio was
-introduced into the standard library.
+Asyncio mode is compatible with Python ≥ 3.5.
 
 ```python
 import asyncio
 from rethinkdb import r
 
-# Native coroutines are supported in Python ≥ 3.5. In Python 3.4, you should
-# use the @asyncio.couroutine decorator instead of "async def", and "yield from"
-# instead of "await".
 async def main():
-    r.set_loop_type('asyncio')
-    connection = await r.connect(db='test')
+    async with await r.connect(db='test') as connection:
+        await r.table_create('marvel').run(connection)
 
-    await r.table_create('marvel').run(connection)
+        marvel_heroes = r.table('marvel')
+        await marvel_heroes.insert({
+            'id': 1,
+            'name': 'Iron Man',
+            'first_appearance': 'Tales of Suspense #39'
+        }).run(connection)
 
-    marvel_heroes = r.table('marvel')
-    await marvel_heroes.insert({
-        'id': 1,
-        'name': 'Iron Man',
-        'first_appearance': 'Tales of Suspense #39'
-    }).run(connection)
+        # "async for" is supported in Python ≥ 3.6. In earlier versions, you should
+        # call "await cursor.next()" in a loop.
+        cursor = await marvel_heroes.run(connection)
+        async for hero in cursor:
+            print(hero['name'])
+    # The `with` block performs `await connection.close(noreply_wait=False)`.
 
-    # "async for" is supported in Python ≥ 3.6. In earlier versions, you should
-    # call "await cursor.next()" in a loop.
-    cursor = await marvel_heroes.run(connection)
-    async for hero in cursor:
-        print(hero['name'])
+r.set_loop_type('asyncio')
 
-asyncio.get_event_loop().run_until_complete(main())
+# "asyncio.run" was added in Python 3.7.  In earlier versions, you
+# might try asyncio.get_event_loop().run_until_complete(main()).
+asyncio.run(main())
 ```
 
 ### Gevent mode
