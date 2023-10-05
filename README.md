@@ -253,8 +253,5 @@ $ export DO_TOKEN=<YOUR_TOKEN>
 $ make test-remote
 ```
 
-## New features
-Github's Issue tracker is **ONLY** used for reporting bugs. NO NEW FEATURE ACCEPTED! Use [spectrum](https://spectrum.chat/rethinkdb) for supporting features.
-
 ## Contributing
 Hurray! You reached this section which means, that you would like to contribute. Please read our contributing guide lines and feel free to open a pull request.
