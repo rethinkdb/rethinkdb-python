@@ -20,6 +20,7 @@ import contextlib
 import socket
 import ssl
 import struct
+import sys
 
 from rethinkdb import ql2_pb2
 from rethinkdb.errors import (
@@ -156,6 +157,8 @@ class AsyncioCursor(Cursor):
             self.outstanding_requests += 1
             asyncio.ensure_future(self.conn._parent._continue(self))
 
+# Python <3.7's StreamWriter has no wait_closed().
+DO_WAIT_CLOSED = sys.version_info >= (3, 7)
 
 class ConnectionInstance(object):
     _streamreader = None
@@ -274,7 +277,9 @@ class ConnectionInstance(object):
             await self.run_query(noreply, False)
 
         self._streamwriter.close()
-        await self._streamwriter.wait_closed()
+        # Python <3.7 has no wait_closed().
+        if DO_WAIT_CLOSED:
+            await self._streamwriter.wait_closed()
         # We must not wait for the _reader_task if we got an exception, because that
         # means that we were called from it. Waiting would lead to a deadlock.
         if self._reader_task and exception is None:
