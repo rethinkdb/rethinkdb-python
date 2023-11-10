@@ -244,7 +244,7 @@ def do_unzip(temp_dir, options):
                 )
 
             # filter out tables we are not looking for
-            table = os.path.splitext(file_name)
+            table = os.path.splitext(file_name)[0]
             if tables_to_export and not (
                 (db, table) in tables_to_export or (db, None) in tables_to_export
             ):
