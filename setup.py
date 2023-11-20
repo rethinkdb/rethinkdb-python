@@ -66,13 +66,15 @@ setuptools.setup(
     classifiers=[
         'Intended Audience :: Developers',
         'Natural Language :: English',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
     ],
     packages=[
         'rethinkdb',
@@ -95,9 +97,10 @@ setuptools.setup(
             'rethinkdb-repl = rethinkdb.__main__:startInterpreter'
         ]
     },
-    python_requires=">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*",
+    python_requires=">=3.5",
     install_requires=[
-        'six'
+        'six',
+        'looseversion'
     ],
     test_suite='tests'
 )
