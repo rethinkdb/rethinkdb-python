@@ -21,8 +21,6 @@ import re
 
 import setuptools
 
-from rethinkdb.version import VERSION
-
 try:
     import asyncio
 
@@ -32,25 +30,21 @@ except ImportError:
 
 
 RETHINKDB_VERSION_DESCRIBE = os.environ.get("RETHINKDB_VERSION_DESCRIBE")
-VERSION_RE = r"^v(?P<version>\d+\.\d+)\.(?P<patch>\d+)?(\.(?P<post>\w+))?$"
+VERSION_RE = r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)(?P<pre_release>:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?P<meta>:\+[0-9A-Za-z-]+)?"
+
+with open("rethinkdb/version.py", "r") as f:
+    version_parts = re.search(VERSION_RE, f.read()).groups()
+    VERSION = ".".join(filter(lambda x: x is not None, version_parts))
+
 
 if RETHINKDB_VERSION_DESCRIBE:
-    MATCH = re.match(VERSION_RE, RETHINKDB_VERSION_DESCRIBE)
+    version_parts = re.match(VERSION_RE, RETHINKDB_VERSION_DESCRIBE)
 
-    if MATCH:
-        VERSION = MATCH.group("version")
-
-        if MATCH.group("patch"):
-            VERSION += "." + MATCH.group("patch")
-
-        if MATCH.group("post"):
-            VERSION += "." + MATCH.group("post")
-
-        with open("rethinkdb/version.py", "w") as f:
-            f.write('VERSION = {0}'.format(repr(VERSION)))
-    else:
+    if not version_parts:
         raise RuntimeError("{!r} does not match version format {!r}".format(
             RETHINKDB_VERSION_DESCRIBE, VERSION_RE))
+
+    VERSION = ".".join(filter(lambda x: x is not None, version_parts.groups()))
 
 
 setuptools.setup(
