@@ -30,7 +30,7 @@ except ImportError:
 
 
 RETHINKDB_VERSION_DESCRIBE = os.environ.get("RETHINKDB_VERSION_DESCRIBE")
-VERSION_RE = r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<patch>[0-9]+)(?P<pre_release>:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?P<meta>:\+[0-9A-Za-z-]+)?"
+VERSION_RE = r"(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)\.(?P<post>post[1-9]\d*)"
 
 with open("rethinkdb/version.py", "r") as f:
     version_parts = re.search(VERSION_RE, f.read()).groups()
