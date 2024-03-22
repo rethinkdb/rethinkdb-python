@@ -33,6 +33,7 @@ import sys
 import tempfile
 import time
 import traceback
+import zlib
 from multiprocessing.queues import SimpleQueue
 
 import six
@@ -48,7 +49,7 @@ except NameError:
 
 usage = """rethinkdb export [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert filename] [-d DIR]
       [-e (DB | DB.TABLE)]...
-      [--format (csv | json | ndjson)] [--fields FIELD,FIELD...] [--delimiter CHARACTER]
+      [--format (csv | json | ndjson | jsongz)] [--fields FIELD,FIELD...] [--delimiter CHARACTER]
       [--clients NUM]"""
 help_description = (
     "`rethinkdb export` exports data from a RethinkDB cluster into a directory"
@@ -118,11 +119,11 @@ def parse_options(argv, prog=None):
     parser.add_option(
         "--format",
         dest="format",
-        metavar="json|csv|ndjson",
+        metavar="json|csv|ndjson|jsongz",
         default="json",
         help="format to write (defaults to json. ndjson is newline delimited json.)",
         type="choice",
-        choices=["json", "csv", "ndjson"],
+        choices=["json", "csv", "ndjson", "jsongz"],
     )
     parser.add_option(
         "--clients",
@@ -149,6 +150,17 @@ def parse_options(argv, prog=None):
         help="character to be used as field delimiter, or '\\t' for tab (default: ',')",
     )
     parser.add_option_group(csvGroup)
+
+    jsongzGroup = optparse.OptionGroup(parser, "jsongz options")
+    jsongzGroup.add_option(
+        "--compression-level",
+        dest="compression_level",
+        metavar="NUM",
+        default=None,
+        help="compression level, an integer from 0 to 9 (defaults to -1 default zlib compression)",
+        type="int",
+    )
+    parser.add_option_group(jsongzGroup)
 
     options, args = parser.parse_args(argv)
 
@@ -185,6 +197,15 @@ def parse_options(argv, prog=None):
         if options.delimiter:
             parser.error("--delimiter option is only valid for CSV file formats")
 
+    if options.format == "jsongz":
+        if options.compression_level is None:
+            options.compression_level = -1
+        elif options.compression_level < -1 or options.compression_level > 9:
+            parser.error("--compression-level must be an integer from 0 and 9")
+    else:
+        if options.compression_level:
+            parser.error("--compression-level option is only valid for jsongz file formats")
+
     # -
 
     return options
@@ -217,6 +238,43 @@ def json_writer(filename, fields, task_queue, error_queue, format):
                 item = task_queue.get()
             if format != "ndjson":
                 out.write("\n]\n")
+    except BaseException:
+        ex_type, ex_class, tb = sys.exc_info()
+        error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
+
+        # Read until the exit task so the readers do not hang on pushing onto the queue
+        while not isinstance(task_queue.get(), StopIteration):
+            pass
+
+
+def jsongz_writer(filename, fields, task_queue, error_queue, format, compression_level):
+    try:
+        with open(filename, "wb") as out:
+            # wbits 31 = MAX_WBITS + gzip header and trailer
+            compressor = zlib.compressobj(compression_level, zlib.DEFLATED, 31)
+            def compress_and_write(str):
+                out.write(compressor.compress(str.encode("utf-8")))
+
+            first = True
+            compress_and_write("[")
+            item = task_queue.get()
+            while not isinstance(item, StopIteration):
+                row = item[0]
+                if fields is not None:
+                    for item in list(row.keys()):
+                        if item not in fields:
+                            del row[item]
+                if first:
+                    compress_and_write("\n")
+                    first = False
+                else:
+                    compress_and_write(",\n")
+
+                compress_and_write(json.dumps(row))
+                item = task_queue.get()
+
+            compress_and_write("\n]\n")
+            out.write(compressor.flush())
     except BaseException:
         ex_type, ex_class, tb = sys.exc_info()
         error_queue.put((ex_type, ex_class, traceback.extract_tb(tb)))
@@ -329,6 +387,19 @@ def export_table(
                     task_queue,
                     error_queue,
                     options.format,
+                ),
+            )
+        elif options.format == "jsongz":
+            filename = directory + "/%s/%s.jsongz" % (db, table)
+            writer = multiprocessing.Process(
+                target=jsongz_writer,
+                args=(
+                    filename,
+                    options.fields,
+                    task_queue,
+                    error_queue,
+                    options.format,
+                    options.compression_level,
                 ),
             )
         elif options.format == "csv":

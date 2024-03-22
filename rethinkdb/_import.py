@@ -30,9 +30,11 @@ import multiprocessing
 import optparse
 import os
 import signal
+import struct
 import sys
 import time
 import traceback
+import zlib
 from multiprocessing.queues import Queue, SimpleQueue
 
 import six
@@ -55,6 +57,9 @@ except ImportError:
 JSON_READ_CHUNK_SIZE = 128 * 1024
 JSON_MAX_BUFFER_SIZE = 128 * 1024 * 1024
 MAX_NESTING_DEPTH = 100
+
+# jsongz parameters
+JSON_GZ_READ_CHUNK_SIZE = 16 * 1024
 
 Error = collections.namedtuple("Error", ["message", "traceback", "file"])
 
@@ -133,7 +138,10 @@ class SourceFile(object):
                 self._source = source
         else:
             try:
-                self._source = codecs.open(source, mode="r", encoding="utf-8")
+                if self.format == "jsongz":
+                    self._source = open(source, mode="rb")
+                else:
+                    self._source = codecs.open(source, mode="r", encoding="utf-8")
             except IOError as exc:
                 default_logger.exception(exc)
                 raise ValueError(
@@ -145,9 +153,16 @@ class SourceFile(object):
             and self._source.name
             and os.path.isfile(self._source.name)
         ):
-            self._bytes_size.value = os.path.getsize(source)
+            self._bytes_size.value = os.path.getsize(self._source.name)
             if self._bytes_size.value == 0:
-                raise ValueError("Source is zero-length: %s" % source)
+                raise ValueError("Source is zero-length: %s" % self._source.name)
+
+        # get uncompressed file length from gzip trailer (last 4 bytes)
+        if self.format == "jsongz":
+            # TODO: check valid gzip
+            self._source.seek(-4, 2)
+            self._bytes_size.value = struct.unpack("I", self._source.read(4))[0]
+            self._source.seek(0)
 
         # table info
         self.db = db
@@ -500,6 +515,9 @@ class JsonSourceFile(SourceFile):
     _buffer_pos = None
     _buffer_end = None
 
+    def read_chunk(self, max_length):
+        return self._source.read(max_length)
+
     def fill_buffer(self):
         if self._buffer_str is None:
             self._buffer_str = ""
@@ -520,7 +538,7 @@ class JsonSourceFile(SourceFile):
         if read_target < 1:
             raise AssertionError("Can not set the read target and full the buffer")
 
-        new_chunk = self._source.read(read_target)
+        new_chunk = self.read_chunk(read_target)
 
         if len(new_chunk) == 0:
             raise StopIteration()  # file ended
@@ -632,6 +650,28 @@ class JsonSourceFile(SourceFile):
             raise ValueError(
                 "Error: extra data after JSON data: <<%s>>%s" % (snippit[:100], extra)
             )
+
+
+class JsonGzSourceFile(JsonSourceFile):
+    format = "jsongz"
+
+    def __init__(self, *args, **kwargs):
+
+        # initialize zlib decompressor
+        #   wbits 31 = window size MAX_WBITS & expects gzip header and trailer
+        self._decompressor = zlib.decompressobj(31)
+
+        super(JsonGzSourceFile, self).__init__(*args, **kwargs)
+
+    def read_chunk(self, max_length):
+        chunk = b''
+        while len(chunk) < max_length:
+            compressed_buf = self._decompressor.unconsumed_tail + self._source.read(JSON_GZ_READ_CHUNK_SIZE)
+            if len(compressed_buf) == 0:
+                break
+            decompressed_buf = self._decompressor.decompress(compressed_buf, max_length - len(chunk))
+            chunk += decompressed_buf
+        return chunk.decode("utf-8")
 
 
 class CsvSourceFile(SourceFile):
@@ -855,11 +895,11 @@ def parse_options(argv, prog=None):
     file_import_group.add_option(
         "--format",
         dest="format",
-        metavar="json|csv",
+        metavar="json|jsongz|csv",
         default=None,
         help="format of the file (default: json, accepts newline delimited json)",
         type="choice",
-        choices=["json", "csv"],
+        choices=["json", "jsongz", "csv"],
     )
     file_import_group.add_option(
         "--pkey",
@@ -1036,7 +1076,7 @@ def parse_options(argv, prog=None):
             if options.custom_header:
                 options.custom_header = options.custom_header.split(",")
 
-        elif options.format == "json":
+        elif (options.format == "json" or options.format == "jsongz") :
             # disallow invalid options
             if options.delimiter is not None:
                 parser.error("--delimiter option is not valid for json files")
@@ -1044,13 +1084,6 @@ def parse_options(argv, prog=None):
                 parser.error("--no-header option is not valid for json files")
             if options.custom_header is not None:
                 parser.error("--custom-header option is not valid for json files")
-
-            # default options
-            options.format = "json"
-
-            if options.max_document_size > 0:
-                global JSON_MAX_BUFFER_SIZE
-                JSON_MAX_BUFFER_SIZE = options.max_document_size
 
             options.file = os.path.abspath(options.file)
 
@@ -1061,6 +1094,11 @@ def parse_options(argv, prog=None):
         parser.error("Either -f/--file or -d/--directory is required")
 
     # --
+
+    # max_document_size - json
+    if options.max_document_size > 0:
+        global JSON_MAX_BUFFER_SIZE
+        JSON_MAX_BUFFER_SIZE = options.max_document_size
 
     # max_nesting_depth
     if options.max_nesting_depth > 0:
@@ -1552,6 +1590,8 @@ def parse_sources(options, files_ignored=None):
         table_type_options = None
         if ext == ".json":
             table_type = JsonSourceFile
+        elif ext == ".jsongz":
+            table_type = JsonGzSourceFile
         elif ext == ".csv":
             table_type = CsvSourceFile
             table_type_options = {
@@ -1622,7 +1662,7 @@ def parse_sources(options, files_ignored=None):
                     table, ext = os.path.splitext(filename)
                     table = os.path.basename(table)
 
-                    if ext not in [".json", ".csv", ".info"]:
+                    if ext not in [".json", ".jsongz", ".csv", ".info"]:
                         files_ignored.append(os.path.join(root, filename))
                     elif ext == ".info":
                         pass  # Info files are included based on the data files
@@ -1657,6 +1697,8 @@ def parse_sources(options, files_ignored=None):
                         table_type = None
                         if ext == ".json":
                             table_type = JsonSourceFile
+                        elif ext == ".jsongz":
+                            table_type = JsonGzSourceFile
                         elif ext == ".csv":
                             table_type = CsvSourceFile
                         else:
