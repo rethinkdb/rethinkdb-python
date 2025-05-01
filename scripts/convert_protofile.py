@@ -86,9 +86,9 @@ def convertFile(inputFile, outputFile, language):
     assert(outputFile is not None and hasattr(outputFile, 'write'))
     assert(language in languageDefs)
 
-    messageRegex = re.compile('\s*(message|enum) (?P<name>\w+) \{')
-    valueRegex = re.compile('\s*(?P<name>\w+)\s*=\s*(?P<value>\w+)')
-    endRegex = re.compile('\s*\}')
+    messageRegex = re.compile(r'\s*(message|enum) (?P<name>\w+) \{')
+    valueRegex = re.compile(r'\s*(?P<name>\w+)\s*=\s*(?P<value>\w+)')
+    endRegex = re.compile(r'\s*\}')
 
     indentLevel = languageDefs[language]["initialIndentLevel"]
     lastIndentLevel = languageDefs[language]["initialIndentLevel"] - 1
