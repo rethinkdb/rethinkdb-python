@@ -746,9 +746,11 @@ class ReqlBoolOperQuery(ReqlQuery):
 
     def compose(self, args, kwargs):  # pylint: disable=unused-argument
         term_args = [
-            EnhancedTuple("r.expr(", args[i], ")")
-            if needs_wrap(self._args[i])
-            else args[i]
+            (
+                EnhancedTuple("r.expr(", args[i], ")")
+                if needs_wrap(self._args[i])
+                else args[i]
+            )
             for i in range(len(args))
         ]
 
@@ -777,9 +779,11 @@ class ReqlBiOperQuery(ReqlQuery):
 
     def compose(self, args, kwargs):  # pylint: disable=unused-argument
         term_args = [
-            EnhancedTuple("r.expr(", args[i], ")")
-            if needs_wrap(self._args[i])
-            else args[i]
+            (
+                EnhancedTuple("r.expr(", args[i], ")")
+                if needs_wrap(self._args[i])
+                else args[i]
+            )
             for i in range(len(args))
         ]
 
