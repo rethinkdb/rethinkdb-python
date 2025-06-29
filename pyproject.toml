@@ -18,20 +18,19 @@ classifiers = [
     "Operating System :: POSIX",
     "Operating System :: Unix",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development",
     "Topic :: Database",
     "Topic :: Database :: Front-Ends",
     "Typing :: Typed",
 
 ]
-authors = [
-    "RethinkDB <bugs@rethinkdb.com>",
-]
-maintainers = [
-    "RethinkDB <bugs@rethinkdb.com>",
-]
+authors = ["RethinkDB <bugs@rethinkdb.com>"]
+maintainers = ["RethinkDB <bugs@rethinkdb.com>"]
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/rethinkdb/rethinkdb-python/issues/"
@@ -48,28 +47,29 @@ rethinkdb-repl = "rethinkdb.cli._repl:cmd_repl"
 rethinkdb-restore = "rethinkdb.cli._restore:cmd_restore"
 
 [tool.poetry.dependencies]
-pydantic = "^1.9"
-python = "^3.7"
-ujson = "^5.2.0"
-click = "^8.1.3"
+pydantic = "^2.11"
+python = "^3.12"
+ujson = "^5.10.0"
+click = "^8.2.1"
+pyyaml = "^6.0.2"
 
-[tool.poetry.dev-dependencies]
-bandit = "^1.7"
-black = "^22.3"
-coverage = "^6.3"
-flake8 = "^4.0"
-hypothesis = "^6.46.3"
-mypy = "^0.950"
-pylint = "^2.13"
-pytest = "^7.1"
-sphinx_rtd_theme = "^1.0"
+[tool.poetry.group.dev.dependencies]
+bandit = "^1.8"
+black = "^25.1"
+coverage = "^7.9"
+flake8 = "^7.3"
+hypothesis = "^6.135"
+mypy = "^1.16"
+pylint = "^3.3"
+pytest = "^8.4"
+sphinx-rtd-theme = "^3.0"
 
 [tool.poetry.extras]
 # Here comes the Trio, Twisted, etc extras
 all = []
 
 [tool.black]
-target-version = ['py38']
+target-version = ['py312']
 
 [tool.isort]
 atomic = true
@@ -78,9 +78,9 @@ combine_star = true
 force_sort_within_sections = true
 include_trailing_comma = true
 order_by_type = true
-line_length = 88  # Same as Black's line length
+line_length = 88                  # Same as Black's line length
 multi_line_output = 3
 
 [build-system]
-requires = ["poetry>=1.1.13"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
