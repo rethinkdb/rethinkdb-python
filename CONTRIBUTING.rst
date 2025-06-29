@@ -85,8 +85,8 @@ As `step 0` make sure you have python 3.7+, [https://python-poetry.org/](poetry)
 
 5. When you're done making changes, check that your changes pass linters and the tests::
 
-    $ poetry shell
-    $ make ql2.proto
+    $ poetry env activate
+    $ make protobuf
     $ make format
     $ make lint
     $ make test
