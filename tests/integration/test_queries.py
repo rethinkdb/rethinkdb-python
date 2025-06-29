@@ -211,6 +211,7 @@ def test_circle(conn):
                 ],
                 "type": "Polygon",
             },
+            approximate_results=True,
         ),
     ]
 
@@ -258,7 +259,7 @@ def test_db_create(conn):
 
 
 @pytest.mark.integration
-def test_db_create(conn):
+def test_db_drop(conn):
     # NOTE: This can leave resource behind -- manual cleanup maybe necessary
     # Create first to have something to drop
     create_db("superheroes", conn)
@@ -295,6 +296,7 @@ def test_distance(conn):
             ],
             kwargs={"unit": "km"},
             expected=734.125249602186,
+            approximate_results=True,
         ),
     ]
 
@@ -595,39 +597,40 @@ def test_http(conn):
         <meta http-equiv="Expires" content="-1">
         <meta http-equiv="Cache-Control" content="no-cache">
 
-        <link rel="stylesheet" type="text/css" href="cluster.css?v=2.4.1-24-g25364c" />
-        <link rel="stylesheet" type="text/css" href="js/chosen/chosen.css?v=2.4.1-24-g25364c" />
-        <link rel="stylesheet" type="text/css" href="js/codemirror/codemirror.css?v=2.4.1-24-g25364c" />
-        <link rel="stylesheet" type="text/css" href="js/codemirror/ambiance.css?v=2.4.1-24-g25364c" />
-        <link rel="stylesheet" type="text/css" href="fonts/stylesheet.css?v=2.4.1-24-g25364c" />
-        <link rel="stylesheet" type="text/css" href="js/nanoscroller/nanoscroller.css?v=2.4.1-24-g25364c" />
+        <link rel="stylesheet" type="text/css" href="cluster.css?v=2.4.4" />
+        <link rel="stylesheet" type="text/css" href="js/chosen/chosen.css?v=2.4.4" />
+        <link rel="stylesheet" type="text/css" href="js/codemirror/codemirror.css?v=2.4.4" />
+        <link rel="stylesheet" type="text/css" href="js/codemirror/ambiance.css?v=2.4.4" />
+        <link rel="stylesheet" type="text/css" href="fonts/stylesheet.css?v=2.4.4" />
+        <link rel="stylesheet" type="text/css" href="js/nanoscroller/nanoscroller.css?v=2.4.4" />
 
-        <script type="text/javascript" src="js/jquery-1.7.2.min.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/ZeroClipboard.min.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/underscore-min.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/backbone.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/bootstrap/bootstrap-modal.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/bootstrap/bootstrap-alert.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/bootstrap/bootstrap-typeahead.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/bootstrap/bootstrap-button.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/bootstrap/bootstrap-dropdown.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/bootstrap/bootstrap-tooltip.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/bootstrap/bootstrap-popover.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/jquery.form.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/nanoscroller/jquery.nanoscroller.min.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/jquery.color.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/jquery.timeago.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/date-en-US.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/d3.v2.min.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/rdb_cubism.v1.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/xdate.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/chosen/chosen.jquery.min.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="cluster-min.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/codemirror/codemirror.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/codemirror/javascript.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/codemirror/matchbrackets.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/reql_docs.js?v=2.4.1-24-g25364c"></script>
-        <script type="text/javascript" src="js/tableview.js?v=2.4.1-24-g25364c"></script>
+        <script type="text/javascript" src="js/jquery-3.6.1.min.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/jquery.browser-0.1.0.min.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/ZeroClipboard.min.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/underscore-min.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/backbone.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/bootstrap/bootstrap-modal.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/bootstrap/bootstrap-alert.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/bootstrap/bootstrap-typeahead.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/bootstrap/bootstrap-button.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/bootstrap/bootstrap-dropdown.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/bootstrap/bootstrap-tooltip.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/bootstrap/bootstrap-popover.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/jquery.form.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/nanoscroller/jquery.nanoscroller.min.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/jquery.color.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/jquery.timeago.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/date-en-US.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/d3.v2.min.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/rdb_cubism.v1.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/xdate.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/chosen/chosen.jquery.min.js?v=2.4.4"></script>
+        <script type="text/javascript" src="cluster-min.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/codemirror/codemirror.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/codemirror/javascript.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/codemirror/matchbrackets.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/reql_docs.js?v=2.4.4"></script>
+        <script type="text/javascript" src="js/tableview.js?v=2.4.4"></script>
 
     </head>
     <body>
