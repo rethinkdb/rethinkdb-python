@@ -103,9 +103,11 @@ class QueryPrinter:
         current_frame: int = frames.pop(0)
 
         args: List[List[str]] = [
-            self.__compose_carets(arg, frames)
-            if current_frame == i
-            else self.__compose_term(arg)
+            (
+                self.__compose_carets(arg, frames)
+                if current_frame == i
+                else self.__compose_term(arg)
+            )
             for i, arg in enumerate(term._args)  # pylint: disable=protected-access
         ]
 
