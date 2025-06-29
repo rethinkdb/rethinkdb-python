@@ -31,6 +31,7 @@ class Scenario(BaseModel):
     callback: Optional[Callable[[], None]] = None
     result_as_string: bool = False
     result_as_list: bool = False
+    approximate_results: bool = False
 
     def __str__(self) -> str:
         return self.name
@@ -62,6 +63,31 @@ def format_failure(scenario: Scenario, result: Any, query: Any) -> str:
     )
 
 
+def is_matching(value: Any, expected: Any, is_approximate: bool = False):
+    """
+    Check if the value matches the expected value.
+    """
+
+    if isinstance(expected, dict) and isinstance(value, dict):
+        if set(value.keys()) != set(expected.keys()):
+            return False
+        return all(is_matching(value[k], expected[k], is_approximate) for k in expected)
+
+    if isinstance(expected, (list, tuple)) and isinstance(value, (list, tuple)):
+        if len(value) != len(expected):
+            return False
+        return all(is_matching(v, e, is_approximate) for v, e in zip(value, expected))
+
+    if (
+        is_approximate
+        and isinstance(expected, (float, int))
+        and isinstance(value, (float, int))
+    ):
+        return value == pytest.approx(expected, rel=1e-9)
+
+    return value == expected
+
+
 def assert_test_table(
     command, conn: net.Connection, scenarios: Iterable[Scenario]
 ) -> None:
@@ -79,16 +105,17 @@ def assert_test_table(
             result = query.run(conn)
 
             if scenario.expected_field is not None:
-                if result[scenario.expected_field] != scenario.expected:
-                    failed.append((scenario, result, query))
+                result = result[scenario.expected_field]
             else:
                 if scenario.result_as_string:
                     result = str(result)
                 elif scenario.result_as_list:
                     result = list(result)
 
-                if result != scenario.expected:
-                    failed.append((scenario, result, query))
+            if not is_matching(
+                result, scenario.expected, is_approximate=scenario.approximate_results
+            ):
+                failed.append((scenario, result, query))
         except Exception as exc:
             failed.append((scenario, str(exc), query))
         finally:
