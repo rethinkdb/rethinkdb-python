@@ -39,17 +39,14 @@ class EnhancedTuple:  # pylint: disable=too-few-public-methods
         iterator = iter(self.sequence)
 
         try:
-            for sub in next(iterator):
-                yield sub
+            yield from next(iterator)
         except StopIteration:
             return
 
         for token in iterator:
-            for sub in self.int_separator:
-                yield sub
+            yield from self.int_separator
 
-            for sub in token:
-                yield sub
+            yield from token
 
 
 def chain_to_bytes(*strings: Union[bytes, str]) -> bytes:
