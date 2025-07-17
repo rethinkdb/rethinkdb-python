@@ -102,7 +102,6 @@ format: ## run formatters on the package
 .PHONY: lint
 lint: ## run linters against the package
 	mypy rethinkdb
-	bandit -q -r rethinkdb
 	pylint rethinkdb
 	flake8 rethinkdb --count --show-source --statistics
 

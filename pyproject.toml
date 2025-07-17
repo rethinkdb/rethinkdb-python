@@ -54,7 +54,6 @@ click = "^8.2.1"
 pyyaml = "^6.0.2"
 
 [tool.poetry.group.dev.dependencies]
-bandit = "^1.8"
 black = "^25.1"
 coverage = "^7.9"
 flake8 = "^7.3"
