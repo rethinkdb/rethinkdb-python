@@ -432,7 +432,6 @@ class SocketWrapper:
         try:
             self.__socket = socket.create_connection((self.host, self.port), timeout)
 
-
             sock = self.__socket
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
@@ -728,9 +727,10 @@ class ConnectionInstance:
             if noreply_wait:
                 query = Query(
                     PbQuery.QueryType.NOREPLY_WAIT,
-                    token or self.parent._new_token(),  # pylint: disable=protected-access
+                    token
+                    or self.parent._new_token(),  # pylint: disable=protected-access
                     None,
-                    None
+                    None,
                 )
                 self.run_query(query, False)
         finally:
