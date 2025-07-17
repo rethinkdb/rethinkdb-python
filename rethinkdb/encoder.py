@@ -36,6 +36,7 @@ class ReqlEncoder(json.JSONEncoder):
     Default JSONEncoder subclass to handle query conversion.
     """
 
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def __init__(
         self,
         *,
@@ -77,6 +78,7 @@ class ReqlDecoder(json.JSONDecoder):
     Default JSONDecoder subclass to handle pseudo-type conversion.
     """
 
+    # pylint: disable=too-many-positional-arguments
     def __init__(
         self,
         object_hook: Optional[Callable[[Dict[str, Any]], Any]] = None,

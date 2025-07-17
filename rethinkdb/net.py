@@ -280,12 +280,12 @@ class Cursor:
         self.conn.parent.stop(self)
 
     @staticmethod
-    def _wait_to_timeout(wait):
+    def _wait_to_timeout(wait) -> Optional[float]:
         if isinstance(wait, bool):
-            return None if wait else 0
+            return None if wait else 0.0
 
-        if isinstance(wait, numbers.Real) and wait >= 0:
-            return wait
+        if isinstance(wait, numbers.Real) and float(wait) >= 0:
+            return float(wait)
 
         raise ReqlDriverError(f"Invalid wait timeout '{wait}'")
 
@@ -397,7 +397,7 @@ class DefaultCursor(Cursor):
 
     @staticmethod
     def _empty_error():
-        return DefaultCursorEmpty()
+        return DefaultCursorEmpty
 
     def _get_next(self, timeout: Optional[float] = None):
         deadline = None if timeout is None else time.time() + timeout
@@ -425,44 +425,33 @@ class SocketWrapper:
         self.port: int = parent.parent.port
         self.ssl: dict = parent.parent.ssl
         self._read_buffer: Optional[bytes] = None
+        self.__socket: Optional[Union[socket.socket, ssl.SSLSocket]] = None
 
         deadline: float = time.time() + timeout
 
         try:
             self.__socket = socket.create_connection((self.host, self.port), timeout)
 
-            self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+
+            sock = self.__socket
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
             if len(self.ssl) > 0:
                 try:
-                    if hasattr(
-                        ssl, "SSLContext"
-                    ):  # Python2.7 and 3.2+, or backports.ssl
-                        ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                        if hasattr(ssl_context, "options"):
-                            ssl_context.options |= getattr(ssl, "OP_NO_SSLv2", 0)
-                            ssl_context.options |= getattr(ssl, "OP_NO_SSLv3", 0)
-                        ssl_context.verify_mode = ssl.CERT_REQUIRED
-                        ssl_context.check_hostname = (
-                            True  # redundant with ssl.match_hostname
-                        )
-                        ssl_context.load_verify_locations(self.ssl["ca_certs"])
+
+                    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                    ssl_context.check_hostname = True
+                    ssl_context.verify_mode = ssl.CERT_REQUIRED
+                    ssl_context.load_verify_locations(self.ssl["ca_certs"])
+
+                    if self.__socket is not None:
                         self.socket = ssl_context.wrap_socket(
-                            self.socket, server_hostname=self.host
-                        )
-                    else:  # this does not disable SSLv2 or SSLv3
-                        # TODO: Replace the deprecated wrap_socket
-                        self.socket = (
-                            ssl.wrap_socket(  # pylint: disable=deprecated-method
-                                self.socket,
-                                cert_reqs=ssl.CERT_REQUIRED,
-                                ssl_version=ssl.PROTOCOL_SSLv23,
-                                ca_certs=self.ssl["ca_certs"],
-                            )
+                            self.__socket, server_hostname=self.host
                         )
                 except IOError as err:
-                    self.socket.close()
+                    if self.__socket is not None:
+                        self.__socket.close()
 
                     if "EOF occurred in violation of protocol" in str(
                         err
@@ -482,14 +471,6 @@ class SocketWrapper:
                     raise ReqlDriverError(
                         f"SSL handshake failed (see server log for more information): {err}"
                     ) from err
-                try:
-                    # TODO: Replace the deprecated match_hostname
-                    ssl.match_hostname(  # pylint: disable=deprecated-method
-                        self.socket.getpeercert(), hostname=self.host
-                    )
-                except ssl.CertificateError:
-                    self.socket.close()
-                    raise
 
             parent.parent.handshake.reset()
             response = None
@@ -530,24 +511,24 @@ class SocketWrapper:
             ) from exc
 
     @property
-    def socket(self) -> Union[socket.socket, ssl.SSLSocket]:
+    def socket(self) -> "Optional[Union[socket.socket, ssl.SSLSocket]]":
         """
         Return the wrapped socket.
         """
         return self.__socket
 
     @socket.setter
-    def socket(self, value: "socket.socket"):
+    def socket(self, value: "Optional[Union[socket.socket, ssl.SSLSocket]]"):
         """
         Set the socket instance.
         """
-        self._socket = value
+        self.__socket = value
 
     def is_open(self):
         """
         Return if the connection is open.
         """
-        return self.socket is not None
+        return self.__socket is not None
 
     def close(self):
         """
@@ -557,8 +538,9 @@ class SocketWrapper:
             return
 
         try:
-            self.socket.shutdown(socket.SHUT_RDWR)
-            self.socket.close()
+            if self.__socket is not None:
+                self.__socket.shutdown(socket.SHUT_RDWR)
+                self.__socket.close()
         except ReqlError as exc:
             logger.error(exc.message)
         except Exception as exc:  # pylint: disable=broad-except
@@ -574,16 +556,20 @@ class SocketWrapper:
         timeout: Optional[float] = (
             None if deadline is None else max(0.0, deadline - time.time())
         )
-        self.socket.settimeout(timeout)
+        if self.__socket is not None:
+            self.__socket.settimeout(timeout)
         while len(res) < length:
             while True:
                 try:
-                    chunk = self.socket.recv(length - len(res))
-                    self.socket.settimeout(None)
+                    if self.__socket is None:
+                        raise ReqlDriverError("Socket is None")
+                    chunk = self.__socket.recv(length - len(res))
+                    self.__socket.settimeout(None)
                     break
                 except socket.timeout as exc:
                     self._read_buffer = res
-                    self.socket.settimeout(None)
+                    if self.__socket is not None:
+                        self.__socket.settimeout(None)
                     raise ReqlTimeoutError(self.host, self.port) from exc
                 except IOError as exc:
                     if exc.errno == errno.ECONNRESET:
@@ -618,7 +604,9 @@ class SocketWrapper:
         offset = 0
         while offset < len(data):
             try:
-                offset += self.socket.send(data[offset:])
+                if self.__socket is None:
+                    raise ReqlDriverError("Socket is None")
+                offset += self.__socket.send(data[offset:])
             except IOError as exc:
                 if exc.errno == errno.ECONNRESET:
                     self.close()
@@ -683,7 +671,12 @@ class ConnectionInstance:
         if not self.is_open():
             return None
 
-        return self.socket.socket.getsockname()[1]
+        if self.socket is None:
+            raise ReqlDriverError("Socket unexpectedly returned none.")
+        socket_obj = self.socket.socket
+        if socket_obj is not None:
+            return socket_obj.getsockname()[1]
+        return None
 
     def client_address(self) -> Optional[str]:
         """
@@ -695,7 +688,12 @@ class ConnectionInstance:
         if not self.is_open():
             return None
 
-        return self.socket.socket.getsockname()[0]
+        if self.socket is None:
+            raise ReqlDriverError("Socket unexpectedly returned none.")
+        socket_obj = self.socket.socket
+        if socket_obj is not None:
+            return socket_obj.getsockname()[0]
+        return None
 
     def connect(self, timeout: int) -> "Connection":
         """
@@ -728,7 +726,12 @@ class ConnectionInstance:
 
         try:
             if noreply_wait:
-                query = Query(PbQuery.QueryType.NOREPLY_WAIT, token, None, None)
+                query = Query(
+                    PbQuery.QueryType.NOREPLY_WAIT,
+                    token or self.parent._new_token(),  # pylint: disable=protected-access
+                    None,
+                    None
+                )
                 self.run_query(query, False)
         finally:
             if self.socket is None:
@@ -806,7 +809,7 @@ class ConnectionInstance:
 
             res = None
 
-            cursor: Cursor = self.cursor_cache.get(res_token)
+            cursor: Optional[Cursor] = self.cursor_cache.get(res_token)
             if cursor is not None:
                 # Construct response
                 cursor.extend(res_buf)
@@ -843,7 +846,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     _json_decoder = ReqlDecoder
     _json_encoder = ReqlEncoder
 
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def __init__(  # nosec
         self,
         conn_type,
@@ -853,7 +856,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         user: str,
         password: str = "",
         timeout: int = 0,
-        ssl: dict = None,  # pylint: disable=redefined-outer-name
+        ssl: Optional[dict] = None,  # pylint: disable=redefined-outer-name
         _handshake_version: Type[BaseHandshake] = HandshakeV1_0,
         **kwargs,
     ):
@@ -988,6 +991,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """
         self.check_open()
         query = Query(PbQuery.QueryType.NOREPLY_WAIT, self._new_token(), None, None)
+        if self._instance is None:
+            raise ReqlDriverError("Connection instance unexpectedly none.")
         return self._instance.run_query(query, False)
 
     def server(self):
@@ -997,6 +1002,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         self.check_open()
         query = Query(PbQuery.QueryType.SERVER_INFO, self._new_token(), None, None)
+        if self._instance is None:
+            raise ReqlDriverError("Connection instance unexpectedly none.")
         return self._instance.run_query(query, False)
 
     def _new_token(self):
@@ -1012,6 +1019,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         if "db" in kwargs or self.db is not None:
             kwargs["db"] = DB(kwargs.get("db", self.db))
         query = Query(PbQuery.QueryType.START, self._new_token(), term, kwargs)
+        if self._instance is None:
+            raise ReqlDriverError("Connection instance unexpectedly none.")
         return self._instance.run_query(query, kwargs.get("noreply", False))
 
     def resume(self, cursor):
@@ -1020,6 +1029,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """
         self.check_open()
         query = Query(PbQuery.QueryType.CONTINUE, cursor.query.token, None, None)
+        if self._instance is None:
+            raise ReqlDriverError("Connection instance unexpectedly none.")
         return self._instance.run_query(query, True)
 
     def stop(self, cursor):
@@ -1028,6 +1039,8 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         """
         self.check_open()
         query = Query(PbQuery.QueryType.STOP, cursor.query.token, None, None)
+        if self._instance is None:
+            raise ReqlDriverError("Connection instance unexpectedly none.")
         return self._instance.run_query(query, True)
 
     def get_json_decoder(self, query):
@@ -1053,6 +1066,7 @@ class DefaultConnection(Connection):
 
 
 # pylint: disable=too-many-arguments
+# pylint: disable=too-many-positional-arguments
 def make_connection(
     connection_type,
     host=DEFAULT_HOST,
@@ -1086,10 +1100,10 @@ def make_connection(
         port = connection_string.port or port
 
         db = connection_string.path.replace("/", "") or None
-        timeout = query_string.get("timeout", DEFAULT_TIMEOUT)
+        timeout_list = query_string.get("timeout", [DEFAULT_TIMEOUT])
 
-        if timeout:
-            timeout = int(timeout[0])
+        if timeout_list:
+            timeout = int(timeout_list[0])
 
     conn = connection_type(
         host,

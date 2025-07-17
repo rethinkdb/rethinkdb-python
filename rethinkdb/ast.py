@@ -925,7 +925,7 @@ class MakeArray(ReqlQuery):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MAKE_ARRAY
 
-    # pylint: disable=unused-argument,no-self-use
+    # pylint: disable=unused-argument
     def compose(self, args, kwargs):
         return EnhancedTuple("[", EnhancedTuple(*args, int_separator=", "), "]")
 
@@ -944,7 +944,7 @@ class MakeObj(ReqlQuery):
     def build(self):
         return self.kwargs
 
-    # pylint: disable=unused-argument,no-self-use
+    # pylint: disable=unused-argument
     def compose(self, args, kwargs):
         return EnhancedTuple(
             "r.expr({",
@@ -964,7 +964,7 @@ class Var(ReqlQuery):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.VAR
 
-    # pylint: disable=unused-argument,no-self-use
+    # pylint: disable=unused-argument
     def compose(self, args, kwargs):
         return "var_" + args[0]
 
@@ -1019,7 +1019,7 @@ class ImplicitVar(ReqlQuery):
     def __call__(self, *args, **kwargs):
         raise TypeError("'r.row' is not callable, use 'r.row[...]' instead")
 
-    # pylint: disable=unused-argument,no-self-use
+    # pylint: disable=unused-argument
     def compose(self, args, kwargs):
         return "r.row"
 
