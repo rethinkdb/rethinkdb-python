@@ -30,6 +30,9 @@ those cases when the rethinkdb binary is not installed:
     - restore
 """
 
+import logging
+import sys
+
 import click
 
 from rethinkdb.cli import (
@@ -42,11 +45,50 @@ from rethinkdb.cli import (
 )
 
 
+def setup_logging(debug: bool = False, quiet: bool = False):
+    """Setup logging configuration for CLI commands."""
+    # Configure logging format
+    if debug:
+        log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        log_level = logging.DEBUG
+    else:
+        log_format = "%(message)s"
+        log_level = logging.INFO if not quiet else logging.WARNING
+
+    # Always log to sys.stdout for CLI output
+    logging.basicConfig(
+        level=log_level,
+        format=log_format,
+        stream=sys.stdout,
+        force=True,
+    )
+
+    # Create logger for CLI
+    logger = logging.getLogger("rethinkdb.cli")
+    logger.setLevel(log_level)
+
+    return logger
+
+
 @click.group
 def cmd_main():
     """
     Group of commands for the RethinkDB database.
     """
+    pass
+
+
+def main():
+    """Main entry point that sets up logging and runs the CLI."""
+    # Parse arguments to get debug/quiet flags early
+    debug = "--debug" in sys.argv
+    quiet = "--quiet" in sys.argv or "-q" in sys.argv
+
+    # Setup logging
+    setup_logging(debug=debug, quiet=quiet)
+
+    # Run the CLI
+    cmd_main()
 
 
 cmd_main.add_command(cmd_dump, "dump")
@@ -55,3 +97,6 @@ cmd_main.add_command(cmd_import, "import")
 cmd_main.add_command(cmd_index_rebuild, "index_rebuild")
 cmd_main.add_command(cmd_repl, "repl")
 cmd_main.add_command(cmd_restore, "restore")
+
+if __name__ == "__main__":
+    main()

@@ -40,7 +40,7 @@ from typing import Union as TUnion
 from rethinkdb import ql2_pb2
 from rethinkdb.errors import QueryPrinter, ReqlDriverCompileError, ReqlDriverError
 from rethinkdb.repl import Repl
-from rethinkdb.utilities import EnhancedTuple
+from rethinkdb.utils import EnhancedTuple
 
 if TYPE_CHECKING:
     from rethinkdb.net import Connection
