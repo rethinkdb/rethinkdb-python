@@ -18,24 +18,84 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
 """
-The main command is a special group that is the root of the command tree.
-
-This command creates a subcommand tree that with the following commands for
-those cases when the rethinkdb binary is not installed:
-    - dump
-    - export
-    - import
-    - index_rebuild
-    - repl
-    - restore
+REPL starts a REPL session for RethinkDB. Enter ReQL queries as Python code using the 'r' object.
 """
+import code
 
 import click
 
+from rethinkdb import r
+from rethinkdb.cli.utils import common_options, get_connection
+from rethinkdb.errors import ReqlDriverError
 
-@click.command
-def cmd_repl():
+
+@common_options
+@click.command()
+def cmd_repl(
+    connect,
+    quiet,
+    debug,
+    host_name,
+    driver_port,
+    user,
+    password,
+    password_file,
+    tls_cert,
+):
     """
-    Rebuild outdated secondary indexes.
+    Start a REPL session for RethinkDB. Enter ReQL queries as Python code using the 'r' object.
+    Example: r.db('test').table_list().run(conn)
     """
-    click.echo("repl command")
+
+    if host_name:
+        host = host_name
+    else:
+        if ":" in connect:
+            host, port = connect.split(":", 1)
+            port = int(port)
+        else:
+            host = connect
+            port = 28015
+
+    if driver_port is not None:
+        port = driver_port
+
+    try:
+        conn = get_connection(
+            connect=connect,
+            driver_port=driver_port,
+            host_name=host_name,
+            user=user,
+            password=password,
+            password_file=password_file,
+            tls_cert=tls_cert,
+            quiet=quiet,
+            debug=debug,
+        )
+    except ReqlDriverError as e:
+        if not quiet:
+            click.echo("Error connecting to RethinkDB: %s" % e, err=True)
+        sys.exit(1)
+
+    banner = (
+        "RethinkDB Python REPL\n"
+        f"Connected to {host}:{port}\n"
+        "Type ReQL queries using the 'r' object.\n"
+        "The connection is available as 'conn'.\n"
+        "Type exit() or Ctrl-D to exit.\n"
+    )
+
+    local_vars = {"r": r, "conn": conn}
+    console = code.InteractiveConsole(locals=local_vars)
+
+    try:
+        console.interact(banner=banner)
+    except SystemExit:
+        pass
+    except Exception as e:
+        click.echo("REPL exited with error: %s" % e, err=True)
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass

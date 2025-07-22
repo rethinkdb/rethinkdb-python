@@ -24,7 +24,7 @@ import pytest
 from rethinkdb.errors import InvalidHandshakeStateError, ReqlAuthError, ReqlDriverError
 from rethinkdb.handshake import BaseHandshake, HandshakeState, HandshakeV1_0
 from rethinkdb.ql2_pb2 import VersionDummy
-from rethinkdb.utilities import chain_to_bytes
+from rethinkdb.utils import chain_to_bytes
 
 
 @pytest.fixture

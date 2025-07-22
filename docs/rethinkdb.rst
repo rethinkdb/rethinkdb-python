@@ -68,10 +68,10 @@ rethinkdb.repl module
    :undoc-members:
    :show-inheritance:
 
-rethinkdb.utilities module
---------------------------
+rethinkdb.utils module
+----------------------
 
-.. automodule:: rethinkdb.utilities
+.. automodule:: rethinkdb.utils
    :members:
    :undoc-members:
    :show-inheritance:

@@ -35,7 +35,7 @@ from typing import Dict, Optional
 
 from rethinkdb import ql2_pb2
 from rethinkdb.errors import InvalidHandshakeStateError, ReqlAuthError, ReqlDriverError
-from rethinkdb.utilities import chain_to_bytes
+from rethinkdb.utils import chain_to_bytes
 
 
 class HandshakeState(Enum):

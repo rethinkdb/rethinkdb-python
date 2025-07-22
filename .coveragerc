@@ -4,6 +4,14 @@ branch = True
 omit = *tests*
        *__init__*
        rethinkdb/ql2_pb2.py
+       rethinkdb/cli/main.py
+       rethinkdb/cli/_export.py
+       rethinkdb/cli/_index_rebuild.py
+       rethinkdb/cli/_restore.py
+       rethinkdb/cli/_dump.py
+       rethinkdb/cli/_import.py
+       rethinkdb/cli/_repl.py
+       rethinkdb/cli/utils.py
 
 [report]
 sort = cover

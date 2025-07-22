@@ -159,10 +159,6 @@ class Response:  # pylint: disable=too-few-public-methods
         the server is unknown to the client, a `ReqlDriverError` will
         return.
         """
-
-        if self.error_type is None:
-            raise ReqlRuntimeError("Invalid error type received")
-
         error: ReqlError = ReqlDriverError(
             f"Unknown Response type {self.response_type} encountered in a response."
         )
@@ -186,7 +182,7 @@ class Response:  # pylint: disable=too-few-public-methods
             }
 
             runtime_error_type = runtime_error_type_mapping.get(
-                self.error_type, ReqlRuntimeError
+                self.error_type or 0, ReqlRuntimeError
             )
 
             error = runtime_error_type(self.data[0], query.term_type, self.backtrace)
@@ -229,14 +225,18 @@ class Cursor:
     """
 
     def __init__(
-        self, conn_instance, query, first_response, items_type=collections.deque
+        self,
+        conn_instance: "ConnectionInstance",
+        query: Query,
+        first_response: Response,
+        items_type: type = collections.deque,
     ):
         self.conn: "ConnectionInstance" = conn_instance
         self.query = query
         self.items = items_type()
         self.outstanding_requests = 0
         self.threshold = 1
-        self.error = None
+        self.error: Optional[Union[ReqlError, Type[ReqlCursorEmpty]]] = None
         self._json_decoder = self.conn.parent.get_json_decoder(self.query)
 
         self.conn.cursor_cache[self.query.token] = self
