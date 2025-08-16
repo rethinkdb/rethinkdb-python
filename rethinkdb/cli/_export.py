@@ -24,13 +24,16 @@ import csv
 from datetime import datetime
 import gzip
 import json
+import logging
 import os
+import sys
 import threading
 from typing import Any, Dict, List, Optional
 
 import click
 
-from rethinkdb import errors, r
+import rethinkdb as r
+from rethinkdb import errors
 from rethinkdb.cli.utils import (
     common_options,
     get_connection,
@@ -162,16 +165,17 @@ def export_worker(
                             if export_format == "ndjson":
                                 f.write("\n")
                         else:  # csv
-                            csv_row = []
-                            for field in fields:
-                                val = row_to_write.get(field)
-                                if isinstance(val, (dict, list, bool)):
-                                    csv_row.append(
-                                        json.dumps(val, default=json_default)
-                                    )
-                                else:
-                                    csv_row.append(val)
-                            csv_writer.writerow(csv_row)
+                            if fields and csv_writer is not None:
+                                csv_row = []
+                                for field in fields:
+                                    val = row_to_write.get(field)
+                                    if isinstance(val, (dict, list, bool)):
+                                        csv_row.append(
+                                            json.dumps(val, default=json_default)
+                                        )
+                                    else:
+                                        csv_row.append(val)
+                                csv_writer.writerow(csv_row)
 
                         rows_written += 1
                         last_pk = doc[primary_key]

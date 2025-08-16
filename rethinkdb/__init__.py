@@ -16,16 +16,62 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
 import warnings
+from types import SimpleNamespace
 
-from rethinkdb import errors  # , version
+from rethinkdb import net
+# pylint: disable=redefined-builtin
+from rethinkdb.query import (
+    add, and_, april, args, asc, august, avg, binary, bit_and, bit_not, bit_or,
+    bit_sal, bit_sar, bit_xor, branch, ceil, circle, contains, count, db,
+    db_create, db_drop, db_list, december, desc, distance, distinct, div, do,
+    epoch_time, eq, error, february, floor, format, friday, ge, geojson, grant,
+    group, gt, http, info, intersects, iso8601, january, json, july, june, le,
+    line, literal, lt, make_timezone, map, march, max, maxval, may, min, minval,
+    mod, monday, mul, ne, not_, november, now, object, october, or_, point,
+    polygon, random, range, reduce, round, row, saturday, september, sub, sum,
+    sunday, table, table_create, table_drop, table_list, thursday, time, tuesday,
+    type_of, union, uuid, wednesday, js
+)
+# pylint: enable=redefined-builtin
 
-__all__ = ["r", "RethinkDB"]
 __version__ = "2.5.0"
 
+# Create the r namespace object containing all query functions
+r = SimpleNamespace()
 
-class RethinkDB:
+query_functions = {
+    'add': add, 'and_': and_, 'april': april, 'args': args, 'asc': asc,
+    'august': august, 'avg': avg, 'binary': binary, 'bit_and': bit_and,
+    'bit_not': bit_not, 'bit_or': bit_or, 'bit_sal': bit_sal, 'bit_sar': bit_sar,
+    'bit_xor': bit_xor, 'branch': branch, 'ceil': ceil, 'circle': circle,
+    'contains': contains, 'count': count, 'db': db, 'db_create': db_create,
+    'db_drop': db_drop, 'db_list': db_list, 'december': december, 'desc': desc,
+    'distance': distance, 'distinct': distinct, 'div': div, 'do': do,
+    'epoch_time': epoch_time, 'eq': eq, 'error': error, 'february': february,
+    'floor': floor, 'format': format, 'friday': friday, 'ge': ge, 'geojson': geojson,
+    'grant': grant, 'group': group, 'gt': gt, 'http': http, 'info': info,
+    'intersects': intersects, 'iso8601': iso8601, 'january': january, 'json': json,
+    'july': july, 'june': june, 'le': le, 'line': line, 'literal': literal,
+    'lt': lt, 'make_timezone': make_timezone, 'map': map, 'march': march,
+    'max': max, 'maxval': maxval, 'may': may, 'min': min, 'minval': minval,
+    'mod': mod, 'monday': monday, 'mul': mul, 'ne': ne, 'not_': not_,
+    'november': november, 'now': now, 'object': object, 'october': october,
+    'or_': or_, 'point': point, 'polygon': polygon, 'random': random,
+    'range': range, 'reduce': reduce, 'round': round, 'row': row,
+    'saturday': saturday, 'september': september, 'sub': sub, 'sum': sum,
+    'sunday': sunday, 'table': table, 'table_create': table_create,
+    'table_drop': table_drop, 'table_list': table_list, 'thursday': thursday,
+    'time': time, 'tuesday': tuesday, 'type_of': type_of, 'union': union,
+    'uuid': uuid, 'wednesday': wednesday, 'js': js
+}
+
+for name, func in query_functions.items():
+    setattr(r, name, func)
+
+
+class Client:
     """
-    RethinkDB serves as an entrypoint for queries.
+    Client is a wrapper around RethinkDB connection handling.
 
     It constructs the connection handlers and event loops, re-exports internal modules for easier
     use, and sets the event loop.
@@ -34,22 +80,10 @@ class RethinkDB:
     def __init__(self):
         super().__init__()
 
-        # pylint: disable=import-outside-toplevel
-        from rethinkdb import ast, net, query
-
-        # Re-export internal modules for backward compatibility
-        self.ast = ast
-        self.errors = errors
         self.net = net
-        self.query = query
 
         net.Connection._r = self
         self.connection_type = None
-
-        # Dynamically assign every re-exported internal module's function to self
-        for module in (self.net, self.query, self.ast, self.errors):
-            for function_name in module.__all__:
-                setattr(self, function_name, getattr(module, function_name))
 
         # Ensure the `make_connection` function is not overridden accidentally
         self.make_connection = self.net.make_connection
@@ -83,12 +117,9 @@ class RethinkDB:
         if library is None or self.connection_type is None:
             self.connection_type = self.net.DefaultConnection
 
-    def connect(self, *args, **kwargs):
+    def connect(self, *connect_args, **kwargs):
         """
         Make a connection to the database.
         """
 
-        return self.make_connection(self.connection_type, *args, **kwargs)
-
-
-r = RethinkDB()
+        return self.make_connection(self.connection_type, *connect_args, **kwargs)

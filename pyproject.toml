@@ -38,7 +38,6 @@ maintainers = ["RethinkDB <bugs@rethinkdb.com>"]
 # RethinkDB is aliasing the commands to `rethinkdb <command>`, therefore it
 # can be executed as `rethinkdb dump` or `rethinkdb-dump`.
 [tool.poetry.scripts]
-rethinkdb = "rethinkdb.cli.main:cmd_main"
 rethinkdb-dump = "rethinkdb.cli._dump:cmd_dump"
 rethinkdb-export = "rethinkdb.cli._export:cmd_export"
 rethinkdb-import = "rethinkdb.cli._import:cmd_import"
@@ -69,6 +68,21 @@ all = []
 
 [tool.black]
 target-version = ['py312']
+exclude = '''
+/(
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | rethinkdb/ql2_pb2\.py
+)/
+'''
 
 [tool.isort]
 atomic = true

@@ -21,31 +21,31 @@
 `rethinkdb import` loads data into a RethinkDB cluster
 """
 
+import base64
 import codecs
 import collections
-from concurrent.futures import ThreadPoolExecutor
 import csv
 import json
 import logging
 import multiprocessing
 import os
 import shutil
+import signal
 import sys
 import tarfile
 import tempfile
 import threading
 import time
 import traceback
-from typing import Dict, List, Optional
+from typing import Optional
 
 import click
 
-from rethinkdb import errors, r
+import rethinkdb as r
 from rethinkdb.cli.utils import (
     common_options,
     get_connection,
     get_logger,
-    json_default,
     parse_list_args,
     print_progress,
 )
@@ -443,6 +443,7 @@ def parse_sources(options, files_ignored=None):
         logger.info("Importing from directory: %s", options["directory"])
         # Scan for all files, make sure no duplicated tables with different formats
         files_ignored = []
+        dbs = False
 
         for root, dirs, files in os.walk(options["directory"]):
             if not dbs:

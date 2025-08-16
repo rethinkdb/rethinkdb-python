@@ -194,7 +194,7 @@ def test_make_connection_no_user(conn_params):
     )
 
 
-def test_make_connection_no_host(conn_params):
+def test_make_connection_no_timeout(conn_params):
     """
     Test connecting to the database using the default timeout.
     """

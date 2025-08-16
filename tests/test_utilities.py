@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import io
-import json
-import sys
 
 from rethinkdb.cli.utils import json_default, parse_list_args, print_progress
 from rethinkdb.utils import EnhancedTuple, chain_to_bytes
@@ -130,14 +128,6 @@ def test_print_progress_basic():
     assert "Test:" in output
     assert "50% (5/10)" in output
     assert "100% (10/10)" in output
-
-
-def test_parse_list_args():
-    """Test parse_list_args parses db and db.table correctly."""
-    result = parse_list_args(["db1", "db2.table1", "db2.table2"])
-    assert result == {"db1": [], "db2": ["table1", "table2"]}
-    result = parse_list_args([])
-    assert result == {}
 
 
 def test_parse_list_args():

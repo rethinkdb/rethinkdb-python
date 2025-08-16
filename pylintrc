@@ -9,7 +9,8 @@ extension-pkg-whitelist=
 # paths.
 ignore=CVS,
        rethinkdb/cli,
-       scripts
+       scripts,
+       rethinkdb/ql2_pb2.py
 
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
