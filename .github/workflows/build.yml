@@ -22,7 +22,7 @@ jobs:
             - name: Install requirements
               run: |
                   pip install poetry pre-commit
-                  poetry install
+                  poetry install -E all
 
             - name: Install RethinkDB and compile proto file
               run: |
@@ -36,20 +36,10 @@ jobs:
 
             - name: Run tests
               run: |
-                  # Download and install test reporter
-                  make download-test-reporter
-                  make test-reporter-before
                   # Start DB and run tests
                   rethinkdb&
                   poetry run make test
                   killall rethinkdb
-
-            - name: Upload coverage report
-              if: ${{ matrix.python-version == '3.13' }}
-              env:
-                  CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
-              run: |
-                  make upload-coverage
 
             - name: Deploy to PyPi
               env:

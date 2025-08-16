@@ -9,14 +9,6 @@ RethinkDB Python Client
     :target: https://github.com/rethinkdb/rethinkdb-python/actions/workflows/build.yml
     :alt: Build Status
 
-.. image:: https://api.codeclimate.com/v1/badges/e5023776401a5f0e82f1/maintainability
-   :target: https://codeclimate.com/github/rethinkdb/rethinkdb-python/maintainability
-   :alt: Maintainability
-
-.. image:: https://api.codeclimate.com/v1/badges/e5023776401a5f0e82f1/test_coverage
-   :target: https://codeclimate.com/github/rethinkdb/rethinkdb-python/test_coverage
-   :alt: Test Coverage
-
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/ambv/black
     :alt: Black Formatted

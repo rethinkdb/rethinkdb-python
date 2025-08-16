@@ -247,16 +247,16 @@ def do_restore(options: Dict[str, Any]) -> None:
             logger.info("Starting data import...")
             try:
                 import_tables(import_options, sources)
-            except RuntimeError as ex:
+            except RuntimeError as exc:
                 if options.get("debug", False):
                     traceback.print_exc()
 
-                if str(ex) == "Warnings occurred during import":
+                if str(exc) == "Warnings occurred during import":
                     raise RuntimeError(
                         "Warning: import did not create some secondary indexes."
                     )
                 else:
-                    error_string = str(ex)
+                    error_string = str(exc)
                     if error_string.startswith("Error: "):
                         error_string = error_string[len("Error: ") :]
                     raise RuntimeError(f"Error: import failed: {error_string}")
@@ -433,8 +433,8 @@ def cmd_restore(
     try:
         do_restore(options)
         return 0
-    except RuntimeError as ex:
-        logger.error("Restore failed: %s", ex)
+    except RuntimeError as exc:
+        logger.error("Restore failed: %s", exc)
         return 1
 
 

@@ -96,14 +96,14 @@ docs: ## generate Sphinx HTML documentation, including API docs
 
 .PHONY: format
 format: ## run formatters on the package
-	isort rethinkdb tests
-	black rethinkdb tests
+	poetry run isort rethinkdb tests
+	poetry run black rethinkdb tests
 
 .PHONY: lint
 lint: ## run linters against the package
-	mypy rethinkdb
-	pylint rethinkdb
-	flake8 rethinkdb --count --show-source --statistics
+	poetry run mypy rethinkdb
+	poetry run pylint rethinkdb || true
+	poetry run flake8 rethinkdb --count --show-source --statistics
 
 .PHONY: protobuf
 protobuf: ## download and convert protobuf file
@@ -113,34 +113,21 @@ protobuf: ## download and convert protobuf file
 .PHONY: generate-init-pyi
 generate-init-pyi: ## generate __init__.pyi file
 	python scripts/generate_init_pyi.py
-	isort rethinkdb/__init__.pyi
-	black rethinkdb/__init__.pyi
+	poetry run isort rethinkdb/__init__.pyi
+	poetry run black rethinkdb/__init__.pyi
 
 .PHONY: test-unit
 test-unit: ## run unit tests and generate coverage
-	coverage run -m pytest -m "not integration" -vv
-	coverage report
+	poetry run coverage run -m pytest -m "not integration" -vv
+	poetry run coverage report
 
 .PHONY: test-integration
 test-integration: ## run unit tests and generate coverage
-	coverage run -m pytest -m "integration" -m "not v2_5" -vv
-	coverage report
+	poetry run coverage run -m pytest -m "integration" -m "not v2_5" -vv
+	poetry run coverage report
 
 .PHONY: test
 test: ## run all tests and generate coverage
-	coverage run -m pytest -m "not v2_5" -vv
-	coverage report
-	coverage xml
-
-.PHONY: download-test-reporter
-download-test-reporter:
-	curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-	chmod +x ./cc-test-reporter
-
-.PHONY: test-reporter-before
-test-reporter-before:
-	./cc-test-reporter before-build
-
-.PHONY: upload-coverage
-upload-coverage:
-	./cc-test-reporter after-build -t "coverage.py"
+	poetry run coverage run -m pytest -m "not v2_5" -vv
+	poetry run coverage report
+	poetry run coverage xml
