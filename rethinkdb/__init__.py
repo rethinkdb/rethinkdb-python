@@ -15,24 +15,111 @@
 # This file incorporates work covered by the following copyright:
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-import warnings
+# pylint: disable=redefined-builtin, unused-import
+
 from types import SimpleNamespace
+import warnings
 
 from rethinkdb import net
-# pylint: disable=redefined-builtin
 from rethinkdb.query import (
-    add, and_, april, args, asc, august, avg, binary, bit_and, bit_not, bit_or,
-    bit_sal, bit_sar, bit_xor, branch, ceil, circle, contains, count, db,
-    db_create, db_drop, db_list, december, desc, distance, distinct, div, do,
-    epoch_time, eq, error, february, floor, format, friday, ge, geojson, grant,
-    group, gt, http, info, intersects, iso8601, january, json, july, june, le,
-    line, literal, lt, make_timezone, map, march, max, maxval, may, min, minval,
-    mod, monday, mul, ne, not_, november, now, object, october, or_, point,
-    polygon, random, range, reduce, round, row, saturday, september, sub, sum,
-    sunday, table, table_create, table_drop, table_list, thursday, time, tuesday,
-    type_of, union, uuid, wednesday, js
+    add,
+    and_,
+    april,
+    args,
+    asc,
+    august,
+    avg,
+    binary,
+    bit_and,
+    bit_not,
+    bit_or,
+    bit_sal,
+    bit_sar,
+    bit_xor,
+    branch,
+    ceil,
+    circle,
+    contains,
+    count,
+    db,
+    db_create,
+    db_drop,
+    db_list,
+    december,
+    desc,
+    distance,
+    distinct,
+    div,
+    do,
+    epoch_time,
+    eq,
+    error,
+    february,
+    floor,
+    format,
+    friday,
+    ge,
+    geojson,
+    grant,
+    group,
+    gt,
+    http,
+    info,
+    intersects,
+    iso8601,
+    january,
+    js,
+    json,
+    july,
+    june,
+    le,
+    line,
+    literal,
+    lt,
+    make_timezone,
+    map,
+    march,
+    max,
+    maxval,
+    may,
+    min,
+    minval,
+    mod,
+    monday,
+    mul,
+    ne,
+    not_,
+    november,
+    now,
+    object,
+    october,
+    or_,
+    point,
+    polygon,
+    random,
+    range,
+    reduce,
+    round,
+    row,
+    saturday,
+    september,
+    sub,
+    sum,
+    sunday,
+    table,
+    table_create,
+    table_drop,
+    table_list,
+    thursday,
+    time,
+    tuesday,
+    type_of,
+    union,
+    uuid,
+    wednesday,
 )
-# pylint: enable=redefined-builtin
+
+# pylint: enable=redefined-builtin, unused-import
 
 __version__ = "2.5.0"
 
@@ -40,29 +127,101 @@ __version__ = "2.5.0"
 r = SimpleNamespace()
 
 query_functions = {
-    'add': add, 'and_': and_, 'april': april, 'args': args, 'asc': asc,
-    'august': august, 'avg': avg, 'binary': binary, 'bit_and': bit_and,
-    'bit_not': bit_not, 'bit_or': bit_or, 'bit_sal': bit_sal, 'bit_sar': bit_sar,
-    'bit_xor': bit_xor, 'branch': branch, 'ceil': ceil, 'circle': circle,
-    'contains': contains, 'count': count, 'db': db, 'db_create': db_create,
-    'db_drop': db_drop, 'db_list': db_list, 'december': december, 'desc': desc,
-    'distance': distance, 'distinct': distinct, 'div': div, 'do': do,
-    'epoch_time': epoch_time, 'eq': eq, 'error': error, 'february': february,
-    'floor': floor, 'format': format, 'friday': friday, 'ge': ge, 'geojson': geojson,
-    'grant': grant, 'group': group, 'gt': gt, 'http': http, 'info': info,
-    'intersects': intersects, 'iso8601': iso8601, 'january': january, 'json': json,
-    'july': july, 'june': june, 'le': le, 'line': line, 'literal': literal,
-    'lt': lt, 'make_timezone': make_timezone, 'map': map, 'march': march,
-    'max': max, 'maxval': maxval, 'may': may, 'min': min, 'minval': minval,
-    'mod': mod, 'monday': monday, 'mul': mul, 'ne': ne, 'not_': not_,
-    'november': november, 'now': now, 'object': object, 'october': october,
-    'or_': or_, 'point': point, 'polygon': polygon, 'random': random,
-    'range': range, 'reduce': reduce, 'round': round, 'row': row,
-    'saturday': saturday, 'september': september, 'sub': sub, 'sum': sum,
-    'sunday': sunday, 'table': table, 'table_create': table_create,
-    'table_drop': table_drop, 'table_list': table_list, 'thursday': thursday,
-    'time': time, 'tuesday': tuesday, 'type_of': type_of, 'union': union,
-    'uuid': uuid, 'wednesday': wednesday, 'js': js
+    "add": add,
+    "and_": and_,
+    "april": april,
+    "args": args,
+    "asc": asc,
+    "august": august,
+    "avg": avg,
+    "binary": binary,
+    "bit_and": bit_and,
+    "bit_not": bit_not,
+    "bit_or": bit_or,
+    "bit_sal": bit_sal,
+    "bit_sar": bit_sar,
+    "bit_xor": bit_xor,
+    "branch": branch,
+    "ceil": ceil,
+    "circle": circle,
+    "contains": contains,
+    "count": count,
+    "db": db,
+    "db_create": db_create,
+    "db_drop": db_drop,
+    "db_list": db_list,
+    "december": december,
+    "desc": desc,
+    "distance": distance,
+    "distinct": distinct,
+    "div": div,
+    "do": do,
+    "epoch_time": epoch_time,
+    "eq": eq,
+    "error": error,
+    "february": february,
+    "floor": floor,
+    "format": format,
+    "friday": friday,
+    "ge": ge,
+    "geojson": geojson,
+    "grant": grant,
+    "group": group,
+    "gt": gt,
+    "http": http,
+    "info": info,
+    "intersects": intersects,
+    "iso8601": iso8601,
+    "january": january,
+    "json": json,
+    "july": july,
+    "june": june,
+    "le": le,
+    "line": line,
+    "literal": literal,
+    "lt": lt,
+    "make_timezone": make_timezone,
+    "map": map,
+    "march": march,
+    "max": max,
+    "maxval": maxval,
+    "may": may,
+    "min": min,
+    "minval": minval,
+    "mod": mod,
+    "monday": monday,
+    "mul": mul,
+    "ne": ne,
+    "not_": not_,
+    "november": november,
+    "now": now,
+    "object": object,
+    "october": october,
+    "or_": or_,
+    "point": point,
+    "polygon": polygon,
+    "random": random,
+    "range": range,
+    "reduce": reduce,
+    "round": round,
+    "row": row,
+    "saturday": saturday,
+    "september": september,
+    "sub": sub,
+    "sum": sum,
+    "sunday": sunday,
+    "table": table,
+    "table_create": table_create,
+    "table_drop": table_drop,
+    "table_list": table_list,
+    "thursday": thursday,
+    "time": time,
+    "tuesday": tuesday,
+    "type_of": type_of,
+    "union": union,
+    "uuid": uuid,
+    "wednesday": wednesday,
+    "js": js,
 }
 
 for name, func in query_functions.items():
@@ -85,7 +244,6 @@ class Client:
         net.Connection._r = self
         self.connection_type = None
 
-        # Ensure the `make_connection` function is not overridden accidentally
         self.make_connection = self.net.make_connection
         self.set_loop_type(None)
 
@@ -99,20 +257,26 @@ class Client:
             library = None
 
         if library == "gevent":
-            warnings.warn(f"{library} is not yet supported, using the default one")
-            library = None
+            # pylint: disable=import-outside-toplevel
+            from rethinkdb.net_gevent import Connection as GeventConnection
+
+            self.connection_type = GeventConnection
 
         if library == "tornado":
-            warnings.warn(f"{library} is not yet supported, using the default one")
-            library = None
+            # pylint: disable=import-outside-toplevel
+            from rethinkdb.net_tornado import Connection as TornadoConnection
+
+            self.connection_type = TornadoConnection
 
         if library == "trio":
             warnings.warn(f"{library} is not yet supported, using the default one")
             library = None
 
         if library == "twisted":
-            warnings.warn(f"{library} is not yet supported, using the default one")
-            library = None
+            # pylint: disable=import-outside-toplevel
+            from rethinkdb.net_twisted import Connection as TwistedConnection
+
+            self.connection_type = TwistedConnection
 
         if library is None or self.connection_type is None:
             self.connection_type = self.net.DefaultConnection
