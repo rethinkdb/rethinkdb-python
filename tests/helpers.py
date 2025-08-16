@@ -18,7 +18,8 @@ from typing import Any, Callable, Iterable, List, Optional, Tuple
 from pydantic import BaseModel
 import pytest
 
-from rethinkdb import ast, net, r
+import rethinkdb as r
+from rethinkdb import ast, net
 
 
 class Scenario(BaseModel):

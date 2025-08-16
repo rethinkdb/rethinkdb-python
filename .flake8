@@ -2,6 +2,6 @@
 ignore=E203,E501,W503
 max-line-length=88
 application_import_names=rethinkdb
-exclude = .git,__pycache__,tests,scripts,rethinkdb/cli
+exclude = .git,__pycache__,tests,scripts,rethinkdb/cli,rethinkdb/ql2_pb2.py
 per-file-ignores =
      rethinkdb/cli/__init__.py: F401

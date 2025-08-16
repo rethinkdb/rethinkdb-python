@@ -21,10 +21,11 @@
 REPL starts a REPL session for RethinkDB. Enter ReQL queries as Python code using the 'r' object.
 """
 import code
+import sys
 
 import click
 
-from rethinkdb import r
+import rethinkdb as r
 from rethinkdb.cli.utils import common_options, get_connection
 from rethinkdb.errors import ReqlDriverError
 

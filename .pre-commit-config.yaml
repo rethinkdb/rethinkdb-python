@@ -9,7 +9,9 @@ repos:
       rev: v6.0.0
       hooks:
           - id: trailing-whitespace
+            exclude: ^rethinkdb/ql2_pb2\.py$
           - id: end-of-file-fixer
+            exclude: ^rethinkdb/ql2_pb2\.py$
           - id: check-toml
           - id: check-json
           - id: pretty-format-json

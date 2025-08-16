@@ -14,7 +14,8 @@
 
 import pytest
 
-from rethinkdb import ast, r
+import rethinkdb as r
+from rethinkdb import ast
 
 
 @pytest.mark.unit

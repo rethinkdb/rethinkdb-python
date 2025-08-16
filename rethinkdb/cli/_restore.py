@@ -30,18 +30,16 @@ import tarfile
 import tempfile
 import time
 import traceback
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import click
 
-from rethinkdb import errors, r
 from rethinkdb.cli._import import import_tables, parse_sources
 from rethinkdb.cli.utils import (
     common_options,
     get_connection,
     get_logger,
     parse_list_args,
-    should_quiet,
 )
 
 
@@ -160,7 +158,7 @@ def do_restore(options: Dict[str, Any]) -> None:
     try:
         # Extract the archive
         start_time = time.time()
-        files_ignored = do_unzip(temp_dir, options)
+        do_unzip(temp_dir, options)
         logger.info(
             "Archive extraction completed in %.2f seconds", time.time() - start_time
         )
