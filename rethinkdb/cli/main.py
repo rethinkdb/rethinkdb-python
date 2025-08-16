@@ -94,7 +94,7 @@ def main():
 cmd_main.add_command(cmd_dump, "dump")
 cmd_main.add_command(cmd_export, "export")
 cmd_main.add_command(cmd_import, "import")
-cmd_main.add_command(cmd_index_rebuild, "index_rebuild")
+cmd_main.add_command(cmd_index_rebuild, "index-rebuild")
 cmd_main.add_command(cmd_repl, "repl")
 cmd_main.add_command(cmd_restore, "restore")
 
