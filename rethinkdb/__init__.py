@@ -21,6 +21,7 @@ from types import SimpleNamespace
 import warnings
 
 from rethinkdb import net
+from rethinkdb.ast import expr
 from rethinkdb.query import (
     add,
     and_,
@@ -158,6 +159,7 @@ query_functions = {
     "do": do,
     "epoch_time": epoch_time,
     "eq": eq,
+    "expr": expr,
     "error": error,
     "february": february,
     "floor": floor,
@@ -239,12 +241,10 @@ class Client:
     def __init__(self):
         super().__init__()
 
-        self.net = net
-
         net.Connection._r = self
         self.connection_type = None
 
-        self.make_connection = self.net.make_connection
+        self.make_connection = net.make_connection
         self.set_loop_type(None)
 
     def set_loop_type(self, library=None) -> None:
@@ -279,7 +279,7 @@ class Client:
             self.connection_type = TwistedConnection
 
         if library is None or self.connection_type is None:
-            self.connection_type = self.net.DefaultConnection
+            self.connection_type = net.DefaultConnection
 
     def connect(self, *connect_args, **kwargs):
         """

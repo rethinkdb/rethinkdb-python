@@ -121,7 +121,7 @@ Migration Guide
 
 For users upgrading from 2.4.x to 2.5.0:
 
-1. **Python**: Use Python 3.7+.
+1. **Python**: Use Python 3.10+.
 2. **Imports**: Update imports for moved modules (e.g., utilities now in `rethinkdb.utils`).
 3. **Exceptions**: Replace `Rql*` with `Reql*`. Adjust error handling for `ReqlAuthError`/`ReqlTimeoutError` host/port validation.
 4. **Handshake**: If customizing JSON encoding/decoding during handshake, pass `json_encoder`/`json_decoder` to `HandshakeV1_0`.
