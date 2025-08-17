@@ -19,20 +19,25 @@ can tell the database to continuously push updated query results to applications
 RethinkDB allows developers to build scalable realtime apps in a fraction of the time with
 less effort.
 
-Utility Tools
-============
-If you came here looking for an utility tool, this functionality has been dropped during the porting from python 2 to 3.
-Instead, you should look (and we suggest to use) https://github.com/BOOMfinity-Developers/GoThink
+Utility Scripts
+===============
+RethinkDB Python Client prodvices a set of utility scripts to help you manage your RethinkDB
+database.
 
+* `rethinkdb dump` / `rethinkdb-dump` - Dump a database to a file
+* `rethinkdb export` / `rethinkdb-export` - Export a table to a file
+* `rethinkdb import` / `rethinkdb-import` - Import a table from a file
+* `rethinkdb index-rebuild` / `rethinkdb-index-rebuild` - Rebuild all indexes
+* `rethinkdb repl` / `rethinkdb-repl` - Start a REPL session
+* `rethinkdb restore` / `rethinkdb-restore` - Restore a database from a file
 
 Installation
 ============
 
 RethinkDB's Python Client can be installed by running ``pip install rethinkdb`` and it requires
-Python 3.7.0+ to run. This is the preferred method to install RethinkDB Python client, as it
-will always install the most recent stable release. If you don't have `pip`_
-installed, this `Python installation guide`_ can guide
-you through the process.
+Python 3.10+ to run. This is the preferred method to install RethinkDB Python client, as it will
+always install the most recent stable release. If you don't have `pip`_ installed, this
+`Python installation guide`_ can guide you through the process.
 
 .. _pip: https://pip.pypa.io
 .. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
