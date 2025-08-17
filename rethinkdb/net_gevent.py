@@ -109,11 +109,6 @@ class SocketWrapper(SocketWrapperBase):
                     raise ReqlDriverError(
                         f"SSL handshake failed (see server log for more information): {exc}"
                     ) from exc
-                # Note: ssl.match_hostname is deprecated since Python 3.7 and removed in 3.12+
-                # Hostname verification is automatically handled by OpenSSL when:
-                # - ssl_context.check_hostname = True (for SSLContext path)
-                # - server_hostname is provided to wrap_socket()
-                # No manual hostname verification needed for Python 3.7+
 
             parent._parent.handshake.reset()
             response = None
@@ -121,6 +116,7 @@ class SocketWrapper(SocketWrapperBase):
                 request = parent._parent.handshake.next_message(response)
                 if request is None:
                     break
+
                 # This may happen in the `V1_0` protocol where we send two requests as
                 # an optimization, then need to read each separately
                 if request != "":

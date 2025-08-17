@@ -65,6 +65,7 @@ hypothesis = "^6.135"
 mypy = "^1.16"
 pylint = "^3.3"
 pytest = "^8.1.1"
+sphinx = "^8.2"
 sphinx-rtd-theme = "^3.0"
 pytest-twisted = "^1.14.0"
 pytest-asyncio = "^0.23.6"
@@ -77,6 +78,9 @@ twisted = ["twisted"]
 tornado = ["tornado"]
 gevent = ["gevent"]
 trio = ["trio"]
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
 
 [tool.black]
 target-version = ['py312']
