@@ -86,8 +86,6 @@ As `step 0` make sure you have python 3.10+, [https://python-poetry.org/](poetry
 5. When you're done making changes, check that your changes pass linters and the tests::
 
     $ poetry env activate
-    $ make protobuf
-    $ make generate-init-pyi
     $ make format
     $ make lint
     $ make test
