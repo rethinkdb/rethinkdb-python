@@ -25,7 +25,7 @@ from datetime import datetime
 import json
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from rethinkdb.ast import ReqlBinary, ReqlQuery, ReqlTzinfo
+from rethinkdb.ast import RqlBinary, RqlQuery, RqlTzinfo
 from rethinkdb.errors import ReqlDriverError
 
 __all__ = ["ReqlEncoder", "ReqlDecoder"]
@@ -57,7 +57,7 @@ class ReqlEncoder(json.JSONEncoder):
             sort_keys=sort_keys,
             indent=indent,
             separators=separators,
-            default=default,
+            default=(default or self.default),
         )
 
     def default(self, o: Any) -> Any:
@@ -67,7 +67,7 @@ class ReqlEncoder(json.JSONEncoder):
         :raises: TypeError
         """
 
-        if isinstance(o, ReqlQuery):
+        if isinstance(o, RqlQuery):
             return o.build()
 
         return super().default(o)
@@ -117,9 +117,7 @@ class ReqlDecoder(json.JSONDecoder):
             )
 
         if "timezone" in obj:
-            return datetime.fromtimestamp(
-                obj["epoch_time"], ReqlTzinfo(obj["timezone"])
-            )
+            return datetime.fromtimestamp(obj["epoch_time"], RqlTzinfo(obj["timezone"]))
 
         return datetime.utcfromtimestamp(obj["epoch_time"])
 
@@ -153,7 +151,7 @@ class ReqlDecoder(json.JSONDecoder):
                 'the expected field "data".'
             )
 
-        return ReqlBinary(base64.b64decode(obj["data"].encode("utf-8")))
+        return RqlBinary(base64.b64decode(obj["data"].encode("utf-8")))
 
     def __convert_pseudo_type(
         self, obj: Dict[str, Any], format_name: str, converter: Callable
@@ -174,7 +172,7 @@ class ReqlDecoder(json.JSONDecoder):
                 f'Unknown {format_name} run option "{pseudo_type_format}".'
             )
 
-        return None
+        return obj
 
     def convert_pseudo_type(self, obj: Dict[str, Any]) -> Any:
         """

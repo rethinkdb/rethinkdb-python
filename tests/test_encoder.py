@@ -14,7 +14,7 @@
 
 import pytest
 
-from rethinkdb.ast import ReqlQuery
+from rethinkdb.ast import RqlQuery
 from rethinkdb.encoder import ReqlDecoder, ReqlEncoder
 
 
@@ -35,12 +35,12 @@ def test_encode():
     assert result == '{"strkey":"value","intkey":1,"dictkey":{"strkey":"value"}}'
 
 
-def test_encode_Reql_query():
+def test_encode_Rql_Query():
     """
-    Test encoding ReqlQuery.
+    Test encoding RqlQuery.
     """
 
-    query = ReqlQuery(1, 2, optargs={"key": "val"})
+    query = RqlQuery(1, 2, optargs={"key": "val"})
 
     encoder = ReqlEncoder()
     result = encoder.encode(query)
@@ -72,9 +72,9 @@ def test_decode():
     assert result == {"strkey": "value", "intkey": 1, "dictkey": {"strkey": "value"}}
 
 
-def test_decode_Reql_query():
+def test_decode_Rql_Query():
     """
-    Test decoding ReqlQuery.
+    Test decoding RqlQuery.
     """
 
     query = '[null,[1,2],{"optargs":{"key":"val"}}]'
@@ -82,7 +82,7 @@ def test_decode_Reql_query():
     decoder = ReqlDecoder()
     result = decoder.decode(query)
 
-    assert result == ReqlQuery(1, 2, optargs={"key": "val"})
+    assert result == RqlQuery(1, 2, optargs={"key": "val"})
 
 
 def test_decode_unknown_object():

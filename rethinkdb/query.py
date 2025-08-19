@@ -116,7 +116,7 @@ __all__ = [
 from rethinkdb import ast, ql2_pb2
 
 
-class ReqlConstant(ast.ReqlQuery):
+class ReqlConstant(ast.RqlQuery):
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -666,7 +666,7 @@ def make_timezone(*arguments):
     """
     Add timezone function.
     """
-    return ast.ReqlTzinfo(*arguments)
+    return ast.RqlTzinfo(*arguments)
 
 
 def time(*arguments):

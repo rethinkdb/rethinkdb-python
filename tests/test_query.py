@@ -636,12 +636,12 @@ def test_range(mock_ast):
 
 @patch("rethinkdb.query.ast")
 def test_make_timezone(mock_ast):
-    mock_ast.ReqlTzinfo.return_value = Mock()
+    mock_ast.RqlTzinfo.return_value = Mock()
 
     result = query.make_timezone("foo")
-    mock_ast.ReqlTzinfo.assert_called_once_with("foo")
+    mock_ast.RqlTzinfo.assert_called_once_with("foo")
 
-    assert result == mock_ast.ReqlTzinfo.return_value
+    assert result == mock_ast.RqlTzinfo.return_value
 
 
 @patch("rethinkdb.query.ast")

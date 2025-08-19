@@ -36,7 +36,7 @@ from rethinkdb import ast as ast_module
 from rethinkdb import errors as errors_module
 from rethinkdb import net as net_module
 from rethinkdb import query as query_module
-from rethinkdb.ast import ReqlBinary, ReqlQuery, ReqlTzinfo
+from rethinkdb.ast import RqlBinary, RqlQuery, RqlTzinfo
 from rethinkdb.errors import (
     InvalidHandshakeStateError,
     QueryPrinter,
@@ -94,8 +94,8 @@ def get_type_hint(obj: Any, name: str, module_name: str) -> str:
             Union[
                 str,
                 bytes,
-                ReqlQuery,
-                ReqlBinary,
+                RqlQuery,
+                RqlBinary,
                 datetime.date,
                 datetime.datetime,
                 Mapping[Any, Any],
@@ -104,7 +104,7 @@ def get_type_hint(obj: Any, name: str, module_name: str) -> str:
             ],
             int,
         ],
-        ReqlQuery,
+        RqlQuery,
     ]"""
 
     if module_name == "net":
@@ -127,9 +127,9 @@ def get_type_hint(obj: Any, name: str, module_name: str) -> str:
 
     if module_name == "query":
         if name == "binary":
-            return "Callable[[bytes], ReqlQuery]"
+            return "Callable[[bytes], RqlQuery]"
         if name == "make_timezone":
-            return "Callable[..., ReqlTzinfo]"
+            return "Callable[..., RqlTzinfo]"
 
     # General cases
     if inspect.isfunction(obj):
@@ -146,14 +146,14 @@ def get_type_hint(obj: Any, name: str, module_name: str) -> str:
                 cls = m.group(1)
                 return f"Callable[..., ast_module.{cls}]"
 
-            return "Callable[..., ReqlQuery]"
+            return "Callable[..., RqlQuery]"
         return "Callable[..., Any]"
 
     if inspect.isclass(obj):
         return f"Type[{name}]"
 
     if isinstance(obj, (query.ReqlConstant, ast.ImplicitVar)):
-        return "ReqlQuery"
+        return "RqlQuery"
 
     if isinstance(obj, int):
         return "int"

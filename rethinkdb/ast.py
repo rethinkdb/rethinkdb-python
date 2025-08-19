@@ -26,7 +26,7 @@ AST module contains the way the queries are serialized and deserialized.
 # FIXME: do a major refactoring and re-enable docstring checks
 # pylint: disable=missing-function-docstring,missing-class-docstring
 
-__all__ = ["expr", "ReqlQuery", "ReqlBinary", "ReqlTzinfo"]
+__all__ = ["expr", "RqlQuery", "RqlBinary", "RqlTzinfo"]
 
 from abc import abstractmethod
 import base64
@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 P_TERM = ql2_pb2.Term.TermType  # pylint: disable=invalid-name
 
 
-class ReqlQuery:  # pylint: disable=too-many-public-methods
+class RqlQuery:  # pylint: disable=too-many-public-methods
     """
     The RethinkDB Query object which determines the operations we can request
     from the server.
@@ -62,7 +62,7 @@ class ReqlQuery:  # pylint: disable=too-many-public-methods
 
     @abstractmethod
     def compose(self, args, kwargs):
-        """Compose the Reql query"""
+        """Compose the Rql Query"""
 
     # TODO: add return value
     def run(self, connection: Optional["Connection"] = None, **kwargs: dict):
@@ -77,7 +77,7 @@ class ReqlQuery:  # pylint: disable=too-many-public-methods
         if conn is None:
             if repl.is_repl_active:
                 raise ReqlDriverError(
-                    "ReqlQuery.run must be given a connection to run on. "
+                    "RqlQuery.run must be given a connection to run on. "
                     "A default connection has been set with "
                     "`repl()` on another thread, but not this one."
                 )
@@ -90,13 +90,13 @@ class ReqlQuery:  # pylint: disable=too-many-public-methods
         """
         Return the string representation of the query.
         """
-        return QueryPrinter(self).query
+        return QueryPrinter(self).print_query()
 
     def __repr__(self) -> str:
         """
         Return the representation string of the object.
         """
-        return f"<ReqlQuery instance: {self} >"
+        return f"<RqlQuery instance: {self} >"
 
     def build(self) -> List[str]:
         """
@@ -425,7 +425,7 @@ class ReqlQuery:  # pylint: disable=too-many-public-methods
         """
         Turn a query into a changefeed, an infinite stream of objects
         representing changes to the query's results as they occur. A changefeed
-        may return changes to a table or an individual document (a “point”
+        may return changes to a table or an individual document ("point"
         changefeed). Commands such as filter or map may be used before the
         changes command to transform or filter the output, and many commands
         that operate on sequences can be chained after changes.
@@ -519,7 +519,7 @@ class ReqlQuery:  # pylint: disable=too-many-public-methods
 
     def __iter__(self):
         raise ReqlDriverError(
-            "__iter__ called on an ReqlQuery object.\n"
+            "__iter__ called on an RqlQuery object.\n"
             "To iterate over the results of a query, call run first.\n"
             "To iterate inside a query, use map or for_each."
         )
@@ -735,7 +735,7 @@ class ReqlQuery:  # pylint: disable=too-many-public-methods
         return PolygonSub(self, *args)
 
 
-class ReqlBoolOperQuery(ReqlQuery):
+class RqlBoolOperQuery(RqlQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.statement_infix = ""
@@ -772,7 +772,7 @@ class ReqlBoolOperQuery(ReqlQuery):
         )
 
 
-class ReqlBiOperQuery(ReqlQuery):
+class RqlBiOperQuery(RqlQuery):
     """
     RethinkDB binary query operation.
     """
@@ -794,28 +794,41 @@ class ReqlBiOperQuery(ReqlQuery):
         )
 
 
-class ReqlBiCompareOperQuery(ReqlBiOperQuery):
+class RqlBiCompareOperQuery(RqlBiOperQuery):
     """
     RethinkDB comparison operator query.
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        # Detect misuse of infix bitwise operators (&, |) directly in a
+        # comparison without parentheses.  If any operand of the comparison
+        # was produced via the infix form (identified by `infix` being True),
+        # we match the behaviour of the official drivers by raising a compile
+        # -time error.
 
         for arg in args:
-            if hasattr(arg, "infix"):
+            if getattr(arg, "infix", False):
+                # Determine a human-readable operator name for the error
+                operator_map = {
+                    "eq": "==",
+                    "ne": "!=",
+                    "lt": "<",
+                    "le": "<=",
+                    "gt": ">",
+                    "ge": ">=",
+                }
+
+                class_name = self.__class__.__name__.lower()
+                operator_name = operator_map.get(class_name, class_name)
+
                 raise ReqlDriverCompileError(
-                    f"""
-                    Calling '{self.statement}' on result of infix bitwise operator:
-                    {QueryPrinter(self).query}\n
-                    This is almost always a precedence error.
-                    Note that `a < b | b < c` <==> `a < (b | b) < c`.
-                    If you really want this behavior, use `.or_` or `.and_` instead.
-                    """
+                    f"Calling '{operator_name}' on result of infix bitwise operator:"
                 )
 
+        super().__init__(*args, **kwargs)
 
-class ReqlTopLevelQuery(ReqlQuery):
+
+class RqlTopLevelQuery(RqlQuery):
     def compose(self, args, kwargs):
         args.extend([EnhancedTuple(key, "=", value) for key, value in kwargs.items()])
         return EnhancedTuple(
@@ -823,7 +836,7 @@ class ReqlTopLevelQuery(ReqlQuery):
         )
 
 
-class ReqlMethodQuery(ReqlQuery):
+class RqlMethodQuery(RqlQuery):
     def compose(self, args, kwargs):
         if len(args) == 0:
             return EnhancedTuple("r.", self.statement, "()")
@@ -838,7 +851,7 @@ class ReqlMethodQuery(ReqlQuery):
         return EnhancedTuple(args[0], ".", self.statement, "(", restargs, ")")
 
 
-class ReqlBracketQuery(ReqlMethodQuery):
+class RqlBracketQuery(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         self.bracket_operator = False
 
@@ -859,7 +872,7 @@ class ReqlBracketQuery(ReqlMethodQuery):
         return super().compose(args, kwargs)
 
 
-class ReqlTzinfo(datetime.tzinfo):
+class RqlTzinfo(datetime.tzinfo):
     """
     RethinkDB timezone information.
     """
@@ -877,10 +890,10 @@ class ReqlTzinfo(datetime.tzinfo):
         return (self.offsetstr,)
 
     def __copy__(self):
-        return ReqlTzinfo(self.offsetstr)
+        return RqlTzinfo(self.offsetstr)
 
     def __deepcopy__(self, memo):
-        return ReqlTzinfo(self.offsetstr)
+        return RqlTzinfo(self.offsetstr)
 
     def utcoffset(self, dt):
         return self.delta
@@ -892,7 +905,7 @@ class ReqlTzinfo(datetime.tzinfo):
         return datetime.timedelta(0)
 
 
-class Datum(ReqlQuery):
+class Datum(RqlQuery):
     """
     RethinkDB datum query.
 
@@ -916,7 +929,7 @@ class Datum(ReqlQuery):
         return repr(self.data)
 
 
-class MakeArray(ReqlQuery):
+class MakeArray(RqlQuery):
     """
     RethinkDB array composer query.
     """
@@ -930,7 +943,7 @@ class MakeArray(ReqlQuery):
         return EnhancedTuple("[", EnhancedTuple(*args, int_separator=", "), "]")
 
 
-class MakeObj(ReqlQuery):
+class MakeObj(RqlQuery):
     def __init__(self, obj_dict: dict, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MAKE_OBJ
@@ -959,7 +972,7 @@ class MakeObj(ReqlQuery):
         )
 
 
-class Var(ReqlQuery):
+class Var(RqlQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.VAR
@@ -969,49 +982,49 @@ class Var(ReqlQuery):
         return "var_" + args[0]
 
 
-class JavaScript(ReqlTopLevelQuery):
+class JavaScript(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.JAVASCRIPT
         self.statement = "js"
 
 
-class Http(ReqlTopLevelQuery):
+class Http(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.HTTP
         self.statement = "http"
 
 
-class UserError(ReqlTopLevelQuery):
+class UserError(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.ERROR
         self.statement = "error"
 
 
-class Random(ReqlTopLevelQuery):
+class Random(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.RANDOM
         self.statement = "random"
 
 
-class Changes(ReqlMethodQuery):
+class Changes(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.CHANGES
         self.statement = "changes"
 
 
-class Default(ReqlMethodQuery):
+class Default(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DEFAULT
         self.statement = "default"
 
 
-class ImplicitVar(ReqlQuery):
+class ImplicitVar(RqlQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.IMPLICIT_VAR
@@ -1024,49 +1037,49 @@ class ImplicitVar(ReqlQuery):
         return "r.row"
 
 
-class Eq(ReqlBiCompareOperQuery):
+class Eq(RqlBiCompareOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.EQ
         self.statement = "=="
 
 
-class Ne(ReqlBiCompareOperQuery):
+class Ne(RqlBiCompareOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.NE
         self.statement = "!="
 
 
-class Lt(ReqlBiCompareOperQuery):
+class Lt(RqlBiCompareOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.LT
         self.statement = "<"
 
 
-class Le(ReqlBiCompareOperQuery):
+class Le(RqlBiCompareOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.LE
         self.statement = "<="
 
 
-class Gt(ReqlBiCompareOperQuery):
+class Gt(RqlBiCompareOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GT
         self.statement = ">"
 
 
-class Ge(ReqlBiCompareOperQuery):
+class Ge(RqlBiCompareOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GE
         self.statement = ">="
 
 
-class Not(ReqlQuery):
+class Not(RqlQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.NOT
@@ -1078,154 +1091,154 @@ class Not(ReqlQuery):
         return EnhancedTuple("(~", args[0], ")")
 
 
-class Add(ReqlBiOperQuery):
+class Add(RqlBiOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.ADD
         self.statement = "+"
 
 
-class Sub(ReqlBiOperQuery):
+class Sub(RqlBiOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SUB
         self.statement = "-"
 
 
-class Mul(ReqlBiOperQuery):
+class Mul(RqlBiOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MUL
         self.statement = "*"
 
 
-class Div(ReqlBiOperQuery):
+class Div(RqlBiOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DIV
         self.statement = "/"
 
 
-class Mod(ReqlBiOperQuery):
+class Mod(RqlBiOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MOD
         self.statement = "%"
 
 
-class BitAnd(ReqlBoolOperQuery):
+class BitAnd(RqlBoolOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.BIT_AND
         self.statement = "bit_and"
 
 
-class BitOr(ReqlBoolOperQuery):
+class BitOr(RqlBoolOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.BIT_OR
         self.statement = "bit_or"
 
 
-class BitXor(ReqlBoolOperQuery):
+class BitXor(RqlBoolOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.BIT_XOR
         self.statement = "bit_xor"
 
 
-class BitNot(ReqlMethodQuery):
+class BitNot(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.BIT_NOT
         self.statement = "bit_not"
 
 
-class BitSal(ReqlBoolOperQuery):
+class BitSal(RqlBoolOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.BIT_SAL
         self.statement = "bit_sal"
 
 
-class BitSar(ReqlBoolOperQuery):
+class BitSar(RqlBoolOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.BIT_SAR
         self.statement = "bit_sar"
 
 
-class Floor(ReqlMethodQuery):
+class Floor(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.FLOOR
         self.statement = "floor"
 
 
-class Ceil(ReqlMethodQuery):
+class Ceil(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.CEIL
         self.statement = "ceil"
 
 
-class Round(ReqlMethodQuery):
+class Round(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.ROUND
         self.statement = "round"
 
 
-class Append(ReqlMethodQuery):
+class Append(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.APPEND
         self.statement = "append"
 
 
-class Prepend(ReqlMethodQuery):
+class Prepend(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.PREPEND
         self.statement = "prepend"
 
 
-class Difference(ReqlMethodQuery):
+class Difference(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DIFFERENCE
         self.statement = "difference"
 
 
-class SetInsert(ReqlMethodQuery):
+class SetInsert(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SET_INSERT
         self.statement = "set_insert"
 
 
-class SetUnion(ReqlMethodQuery):
+class SetUnion(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SET_UNION
         self.statement = "set_union"
 
 
-class SetIntersection(ReqlMethodQuery):
+class SetIntersection(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SET_INTERSECTION
         self.statement = "set_intersection"
 
 
-class SetDifference(ReqlMethodQuery):
+class SetDifference(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SET_DIFFERENCE
         self.statement = "set_difference"
 
 
-class Slice(ReqlBracketQuery):
+class Slice(RqlBracketQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SLICE
@@ -1239,108 +1252,108 @@ class Slice(ReqlBracketQuery):
 
             return EnhancedTuple(args[0], "[", args[1], ":", args[2], "]")
 
-        return ReqlBracketQuery.compose(self, args, kwargs)
+        return RqlBracketQuery.compose(self, args, kwargs)
 
 
-class Skip(ReqlMethodQuery):
+class Skip(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SKIP
         self.statement = "skip"
 
 
-class Limit(ReqlMethodQuery):
+class Limit(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.LIMIT
         self.statement = "limit"
 
 
-class GetField(ReqlBracketQuery):
+class GetField(RqlBracketQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GET_FIELD
         self.statement = "get_field"
 
 
-class Bracket(ReqlBracketQuery):
+class Bracket(RqlBracketQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.BRACKET
         self.statement = "bracket"
 
 
-class Contains(ReqlMethodQuery):
+class Contains(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.CONTAINS
         self.statement = "contains"
 
 
-class HasFields(ReqlMethodQuery):
+class HasFields(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.HAS_FIELDS
         self.statement = "has_fields"
 
 
-class WithFields(ReqlMethodQuery):
+class WithFields(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.WITH_FIELDS
         self.statement = "with_fields"
 
 
-class Keys(ReqlMethodQuery):
+class Keys(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.KEYS
         self.statement = "keys"
 
 
-class Values(ReqlMethodQuery):
+class Values(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.VALUES
         self.statement = "values"
 
 
-class Object(ReqlMethodQuery):
+class Object(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.OBJECT
         self.statement = "object"
 
 
-class Pluck(ReqlMethodQuery):
+class Pluck(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.PLUCK
         self.statement = "pluck"
 
 
-class Without(ReqlMethodQuery):
+class Without(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.WITHOUT
         self.statement = "without"
 
 
-class Merge(ReqlMethodQuery):
+class Merge(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MERGE
         self.statement = "merge"
 
 
-class Between(ReqlMethodQuery):
+class Between(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.BETWEEN
         self.statement = "between"
 
 
-class DB(ReqlTopLevelQuery):
+class DB(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DB
@@ -1374,7 +1387,7 @@ class DB(ReqlTopLevelQuery):
         return Table(self, *args, **kwargs)
 
 
-class FunCall(ReqlQuery):
+class FunCall(RqlQuery):
     # This object should be constructed with arguments first, and the
     # function itself as the last parameter.  This makes it easier for
     # the places where this object is constructed.  The actual wire
@@ -1406,7 +1419,7 @@ class FunCall(ReqlQuery):
         return EnhancedTuple(args[1], ".do(", args[0], ")")
 
 
-class Table(ReqlQuery):  # pylint: disable=too-many-public-methods
+class Table(RqlQuery):  # pylint: disable=too-many-public-methods
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TABLE
@@ -1491,462 +1504,462 @@ class Table(ReqlQuery):  # pylint: disable=too-many-public-methods
         )
 
 
-class Get(ReqlMethodQuery):
+class Get(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GET
         self.statement = "get"
 
 
-class GetAll(ReqlMethodQuery):
+class GetAll(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GET_ALL
         self.statement = "get_all"
 
 
-class GetIntersecting(ReqlMethodQuery):
+class GetIntersecting(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GET_INTERSECTING
         self.statement = "get_intersecting"
 
 
-class GetNearest(ReqlMethodQuery):
+class GetNearest(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GET_NEAREST
         self.statement = "get_nearest"
 
 
-class UUID(ReqlMethodQuery):
+class UUID(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.UUID
         self.statement = "uuid"
 
 
-class Reduce(ReqlMethodQuery):
+class Reduce(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.REDUCE
         self.statement = "reduce"
 
 
-class Sum(ReqlMethodQuery):
+class Sum(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SUM
         self.statement = "sum"
 
 
-class Avg(ReqlMethodQuery):
+class Avg(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.AVG
         self.statement = "avg"
 
 
-class Min(ReqlMethodQuery):
+class Min(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MIN
         self.statement = "min"
 
 
-class Max(ReqlMethodQuery):
+class Max(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MAX
         self.statement = "max"
 
 
-class Map(ReqlMethodQuery):
+class Map(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MAP
         self.statement = "map"
 
 
-class Fold(ReqlMethodQuery):
+class Fold(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.FOLD
         self.statement = "fold"
 
 
-class Filter(ReqlMethodQuery):
+class Filter(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.FILTER
         self.statement = "filter"
 
 
-class ConcatMap(ReqlMethodQuery):
+class ConcatMap(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.CONCAT_MAP
         self.statement = "concat_map"
 
 
-class OrderBy(ReqlMethodQuery):
+class OrderBy(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.ORDER_BY
         self.statement = "order_by"
 
 
-class Distinct(ReqlMethodQuery):
+class Distinct(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DISTINCT
         self.statement = "distinct"
 
 
-class Count(ReqlMethodQuery):
+class Count(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.COUNT
         self.statement = "count"
 
 
-class Union(ReqlMethodQuery):
+class Union(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.UNION
         self.statement = "union"
 
 
-class Nth(ReqlBracketQuery):
+class Nth(RqlBracketQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.NTH
         self.statement = "nth"
 
 
-class Match(ReqlMethodQuery):
+class Match(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MATCH
         self.statement = "match"
 
 
-class Format(ReqlMethodQuery):
+class Format(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.FORMAT
         self.statement = "format"
 
 
-class ToJsonString(ReqlMethodQuery):
+class ToJsonString(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TO_JSON_STRING
         self.statement = "to_json_string"
 
 
-class Split(ReqlMethodQuery):
+class Split(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SPLIT
         self.statement = "split"
 
 
-class Upcase(ReqlMethodQuery):
+class Upcase(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.UPCASE
         self.statement = "upcase"
 
 
-class Downcase(ReqlMethodQuery):
+class Downcase(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DOWNCASE
         self.statement = "downcase"
 
 
-class OffsetsOf(ReqlMethodQuery):
+class OffsetsOf(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.OFFSETS_OF
         self.statement = "offsets_of"
 
 
-class IsEmpty(ReqlMethodQuery):
+class IsEmpty(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.IS_EMPTY
         self.statement = "is_empty"
 
 
-class Group(ReqlMethodQuery):
+class Group(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GROUP
         self.statement = "group"
 
 
-class InnerJoin(ReqlMethodQuery):
+class InnerJoin(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INNER_JOIN
         self.statement = "inner_join"
 
 
-class OuterJoin(ReqlMethodQuery):
+class OuterJoin(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.OUTER_JOIN
         self.statement = "outer_join"
 
 
-class EqJoin(ReqlMethodQuery):
+class EqJoin(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.EQ_JOIN
         self.statement = "eq_join"
 
 
-class Zip(ReqlMethodQuery):
+class Zip(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.ZIP
         self.statement = "zip"
 
 
-class CoerceTo(ReqlMethodQuery):
+class CoerceTo(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.COERCE_TO
         self.statement = "coerce_to"
 
 
-class Ungroup(ReqlMethodQuery):
+class Ungroup(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.UNGROUP
         self.statement = "ungroup"
 
 
-class TypeOf(ReqlMethodQuery):
+class TypeOf(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TYPE_OF
         self.statement = "type_of"
 
 
-class Update(ReqlMethodQuery):
+class Update(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.UPDATE
         self.statement = "update"
 
 
-class Delete(ReqlMethodQuery):
+class Delete(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DELETE
         self.statement = "delete"
 
 
-class Replace(ReqlMethodQuery):
+class Replace(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.REPLACE
         self.statement = "replace"
 
 
-class Insert(ReqlMethodQuery):
+class Insert(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INSERT
         self.statement = "insert"
 
 
-class DbCreate(ReqlTopLevelQuery):
+class DbCreate(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DB_CREATE
         self.statement = "db_create"
 
 
-class DbDrop(ReqlTopLevelQuery):
+class DbDrop(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DB_DROP
         self.statement = "db_drop"
 
 
-class DbList(ReqlTopLevelQuery):
+class DbList(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DB_LIST
         self.statement = "db_list"
 
 
-class TableCreate(ReqlMethodQuery):
+class TableCreate(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TABLE_CREATE
         self.statement = "table_create"
 
 
-class TableCreateTL(ReqlTopLevelQuery):
+class TableCreateTL(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TABLE_CREATE
         self.statement = "table_create"
 
 
-class TableDrop(ReqlMethodQuery):
+class TableDrop(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TABLE_DROP
         self.statement = "table_drop"
 
 
-class TableDropTL(ReqlTopLevelQuery):
+class TableDropTL(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TABLE_DROP
         self.statement = "table_drop"
 
 
-class TableList(ReqlMethodQuery):
+class TableList(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TABLE_LIST
         self.statement = "table_list"
 
 
-class TableListTL(ReqlTopLevelQuery):
+class TableListTL(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TABLE_LIST
         self.statement = "table_list"
 
 
-class SetWriteHook(ReqlMethodQuery):
+class SetWriteHook(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SET_WRITE_HOOK
         self.statement = "set_write_hook"
 
 
-class GetWriteHook(ReqlMethodQuery):
+class GetWriteHook(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GET_WRITE_HOOK
         self.statement = "get_write_hook"
 
 
-class IndexCreate(ReqlMethodQuery):
+class IndexCreate(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INDEX_CREATE
         self.statement = "index_create"
 
 
-class IndexDrop(ReqlMethodQuery):
+class IndexDrop(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INDEX_DROP
         self.statement = "index_drop"
 
 
-class IndexRename(ReqlMethodQuery):
+class IndexRename(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INDEX_RENAME
         self.statement = "index_rename"
 
 
-class IndexList(ReqlMethodQuery):
+class IndexList(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INDEX_LIST
         self.statement = "index_list"
 
 
-class IndexStatus(ReqlMethodQuery):
+class IndexStatus(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INDEX_STATUS
         self.statement = "index_status"
 
 
-class IndexWait(ReqlMethodQuery):
+class IndexWait(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INDEX_WAIT
         self.statement = "index_wait"
 
 
-class Config(ReqlMethodQuery):
+class Config(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.CONFIG
         self.statement = "config"
 
 
-class Status(ReqlMethodQuery):
+class Status(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.STATUS
         self.statement = "status"
 
 
-class Wait(ReqlMethodQuery):
+class Wait(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.WAIT
         self.statement = "wait"
 
 
-class Reconfigure(ReqlMethodQuery):
+class Reconfigure(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.RECONFIGURE
         self.statement = "reconfigure"
 
 
-class Rebalance(ReqlMethodQuery):
+class Rebalance(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.REBALANCE
         self.statement = "rebalance"
 
 
-class Sync(ReqlMethodQuery):
+class Sync(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SYNC
         self.statement = "sync"
 
 
-class Grant(ReqlMethodQuery):
+class Grant(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GRANT
         self.statement = "grant"
 
 
-class GrantTL(ReqlTopLevelQuery):
+class GrantTL(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GRANT
         self.statement = "grant"
 
 
-class Branch(ReqlTopLevelQuery):
+class Branch(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.BRANCH
         self.statement = "branch"
 
 
-class Or(ReqlBoolOperQuery):
+class Or(RqlBoolOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.OR
@@ -1954,7 +1967,7 @@ class Or(ReqlBoolOperQuery):
         self.statement_infix = "|"
 
 
-class And(ReqlBoolOperQuery):
+class And(RqlBoolOperQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.AND
@@ -1962,63 +1975,63 @@ class And(ReqlBoolOperQuery):
         self.statement_infix = "&"
 
 
-class ForEach(ReqlMethodQuery):
+class ForEach(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.FOR_EACH
         self.statement = "for_each"
 
 
-class Info(ReqlMethodQuery):
+class Info(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INFO
         self.statement = "info"
 
 
-class InsertAt(ReqlMethodQuery):
+class InsertAt(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INSERT_AT
         self.statement = "insert_at"
 
 
-class SpliceAt(ReqlMethodQuery):
+class SpliceAt(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SPLICE_AT
         self.statement = "splice_at"
 
 
-class DeleteAt(ReqlMethodQuery):
+class DeleteAt(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DELETE_AT
         self.statement = "delete_at"
 
 
-class ChangeAt(ReqlMethodQuery):
+class ChangeAt(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.CHANGE_AT
         self.statement = "change_at"
 
 
-class Sample(ReqlMethodQuery):
+class Sample(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SAMPLE
         self.statement = "sample"
 
 
-class Json(ReqlTopLevelQuery):
+class Json(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.JSON
         self.statement = "json"
 
 
-class Args(ReqlTopLevelQuery):
+class Args(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.ARGS
@@ -2027,7 +2040,7 @@ class Args(ReqlTopLevelQuery):
 
 # Use this class as a wrapper to 'bytes' so we can tell the difference
 # in Python2 (when reusing the result of a previous query).
-class ReqlBinary(bytes):
+class RqlBinary(bytes):
     def __new__(cls, *args, **kwargs):
         return bytes.__new__(cls, *args, **kwargs)
 
@@ -2041,7 +2054,7 @@ class ReqlBinary(bytes):
         return f"<binary, {str(len(self))} byte{plural}{excerpt}>"
 
 
-class Binary(ReqlTopLevelQuery):
+class Binary(RqlTopLevelQuery):
     # Note: this term isn't actually serialized, it should exist only
     # in the client
     def __init__(self, data, *args, **kwargs):
@@ -2049,18 +2062,18 @@ class Binary(ReqlTopLevelQuery):
         self.term_type = P_TERM.BINARY
         self.statement = "binary"
 
+        if isinstance(data, RqlQuery):
+            self._args.append(data)
+            return
+
         # We only allow 'bytes' objects to be serialized as binary
-        # Python 2 - `bytes` is equivalent to `str`, either will be accepted
-        # Python 3 - `unicode` is equivalent to `str`, neither will be accepted
-        if isinstance(data, ReqlQuery):
-            ReqlTopLevelQuery.__init__(self, data)
-        elif isinstance(data, str):
+        if isinstance(data, str):
             raise ReqlDriverCompileError(
                 "Cannot convert a unicode string to binary, "
                 "use `unicode.encode()` to specify the "
                 "encoding."
             )
-        elif not isinstance(data, bytes):
+        if not isinstance(data, bytes):
             raise ReqlDriverCompileError(
                 f"Cannot convert {type(data).__name__} to binary, convert the object to a `bytes` "
                 f"object first."
@@ -2076,233 +2089,233 @@ class Binary(ReqlTopLevelQuery):
         if len(self._args) == 0:
             return EnhancedTuple("r.", self.statement, "(bytes(<data>))")
 
-        return ReqlTopLevelQuery.compose(self, args, kwargs)
+        return RqlTopLevelQuery.compose(self, args, kwargs)
 
     def build(self):
         if len(self._args) == 0:
             return {"$reql_type$": "BINARY", "data": self.base64_data.decode("utf-8")}
 
-        return ReqlTopLevelQuery.build(self)
+        return RqlTopLevelQuery.build(self)
 
 
-class Range(ReqlTopLevelQuery):
+class Range(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.RANGE
         self.statement = "range"
 
 
-class ToISO8601(ReqlMethodQuery):
+class ToISO8601(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TO_ISO8601
         self.statement = "to_iso8601"
 
 
-class During(ReqlMethodQuery):
+class During(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DURING
         self.statement = "during"
 
 
-class Date(ReqlMethodQuery):
+class Date(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DATE
         self.statement = "date"
 
 
-class TimeOfDay(ReqlMethodQuery):
+class TimeOfDay(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TIME_OF_DAY
         self.statement = "time_of_day"
 
 
-class Timezone(ReqlMethodQuery):
+class Timezone(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TIMEZONE
         self.statement = "timezone"
 
 
-class Year(ReqlMethodQuery):
+class Year(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.YEAR
         self.statement = "year"
 
 
-class Month(ReqlMethodQuery):
+class Month(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MONTH
         self.statement = "month"
 
 
-class Day(ReqlMethodQuery):
+class Day(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DAY
         self.statement = "day"
 
 
-class DayOfWeek(ReqlMethodQuery):
+class DayOfWeek(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DAY_OF_WEEK
         self.statement = "day_of_week"
 
 
-class DayOfYear(ReqlMethodQuery):
+class DayOfYear(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DAY_OF_YEAR
         self.statement = "day_of_year"
 
 
-class Hours(ReqlMethodQuery):
+class Hours(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.HOURS
         self.statement = "hours"
 
 
-class Minutes(ReqlMethodQuery):
+class Minutes(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.MINUTES
         self.statement = "minutes"
 
 
-class Seconds(ReqlMethodQuery):
+class Seconds(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.SECONDS
         self.statement = "seconds"
 
 
-class Time(ReqlTopLevelQuery):
+class Time(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TIME
         self.statement = "time"
 
 
-class ISO8601(ReqlTopLevelQuery):
+class ISO8601(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.ISO8601
         self.statement = "iso8601"
 
 
-class EpochTime(ReqlTopLevelQuery):
+class EpochTime(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.EPOCH_TIME
         self.statement = "epoch_time"
 
 
-class Now(ReqlTopLevelQuery):
+class Now(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.NOW
         self.statement = "now"
 
 
-class InTimezone(ReqlMethodQuery):
+class InTimezone(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.IN_TIMEZONE
         self.statement = "in_timezone"
 
 
-class ToEpochTime(ReqlMethodQuery):
+class ToEpochTime(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TO_EPOCH_TIME
         self.statement = "to_epoch_time"
 
 
-class GeoJson(ReqlTopLevelQuery):
+class GeoJson(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.GEOJSON
         self.statement = "geojson"
 
 
-class ToGeoJson(ReqlMethodQuery):
+class ToGeoJson(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.TO_GEOJSON
         self.statement = "to_geojson"
 
 
-class Point(ReqlTopLevelQuery):
+class Point(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.POINT
         self.statement = "point"
 
 
-class Line(ReqlTopLevelQuery):
+class Line(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.LINE
         self.statement = "line"
 
 
-class Polygon(ReqlTopLevelQuery):
+class Polygon(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.POLYGON
         self.statement = "polygon"
 
 
-class Distance(ReqlMethodQuery):
+class Distance(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DISTANCE
         self.statement = "distance"
 
 
-class Intersects(ReqlMethodQuery):
+class Intersects(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INTERSECTS
         self.statement = "intersects"
 
 
-class Includes(ReqlMethodQuery):
+class Includes(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.INCLUDES
         self.statement = "includes"
 
 
-class Circle(ReqlTopLevelQuery):
+class Circle(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.CIRCLE
         self.statement = "circle"
 
 
-class Fill(ReqlMethodQuery):
+class Fill(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.FILL
         self.statement = "fill"
 
 
-class PolygonSub(ReqlMethodQuery):
+class PolygonSub(RqlMethodQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.POLYGON_SUB
         self.statement = "polygon_sub"
 
 
-class Func(ReqlQuery):
+class Func(RqlQuery):
     lock = threading.Lock()
     nextVarId = 1
 
@@ -2348,21 +2361,21 @@ class Func(ReqlQuery):
         )
 
 
-class Asc(ReqlTopLevelQuery):
+class Asc(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.ASC
         self.statement = "asc"
 
 
-class Desc(ReqlTopLevelQuery):
+class Desc(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.DESC
         self.statement = "desc"
 
 
-class Literal(ReqlTopLevelQuery):
+class Literal(RqlTopLevelQuery):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.term_type = P_TERM.LITERAL
@@ -2371,7 +2384,7 @@ class Literal(ReqlTopLevelQuery):
 
 # Returns True if IMPLICIT_VAR is found in the subquery
 def _ivar_scan(query) -> bool:
-    if not isinstance(query, ReqlQuery):
+    if not isinstance(query, RqlQuery):
         return False
 
     if isinstance(query, ImplicitVar):
@@ -2401,8 +2414,8 @@ def expr(
     val: TUnion[
         str,
         bytes,
-        ReqlQuery,
-        ReqlBinary,
+        RqlQuery,
+        RqlBinary,
         datetime.date,
         datetime.datetime,
         Mapping,
@@ -2421,7 +2434,7 @@ def expr(
     if nesting_depth <= 0:
         raise ReqlDriverCompileError("Nesting depth limit exceeded.")
 
-    if isinstance(val, ReqlQuery):
+    if isinstance(val, RqlQuery):
         return val
 
     if callable(val):
@@ -2430,7 +2443,7 @@ def expr(
     if isinstance(val, str):  # TODO: Default is to return Datum - Remove?
         return Datum(val)
 
-    if isinstance(val, (bytes, ReqlBinary)):
+    if isinstance(val, (bytes, RqlBinary)):
         return Binary(val)
 
     if isinstance(val, abc.Mapping):
@@ -2439,27 +2452,38 @@ def expr(
     if isinstance(val, abc.Iterable):
         return MakeArray(*[expr(v, nesting_depth - 1) for v in val])  # type: ignore
 
-    if isinstance(val, (datetime.datetime, datetime.date)):
-        if isinstance(val, datetime.date) or not val.tzinfo:
-            raise ReqlDriverCompileError(
-                f"""
-            Cannot convert {type(val).__name__} to Reql time object
-            without timezone information. You can add timezone information with
-            the third party module \"pytz\" or by constructing Reql compatible
-            timezone values with r.make_timezone(\"[+-]HH:MM\"). Alternatively,
-            use one of Reql's bultin time constructors, r.now, r.time,
-            or r.iso8601.
-            """
-            )
+    if isinstance(val, datetime.date):
+        if isinstance(val, datetime.datetime):
+            if val.tzinfo is None:
+                raise ReqlDriverCompileError(
+                    f"""
+                Cannot convert {type(val).__name__} to Reql time object
+                without timezone information. You can add timezone information with
+                the third party module \"pytz\" or by constructing Reql compatible
+                timezone values with r.make_timezone(\"[+-]HH:MM\"). Alternatively,
+                use one of Reql's bultin time constructors, r.now, r.time,
+                or r.iso8601.
+                """
+                )
+            return ISO8601(val.isoformat())
 
-        return ISO8601(val.isoformat())
+        raise ReqlDriverCompileError(
+            f"""
+        Cannot convert {type(val).__name__} to Reql time object
+        without timezone information. You can add timezone information with
+        the third party module \"pytz\" or by constructing Reql compatible
+        timezone values with r.make_timezone(\"[+-]HH:MM\"). Alternatively,
+        use one of Reql's bultin time constructors, r.now, r.time,
+        or r.iso8601.
+        """
+        )
 
     return Datum(val)
 
 
 # Called on arguments that should be functions
 # TODO: expr may return different value types. Maybe use a base one?
-def func_wrap(val: TUnion[ReqlQuery, ImplicitVar, list, dict]):
+def func_wrap(val: TUnion[RqlQuery, ImplicitVar, list, dict]):
     val = expr(val)
     if _ivar_scan(val):
         return Func(lambda x: val)

@@ -8,7 +8,7 @@ from rethinkdb import ast as ast_module
 from rethinkdb import errors as errors_module
 from rethinkdb import net as net_module
 from rethinkdb import query as query_module
-from rethinkdb.ast import ReqlBinary, ReqlQuery, ReqlTzinfo
+from rethinkdb.ast import RqlBinary, RqlQuery, RqlTzinfo
 from rethinkdb.errors import (
     InvalidHandshakeStateError,
     QueryPrinter,
@@ -46,7 +46,7 @@ class RethinkDB:
     def connect(self, *connect_args: Any, **kwargs: Any) -> Connection: ...
 
     # from rethinkdb.ast
-    ReqlBinary: Type[ReqlBinary] = ...
+    RqlBinary: Type[RqlBinary] = ...
     """
     bytes(iterable_of_ints) -> bytes
     bytes(string, encoding[, errors]) -> bytes
@@ -54,12 +54,12 @@ class RethinkDB:
     bytes(int) -> bytes object of size given by the parameter initialized with null bytes
     bytes() -> empty bytes object
     """
-    ReqlQuery: Type[ReqlQuery] = ...
+    RqlQuery: Type[RqlQuery] = ...
     """
     The RethinkDB Query object which determines the operations we can request
     from the server.
     """
-    ReqlTzinfo: Type[ReqlTzinfo] = ...
+    RqlTzinfo: Type[RqlTzinfo] = ...
     """
     RethinkDB timezone information.
     """
@@ -68,8 +68,8 @@ class RethinkDB:
             Union[
                 str,
                 bytes,
-                ReqlQuery,
-                ReqlBinary,
+                RqlQuery,
+                RqlBinary,
                 datetime.date,
                 datetime.datetime,
                 Mapping[Any, Any],
@@ -78,7 +78,7 @@ class RethinkDB:
             ],
             int,
         ],
-        ReqlQuery,
+        RqlQuery,
     ] = ...
     """
     Convert a Python primitive into a Reql primitive value.
@@ -242,7 +242,7 @@ class RethinkDB:
     """
     AND function.
     """
-    april: ReqlQuery = ...
+    april: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -259,7 +259,7 @@ class RethinkDB:
     ordering, wrap the attribute with either r.asc or r.desc (defaults to
     ascending).
     """
-    august: ReqlQuery = ...
+    august: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -273,7 +273,7 @@ class RethinkDB:
     elements of the sequence where that function returns None or a non-existence
     error.
     """
-    binary: Callable[[bytes], ReqlQuery] = ...
+    binary: Callable[[bytes], RqlQuery] = ...
     """
     Binary function.
     """
@@ -355,7 +355,7 @@ class RethinkDB:
     """
     List all database names in the system. The result is a list of strings.
     """
-    december: ReqlQuery = ...
+    december: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -397,7 +397,7 @@ class RethinkDB:
     Throw a runtime error. If called with no arguments inside the second
     argument to default, re-throw the current error.
     """
-    february: ReqlQuery = ...
+    february: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -413,7 +413,7 @@ class RethinkDB:
     object, otherwise, an error raised. The template must be a string literal
     and cannot be the result of other commands.
     """
-    friday: ReqlQuery = ...
+    friday: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -460,7 +460,7 @@ class RethinkDB:
     """
     ISO8601 function.
     """
-    january: ReqlQuery = ...
+    january: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -473,12 +473,12 @@ class RethinkDB:
     """
     Transform *arguments parameters into JSON.
     """
-    july: ReqlQuery = ...
+    july: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
     """
-    june: ReqlQuery = ...
+    june: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -501,7 +501,7 @@ class RethinkDB:
     """
     Less than function.
     """
-    make_timezone: Callable[..., ReqlTzinfo] = ...
+    make_timezone: Callable[..., RqlTzinfo] = ...
     """
     Add timezone function.
     """
@@ -511,7 +511,7 @@ class RethinkDB:
     function to them. If map is run with two or more sequences, it will
     iterate for as many items as there are in the shortest sequence.
     """
-    march: ReqlQuery = ...
+    march: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -520,12 +520,12 @@ class RethinkDB:
     """
     Finds the maximum element of a sequence.
     """
-    maxval: ReqlQuery = ...
+    maxval: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
     """
-    may: ReqlQuery = ...
+    may: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -534,7 +534,7 @@ class RethinkDB:
     """
     Finds the minimum element of a sequence.
     """
-    minval: ReqlQuery = ...
+    minval: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -543,7 +543,7 @@ class RethinkDB:
     """
     Module function.
     """
-    monday: ReqlQuery = ...
+    monday: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -560,7 +560,7 @@ class RethinkDB:
     """
     Not function.
     """
-    november: ReqlQuery = ...
+    november: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -575,7 +575,7 @@ class RethinkDB:
     strings. r.object(A, B, C, D) is equivalent to
     r.expr([[A, B], [C, D]]).coerce_to('OBJECT').
     """
-    october: ReqlQuery = ...
+    october: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -612,13 +612,13 @@ class RethinkDB:
     """
     Round function.
     """
-    row: ReqlQuery = ...
-    saturday: ReqlQuery = ...
+    row: RqlQuery = ...
+    saturday: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
     """
-    september: ReqlQuery = ...
+    september: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -635,7 +635,7 @@ class RethinkDB:
     every element of the sequence and sums the results, skipping elements of
     the sequence where that function returns None or a non-existence error.
     """
-    sunday: ReqlQuery = ...
+    sunday: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -658,7 +658,7 @@ class RethinkDB:
     """
     List all table names in a database. The result is a list of strings.
     """
-    thursday: ReqlQuery = ...
+    thursday: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -667,7 +667,7 @@ class RethinkDB:
     """
     Time function.
     """
-    tuesday: ReqlQuery = ...
+    tuesday: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.
@@ -686,7 +686,7 @@ class RethinkDB:
     a unique ID. If a string is passed to uuid as an argument, the UUID will be
     deterministic, derived from the string's SHA-1 hash.
     """
-    wednesday: ReqlQuery = ...
+    wednesday: RqlQuery = ...
     """
     Rethinkdb constant.
     Maps a real world constant to a representation for the db.

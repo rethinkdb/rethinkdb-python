@@ -30,7 +30,7 @@ import time
 from typing import Any, Dict, List, Optional, Type, Union
 from urllib.parse import parse_qs, urlparse
 
-from rethinkdb.ast import DB, ReqlQuery, expr
+from rethinkdb.ast import DB, RqlQuery, expr
 from rethinkdb.encoder import ReqlDecoder, ReqlEncoder
 from rethinkdb.errors import (
     ReqlAuthError,
@@ -102,7 +102,7 @@ class Query:  # pylint: disable=too-few-public-methods
         self,
         query_type: int,
         token: int,
-        term_type: Optional[ReqlQuery],
+        term_type: Optional[RqlQuery],
         kwargs: Optional[Dict[str, Any]] = None,
     ):
         self.query_type = query_type
@@ -118,7 +118,7 @@ class Query:  # pylint: disable=too-few-public-methods
         Serialize Query using the Reql encoder.
         """
 
-        message: List[Union[PbQuery.QueryType, ReqlQuery, int]] = [self.query_type]
+        message: List[Union[PbQuery.QueryType, RqlQuery, int]] = [self.query_type]
 
         if self.term_type is not None:
             message.append(self.term_type)
