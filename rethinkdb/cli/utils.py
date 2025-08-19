@@ -26,7 +26,7 @@ from typing import Dict, List, Optional
 
 import click
 
-import rethinkdb as r
+from rethinkdb import r
 from rethinkdb.ast import ReqlBinary, ReqlQuery
 from rethinkdb.errors import ReqlDriverError
 

@@ -94,6 +94,12 @@ docs: ## generate Sphinx HTML documentation, including API docs
 	poetry run $(MAKE) -C docs html
 	$(BROWSER) docs/_build/html/index.html
 
+.PHONY: generate-init-pyi
+generate-init-pyi: ## generate the __init__.pyi file
+	poetry run python scripts/generate_init_pyi.py && \
+	poetry run isort rethinkdb/__init__.pyi && \
+	poetry run black rethinkdb/__init__.pyi
+
 .PHONY: format
 format: ## run formatters on the package
 	poetry run isort rethinkdb tests

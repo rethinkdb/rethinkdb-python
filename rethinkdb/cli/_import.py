@@ -41,7 +41,7 @@ from typing import Optional
 
 import click
 
-import rethinkdb as r
+from rethinkdb import r
 from rethinkdb.cli.utils import (
     common_options,
     get_connection,
