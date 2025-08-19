@@ -25,8 +25,7 @@ from typing import Any, Dict, List, Optional
 
 import click
 
-import rethinkdb as r
-from rethinkdb import errors
+from rethinkdb import errors, r
 from rethinkdb.cli.utils import (
     common_options,
     get_connection,
