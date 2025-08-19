@@ -46,7 +46,7 @@ __all__ = [
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 if TYPE_CHECKING:
-    from rethinkdb.ast import ReqlQuery
+    from rethinkdb.ast import RqlQuery
 
 
 class QueryPrinter:
@@ -54,27 +54,25 @@ class QueryPrinter:
     Helper class to print Query failures in a formatted was using carets.
     """
 
-    def __init__(self, root: "ReqlQuery", frames: Optional[List[int]] = None) -> None:
+    def __init__(self, root: "RqlQuery", frames: Optional[List[int]] = None) -> None:
         self.root = root
         self.frames: List[int] = frames or []
 
-    @property
-    def query(self) -> str:
+    def print_query(self) -> str:
         """
         Return the composed query.
         """
 
         return "".join(self.__compose_term(self.root))
 
-    @property
-    def carets(self) -> str:
+    def print_carrots(self) -> str:
         """
         Return the carets indicating the location of the failure for the query.
         """
 
         return "".join(self.__compose_carets(self.root, self.frames))
 
-    def __compose_term(self, term: "ReqlQuery") -> List[str]:
+    def __compose_term(self, term: "RqlQuery") -> List[str]:
         """
         Recursively compose the query term.
         """
@@ -90,7 +88,7 @@ class QueryPrinter:
 
         return term.compose(args, kwargs)
 
-    def __compose_carets(self, term: "ReqlQuery", frames: List[int]) -> List[str]:
+    def __compose_carets(self, term: "RqlQuery", frames: List[int]) -> List[str]:
         """
         Generate the carets for the query term which caused the error.
         """
@@ -130,7 +128,7 @@ class ReqlError(Exception):
     def __init__(
         self,
         message: str,
-        term: Optional["ReqlQuery"] = None,
+        term: Optional["RqlQuery"] = None,
         frames: Optional[List[int]] = None,
     ) -> None:
         super().__init__(message)
@@ -152,7 +150,10 @@ class ReqlError(Exception):
             return self.message
 
         message = self.message.rstrip(".")
-        return f"{message} in:\n{self.__query_printer.query}\n{self.__query_printer.carets}"
+        return (
+            f"{message} in:\n{self.__query_printer.print_query()}\n"
+            f"{self.__query_printer.print_carrots()}"
+        )
 
     def __repr__(self) -> str:
         """

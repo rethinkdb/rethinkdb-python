@@ -27,7 +27,7 @@ from typing import Dict, List, Optional
 import click
 
 from rethinkdb import r
-from rethinkdb.ast import ReqlBinary, ReqlQuery
+from rethinkdb.ast import RqlBinary, RqlQuery
 from rethinkdb.errors import ReqlDriverError
 
 
@@ -67,9 +67,9 @@ def json_default(obj):
     """Custom JSON serializer for objects not serializable by default."""
     if hasattr(obj, "isoformat"):
         return obj.isoformat()
-    if isinstance(obj, ReqlQuery):
+    if isinstance(obj, RqlQuery):
         return obj.build()
-    if isinstance(obj, ReqlBinary):
+    if isinstance(obj, RqlBinary):
         return {
             "$reql_type$": "BINARY",
             "data": base64.b64encode(obj).decode("utf-8"),

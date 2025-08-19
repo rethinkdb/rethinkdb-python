@@ -53,8 +53,6 @@ API and behavior changes (including breaking changes) compared to 2.4.x:
   * `ReqlAuthError` raises `ValueError` if only host or only port is provided; includes host:port in message if both are provided
   * `ReqlTimeoutError` now subclasses `TimeoutError` and mirrors `ReqlAuthError` host/port validation and messaging
 * **QueryPrinter (errors.QueryPrinter)**:
-  * `print_query` -> property `query`
-  * `print_carrots` -> property `carets`
   * Error messages now embed composed query and caret markers
 * **Handshake (`rethinkdb.handshake.HandshakeV1_0`)**:
   * Uses protected attributes for credentials: `__username`, `__password`
@@ -114,7 +112,7 @@ Removed
 Deprecated
 ~~~~~~~~~~
 
-* `ReqlQuery.to_json_string()` is an alias for `to_json()` and will be removed in a future release
+* `RqlQuery.to_json_string()` is an alias for `to_json()` and will be removed in a future release
 
 Migration Guide
 ~~~~~~~~~~~~~~
