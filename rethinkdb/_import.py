@@ -1235,6 +1235,20 @@ def update_progress(tables, debug, exit_event, sleep=0.2):
                 traceback.print_exc()
 
 
+def reap_worker(worker, error_queue):
+    """Report a worker killed by a signal, which is_alive() cannot distinguish"""
+    # a worker that raised has already queued its own error and exits positive
+    if worker.exitcode is not None and worker.exitcode < 0:
+        error_queue.put(
+            Error(
+                "%s was killed by signal %s, some data may not have been imported"
+                % (worker.name, -worker.exitcode),
+                None,
+                worker.name,
+            )
+        )
+
+
 def import_tables(options, sources, files_ignored=None):
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
@@ -1410,6 +1424,7 @@ def import_tables(options, sources, files_ignored=None):
                 # reap completed tasks
                 for reader in readers[:]:
                     if not reader.is_alive():
+                        reap_worker(reader, error_queue)
                         readers.remove(reader)
                     if len(readers) == options.clients:
                         time.sleep(0.05)
@@ -1436,6 +1451,7 @@ def import_tables(options, sources, files_ignored=None):
                 except Exception as exc:
                     default_logger.exception(exc)
                 if not reader.is_alive():
+                    reap_worker(reader, error_queue)
                     readers.remove(reader)
 
         # - append enough StopIterations to signal all writers
@@ -1453,6 +1469,7 @@ def import_tables(options, sources, files_ignored=None):
         for writer in writers[:]:
             while writer.is_alive():
                 writer.join(0.1)
+            reap_worker(writer, error_queue)
             writers.remove(writer)
 
         # - stop the progress bar
