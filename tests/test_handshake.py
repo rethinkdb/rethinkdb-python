@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -312,7 +312,7 @@ def test_read_auth_response(handshake):
 
     handshake.next_state = Mock()
     handshake.state = HandshakeState.AUTH_RESPONSE
-    handshake._server_signature = bytes("signature".encode("utf-8"))
+    handshake._server_signature = b"signature"
     response = {"success": True, "authentication": "v=c2lnbmF0dXJl\n"}
 
     result = handshake.next_message(bytes(json.dumps(response), "utf-8"))
@@ -328,7 +328,7 @@ def test_read_auth_response_invalid_server_signature(handshake):
 
     handshake.next_state = Mock()
     handshake.state = HandshakeState.AUTH_RESPONSE
-    handshake._server_signature = bytes("invalid-signature".encode("utf-8"))
+    handshake._server_signature = b"invalid-signature"
     response = {"success": True, "authentication": "v=c2lnbmF0dXJl\n"}
 
     with pytest.raises(ReqlAuthError):

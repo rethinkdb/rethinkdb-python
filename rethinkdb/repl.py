@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ This module contains the REPL's helper class to manage the established connectio
 on the local thread.
 """
 
-__all__ = ["Repl", "REPL_CONNECTION_ATTRIBUTE"]
+__all__ = ["REPL_CONNECTION_ATTRIBUTE", "Repl"]
 
 
 import threading

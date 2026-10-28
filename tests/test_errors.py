@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ def test_reql_error():
         raise exception
 
     assert str(exc.value) == expected_message
-    assert repr(exception) == f"<ReqlError instance: {str(exception)} >"
+    assert repr(exception) == f"<ReqlError instance: {exception!s} >"
 
 
 def test_reql_error_only_term_is_set():
@@ -46,7 +46,7 @@ def test_reql_error_only_term_is_set():
         raise exception
 
     assert str(exc.value) == expected_message
-    assert repr(exception) == f"<ReqlError instance: {str(exception)} >"
+    assert repr(exception) == f"<ReqlError instance: {exception!s} >"
 
 
 def test_reql_error_only_frames_are_set():
@@ -61,7 +61,7 @@ def test_reql_error_only_frames_are_set():
         raise exception
 
     assert str(exc.value) == expected_message
-    assert repr(exception) == f"<ReqlError instance: {str(exception)} >"
+    assert repr(exception) == f"<ReqlError instance: {exception!s} >"
 
 
 def test_reql_error_terms_and_frames_are_set():
@@ -82,7 +82,7 @@ def test_reql_error_terms_and_frames_are_set():
         raise exception
 
     assert str(exc.value) == "reql error in:\ncomposed\n "
-    assert repr(exception) == f"<ReqlError instance: {str(exception)} >"
+    assert repr(exception) == f"<ReqlError instance: {exception!s} >"
 
 
 def test_auth_error():

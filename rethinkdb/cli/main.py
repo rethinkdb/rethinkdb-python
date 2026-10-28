@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -22,12 +20,13 @@ The main command is a special group that is the root of the command tree.
 
 This command creates a subcommand tree that with the following commands for
 those cases when the rethinkdb binary is not installed:
-    - dump
-    - export
-    - import
-    - index_rebuild
-    - repl
-    - restore
+
+- dump
+- export
+- import
+- index_rebuild
+- repl
+- restore
 """
 
 import logging
@@ -75,7 +74,6 @@ def cmd_main():
     """
     Group of commands for the RethinkDB database.
     """
-    pass
 
 
 def main():

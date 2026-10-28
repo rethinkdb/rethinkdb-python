@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -32,9 +32,8 @@ from rethinkdb.errors import (
     ReqlTimeoutError,
 )
 from rethinkdb.net import Connection as ConnectionBase
-from rethinkdb.net import Cursor, Query, Response
+from rethinkdb.net import Cursor, Query, Response, maybe_profile
 from rethinkdb.net import SocketWrapper as SocketWrapperBase
-from rethinkdb.net import maybe_profile
 from rethinkdb.ql2_pb2 import Query as PbQuery
 from rethinkdb.ql2_pb2 import Response as PbResponse
 
@@ -104,7 +103,7 @@ class SocketWrapper(SocketWrapperBase):
                     self._socket = ssl_context.wrap_socket(
                         self._socket, server_hostname=self.host
                     )
-                except IOError as exc:
+                except OSError as exc:
                     self._socket.close()
                     raise ReqlDriverError(
                         f"SSL handshake failed (see server log for more information): {exc}"
@@ -172,7 +171,7 @@ class SocketWrapper(SocketWrapperBase):
                     break
                 except ReqlTimeoutError:
                     raise
-                except IOError as exc:
+                except OSError as exc:
                     if exc.errno == errno.ECONNRESET:
                         self.close()
                         raise ReqlDriverError("Connection is closed.") from exc
@@ -198,7 +197,7 @@ class SocketWrapper(SocketWrapperBase):
         while offset < len(data):
             try:
                 offset += self._socket.send(data[offset:])
-            except IOError as exc:
+            except OSError as exc:
                 if exc.errno == errno.ECONNRESET:
                     self.close()
                     raise ReqlDriverError("Connection is closed.") from exc

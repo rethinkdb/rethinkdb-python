@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -19,16 +17,16 @@
 
 # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import csv
-from datetime import datetime
 import gzip
 import json
 import logging
 import os
 import sys
 import threading
-from typing import Any, Dict, List, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+from typing import Any
 
 import click
 
@@ -49,7 +47,7 @@ def default_output_dir():
     return f"rethinkdb_export_{now}"
 
 
-def get_all_tables(conn, dbs: Optional[List[str]] = None) -> list[tuple[str, str]]:
+def get_all_tables(conn, dbs: list[str] | None = None) -> list[tuple[str, str]]:
     """Return a list of (db, table) tuples for all tables in the given databases."""
     tables: list[tuple[str, str]] = []
     db_list = dbs
@@ -68,13 +66,13 @@ def export_worker(
     db: str,
     table: str,
     out_dir: str,
-    fields: Optional[List[str]],
+    fields: list[str] | None,
     export_format: str,
     compression_level: int,
     delimiter: str,
     read_outdated: bool,
-    connection_args: Dict[str, Any],
-    progress_state: Dict[str, Any],
+    connection_args: dict[str, Any],
+    progress_state: dict[str, Any],
 ):
     """
     Export a single table from the database.
@@ -330,14 +328,14 @@ def cmd_export(
 
         for db, tables in parsed_exports.items():
             if db not in all_dbs:
-                raise click.UsageError("Database '%s' not found." % db)
+                raise click.UsageError(f"Database '{db}' not found.")
             if not tables:
                 tables_to_export.extend(get_all_tables(conn, [db]))
             else:
                 all_tables = r.db(db).table_list().run(conn)
                 for table in tables:
                     if table not in all_tables:
-                        raise click.UsageError("Table '%s.%s' not found." % (db, table))
+                        raise click.UsageError(f"Table '{db}.{table}' not found.")
                     tables_to_export.append((db, table))
 
     if not tables_to_export:

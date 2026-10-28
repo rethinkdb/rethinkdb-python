@@ -5,13 +5,13 @@ RethinkDB Python Client
     :target: https://pypi.python.org/pypi/rethinkdb
     :alt: PyPi Package
 
-.. image:: https://github.com/rethinkdb/rethinkdb-python/actions/workflows/build/badge.svg?branch=master
-    :target: https://github.com/rethinkdb/rethinkdb-python/actions/workflows/build.yml
-    :alt: Build Status
+.. image:: https://github.com/rethinkdb/rethinkdb-python/actions/workflows/ci.yml/badge.svg?branch=master
+    :target: https://github.com/rethinkdb/rethinkdb-python/actions/workflows/ci.yml
+    :alt: CI Status
 
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/ambv/black
-    :alt: Black Formatted
+.. image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
+    :target: https://github.com/astral-sh/ruff
+    :alt: Ruff
 
 RethinkDB is the first open-source scalable database built for realtime applications.
 It exposes a new database access model -- instead of polling for changes, the developer
@@ -21,7 +21,7 @@ less effort.
 
 Utility Scripts
 ===============
-RethinkDB Python Client prodvices a set of utility scripts to help you manage your RethinkDB
+RethinkDB Python Client provides a set of utility scripts to help you manage your RethinkDB
 database.
 
 * `rethinkdb dump` / `rethinkdb-dump` - Dump a database to a file
@@ -35,7 +35,7 @@ Installation
 ============
 
 RethinkDB's Python Client can be installed by running ``pip install rethinkdb`` and it requires
-Python 3.10+ to run. This is the preferred method to install RethinkDB Python client, as it will
+Python 3.12+ to run. This is the preferred method to install RethinkDB Python client, as it will
 always install the most recent stable release. If you don't have `pip`_ installed, this
 `Python installation guide`_ can guide you through the process.
 
@@ -72,7 +72,7 @@ Contributing
 Hurray, You reached this section, which means you are ready
 to contribute.
 
-Please read our contibuting guideline_. This guideline will
+Please read our contributing guideline_. This guideline will
 walk you through how can you successfully contribute to
 RethinkDB Python client.
 
@@ -81,44 +81,40 @@ RethinkDB Python client.
 Installation
 ------------
 
-For development you will need poetry_, pre-commit_ and shellcheck_. After poetry installed,
-simply run `poetry install -E all`. This command will both create the virtualenv
-and install all development dependencies for you.
+Install `mise`_, then install the pinned toolchain and project dependencies::
 
-.. _poetry: https://python-poetry.org/docs/#installation
-.. _pre-commit: https://pre-commit.com/#install
-.. _shellcheck: https://www.shellcheck.net/
+    $ mise install
+    $ mise run setup
 
+``mise run setup`` creates ``.venv`` and installs the package, extras, and development tools with uv.
 
-Useful make Commands
---------------------
+.. _mise: https://mise.jdx.dev/getting-started.html
+
+Useful mise tasks
+-----------------
 
 +---------------------+---------------------------------------------------------------+
 | Command             | Description                                                   |
 +=====================+===============================================================+
-| help                | show help message and exit                                    |
+| setup               | create the virtualenv and install extras and dev tools        |
 +---------------------+---------------------------------------------------------------+
-| clean               | remove all build, test, coverage and Python artifacts         |
+| format              | format Python sources with Ruff                               |
 +---------------------+---------------------------------------------------------------+
-| clean-build         | remove build artifacts                                        |
+| lint                | run Ruff and mypy                                             |
 +---------------------+---------------------------------------------------------------+
-| clean-mypy          | remove mypy related artifacts                                 |
+| test                | run unit and integration tests and report coverage            |
 +---------------------+---------------------------------------------------------------+
-| clean-pyc           | remove Python file artifacts                                  |
+| test-unit           | run unit tests                                                |
 +---------------------+---------------------------------------------------------------+
-| clean-test          | remove test and coverage artifacts                            |
+| test-integration    | run integration tests                                         |
 +---------------------+---------------------------------------------------------------+
-| docs                | generate Sphinx HTML documentation, including API docs        |
+| docs                | build the Sphinx HTML documentation                           |
 +---------------------+---------------------------------------------------------------+
-| format              | run formatters on the package                                 |
+| protobuf            | download and convert the protobuf file                        |
 +---------------------+---------------------------------------------------------------+
-| lint                | run linters against the package                               |
+| generate-init-pyi   | regenerate ``rethinkdb/__init__.pyi``                         |
 +---------------------+---------------------------------------------------------------+
-| protobuf            | download and convert protobuf file                            |
+| clean               | remove build, test, coverage, and cache artifacts             |
 +---------------------+---------------------------------------------------------------+
-| test                | run all tests and generate coverage                           |
-+---------------------+---------------------------------------------------------------+
-| test-integration    | run unit tests and generate coverage                          |
-+---------------------+---------------------------------------------------------------+
-| test-unit           | run unit tests and generate coverage                          |
-+---------------------+---------------------------------------------------------------+
+
+Run a task with ``mise run <task>``. ``mise tasks`` lists them.

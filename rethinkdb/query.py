@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -62,6 +62,7 @@ __all__ = [
     "intersects",
     "iso8601",
     "january",
+    "js",
     "json",
     "july",
     "june",
@@ -110,7 +111,6 @@ __all__ = [
     "union",
     "uuid",
     "wednesday",
-    "js",
 ]
 
 from rethinkdb import ast, ql2_pb2
@@ -137,7 +137,7 @@ class ReqlConstant(ast.RqlQuery):
 
 def json(*arguments):
     """
-    Transform *arguments parameters into JSON.
+    Transform ``*arguments`` parameters into JSON.
     """
     return ast.Json(*arguments)
 

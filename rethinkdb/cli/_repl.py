@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -20,6 +18,7 @@
 """
 REPL starts a REPL session for RethinkDB. Enter ReQL queries as Python code using the 'r' object.
 """
+
 import code
 import sys
 
@@ -75,7 +74,7 @@ def cmd_repl(
         )
     except ReqlDriverError as e:
         if not quiet:
-            click.echo("Error connecting to RethinkDB: %s" % e, err=True)
+            click.echo(f"Error connecting to RethinkDB: {e}", err=True)
         sys.exit(1)
 
     banner = (
@@ -94,7 +93,7 @@ def cmd_repl(
     except SystemExit:
         pass
     except Exception as e:
-        click.echo("REPL exited with error: %s" % e, err=True)
+        click.echo(f"REPL exited with error: {e}", err=True)
     finally:
         try:
             conn.close()

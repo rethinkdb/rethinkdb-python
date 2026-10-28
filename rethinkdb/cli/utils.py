@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ CLI utility functions for RethinkDB Python CLI commands.
 import base64
 import getpass
 import logging
-from typing import Dict, List, Optional
 
 import click
 
@@ -49,9 +48,9 @@ def print_progress(current: int, total: int, prefix: str = "Progress") -> None:
     # No need for extra newline since logging handles line breaks
 
 
-def parse_list_args(args: List[str]) -> Dict[str, List[str]]:
+def parse_list_args(args: list[str]) -> dict[str, list[str]]:
     """Parse list args into a dict of db: [tables] format."""
-    db_tables: Dict[str, List[str]] = {}
+    db_tables: dict[str, list[str]] = {}
 
     for arg in args:
         if "." in arg:
@@ -145,12 +144,12 @@ def common_options(func):
 
 def get_connection(
     connect: str,
-    driver_port: Optional[int],
-    host_name: Optional[str],
+    driver_port: int | None,
+    host_name: str | None,
     user: str,
-    password: Optional[bool],
-    password_file: Optional[str],
-    tls_cert: Optional[str],
+    password: bool | None,
+    password_file: str | None,
+    tls_cert: str | None,
     quiet: bool,
     debug: bool,
 ):
@@ -163,9 +162,9 @@ def get_connection(
     host = host_name or connect.split(":")[0]
     port = driver_port or (int(connect.split(":")[1]) if ":" in connect else 28015)
 
-    actual_password: Optional[str] = None
+    actual_password: str | None = None
     if password_file:
-        with open(password_file, "r", encoding="utf-8") as f:
+        with open(password_file, encoding="utf-8") as f:
             actual_password = f.readline().strip()
     elif password is True:  # Handle the case where -p/--password flag is used
         actual_password = getpass.getpass("Admin password: ")

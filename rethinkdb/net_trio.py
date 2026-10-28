@@ -166,9 +166,7 @@ class TrioCursor(Cursor, trio.abc.AsyncResource):
         # with mechanisms to return from a coroutine.
         return ReqlCursorEmpty()
 
-    async def _get_next(
-        self, timeout=None
-    ):  # pylint: disable=invalid-overridden-method
+    async def _get_next(self, timeout=None):  # pylint: disable=invalid-overridden-method
         while len(self.items) == 0:
             self._maybe_fetch_batch()
             if self.error is not None:
@@ -296,10 +294,8 @@ class ConnectionInstance:
         except ReqlTimeoutError as err:
             await self.close()
             raise ReqlDriverError(
-                (
-                    f"Connection interrupted during handshake with {self._parent.host}:"
-                    f"{self._parent.port}. Error: {err}"
-                )
+                f"Connection interrupted during handshake with {self._parent.host}:"
+                f"{self._parent.port}. Error: {err}"
             ) from err
         except Exception as err:
             await self.close()
@@ -342,10 +338,11 @@ class ConnectionInstance:
             pass
         # We must not wait for the _reader_task if we got an exception, because that
         # means that we were called from it. Waiting would lead to a deadlock.
-        if self._reader_ended_event:
+        # Trio events cannot be used as booleans; None means the reader never started.
+        if exception is None and self._reader_ended_event is not None:
             await self._reader_ended_event.wait()
 
-        return None
+        return
 
     async def run_query(self, query, noreply):
         await self._send(query.serialize(self._parent.get_json_encoder(query)))
@@ -420,18 +417,14 @@ class Connection(ConnectionBase):
         query = Query(PbQuery.QueryType.STOP, cursor.query.token, None, None)
         return await self._instance.run_query(query, True)
 
-    async def reconnect(
-        self, noreply_wait=True, timeout=None
-    ):  # pylint: disable=invalid-overridden-method
+    async def reconnect(self, noreply_wait=True, timeout=None):  # pylint: disable=invalid-overridden-method
         await self.close(noreply_wait)
         self._instance = self._conn_type(
             self, nursery=self._nursery, **self._child_kwargs
         )
         return await self._instance.connect(timeout)
 
-    async def close(
-        self, noreply_wait=True
-    ):  # pylint: disable=invalid-overridden-method
+    async def close(self, noreply_wait=True):  # pylint: disable=invalid-overridden-method
         if self.is_open() is False:
             return
 

@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -21,14 +21,15 @@ decode pseudo-type objects to Python native objects.
 """
 
 import base64
-from datetime import datetime
 import json
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from collections.abc import Callable
+from datetime import datetime
+from typing import Any
 
 from rethinkdb.ast import RqlBinary, RqlQuery, RqlTzinfo
 from rethinkdb.errors import ReqlDriverError
 
-__all__ = ["ReqlEncoder", "ReqlDecoder"]
+__all__ = ["ReqlDecoder", "ReqlEncoder"]
 
 
 class ReqlEncoder(json.JSONEncoder):
@@ -45,9 +46,9 @@ class ReqlEncoder(json.JSONEncoder):
         check_circular: bool = False,
         allow_nan: bool = False,
         sort_keys: bool = False,
-        indent: Optional[int] = None,
-        separators: Optional[Tuple[str, str]] = (",", ":"),
-        default: Optional[Callable[[Any], Any]] = None,
+        indent: int | None = None,
+        separators: tuple[str, str] | None = (",", ":"),
+        default: Callable[[Any], Any] | None = None,
     ):
         super().__init__(
             skipkeys=skipkeys,
@@ -81,13 +82,13 @@ class ReqlDecoder(json.JSONDecoder):
     # pylint: disable=too-many-positional-arguments
     def __init__(
         self,
-        object_hook: Optional[Callable[[Dict[str, Any]], Any]] = None,
-        parse_float: Optional[Callable[[str], Any]] = None,
-        parse_int: Optional[Callable[[str], Any]] = None,
-        parse_constant: Optional[Callable[[str], Any]] = None,
+        object_hook: Callable[[dict[str, Any]], Any] | None = None,
+        parse_float: Callable[[str], Any] | None = None,
+        parse_int: Callable[[str], Any] | None = None,
+        parse_constant: Callable[[str], Any] | None = None,
         strict: bool = True,
-        object_pairs_hook: Optional[Callable[[List[Tuple[str, Any]]], Any]] = None,
-        reql_format_opts: Optional[Dict[str, Any]] = None,
+        object_pairs_hook: Callable[[list[tuple[str, Any]]], Any] | None = None,
+        reql_format_opts: dict[str, Any] | None = None,
     ):
         custom_object_hook = object_hook or self.convert_pseudo_type
 
@@ -103,7 +104,7 @@ class ReqlDecoder(json.JSONDecoder):
         self.reql_format_opts = reql_format_opts or {}
 
     @staticmethod
-    def convert_time(obj: Dict[str, Any]) -> datetime:
+    def convert_time(obj: dict[str, Any]) -> datetime:
         """
         Convert pseudo-type TIME object to Python datetime object.
 
@@ -122,7 +123,7 @@ class ReqlDecoder(json.JSONDecoder):
         return datetime.utcfromtimestamp(obj["epoch_time"])
 
     @staticmethod
-    def convert_grouped_data(obj: Dict[str, Any]) -> dict:
+    def convert_grouped_data(obj: dict[str, Any]) -> dict:
         """
         Convert pseudo-type GROUPED_DATA object to Python dictionary.
 
@@ -138,7 +139,7 @@ class ReqlDecoder(json.JSONDecoder):
         return {make_hashable(k): v for k, v in obj["data"]}
 
     @staticmethod
-    def convert_binary(obj: Dict[str, Any]) -> bytes:
+    def convert_binary(obj: dict[str, Any]) -> bytes:
         """
         Convert pseudo-type BINARY object to Python bytes object.
 
@@ -154,7 +155,7 @@ class ReqlDecoder(json.JSONDecoder):
         return RqlBinary(base64.b64decode(obj["data"].encode("utf-8")))
 
     def __convert_pseudo_type(
-        self, obj: Dict[str, Any], format_name: str, converter: Callable
+        self, obj: dict[str, Any], format_name: str, converter: Callable
     ) -> Any:
         """
         Convert pseudo-type objects using the given converter.
@@ -174,7 +175,7 @@ class ReqlDecoder(json.JSONDecoder):
 
         return obj
 
-    def convert_pseudo_type(self, obj: Dict[str, Any]) -> Any:
+    def convert_pseudo_type(self, obj: dict[str, Any]) -> Any:
         """
         Convert pseudo-type objects using the given converter.
 
@@ -206,7 +207,7 @@ class ReqlDecoder(json.JSONDecoder):
 
 
 # pylint: disable=consider-using-generator
-def make_hashable(obj: Dict[str, Any]) -> Union[tuple, frozenset, dict]:
+def make_hashable(obj: dict[str, Any]) -> tuple | frozenset | dict:
     """
     Python only allows immutable built-in types to be hashed, such as for keys in
     a dict. This means we can't use lists or dicts as keys in grouped data objects,

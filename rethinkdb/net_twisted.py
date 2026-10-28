@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 
 import struct
 import time
-from typing import Any, Dict, Generator, List, Optional, Type, Union, cast
+from collections.abc import Generator
+from typing import Any, cast
 
 from twisted.internet import defer, reactor
 from twisted.internet.defer import (
@@ -58,14 +59,14 @@ class DatabaseProtocol(Protocol):
             DatabaseProtocol.READY: self._handle_response,
         }
 
-        self.buf = bytes()
+        self.buf = b""
         self.buf_expected_length = 0
-        self.buf_token: Optional[int] = None
+        self.buf_token: int | None = None
 
         self.wait_for_handshake = Deferred()
 
         self._open = True
-        self._timeout_defer: Optional[Any] = None
+        self._timeout_defer: Any | None = None
 
     def connectionMade(self) -> None:
         # Send immediately the handshake.
@@ -195,7 +196,7 @@ class CursorItems(DeferredQueue):
                 waiter.errback(err)
             self.waiting.remove(waiter)
 
-    def extend(self, data: List[Any]) -> None:
+    def extend(self, data: list[Any]) -> None:
         """Extend the queue with the given data."""
         for k in data:
             self.put(k)
@@ -218,7 +219,7 @@ class TwistedCursor(Cursor):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("items_type", CursorItems)
         super().__init__(*args, **kwargs)
-        self.waiting: List["Deferred[Any]"] = []
+        self.waiting: list[Deferred[Any]] = []
 
     def extend(self, res_buf: bytes) -> None:
         super().extend(res_buf)
@@ -231,10 +232,10 @@ class TwistedCursor(Cursor):
             self.waiting.remove(d)
 
     @staticmethod
-    def _empty_error() -> Type[ReqlCursorEmpty]:
+    def _empty_error() -> type[ReqlCursorEmpty]:
         return ReqlCursorEmpty
 
-    def fetch_next(self, wait: Union[bool, float] = True) -> "Deferred[bool]":
+    def fetch_next(self, wait: bool | float = True) -> "Deferred[bool]":
         """Fetch the next item, waiting if necessary."""
         timeout = Cursor._wait_to_timeout(wait)
         deadline = None if timeout is None else time.time() + timeout
@@ -242,7 +243,7 @@ class TwistedCursor(Cursor):
         def wait_canceller(d: "Deferred[Any]") -> None:
             d.errback(ReqlTimeoutError())
 
-        wait_defer: "Deferred[Any]" = Deferred(canceller=wait_canceller)
+        wait_defer: Deferred[Any] = Deferred(canceller=wait_canceller)
 
         def check_completion() -> None:
             if len(self.items) > 0 or self.error is not None:
@@ -266,7 +267,7 @@ class TwistedCursor(Cursor):
         return isinstance(self.error, ReqlCursorEmpty) and len(self.items) == 0
 
     @inlineCallbacks
-    def _get_next(self, timeout: Optional[float] = None) -> "Deferred[Any]":
+    def _get_next(self, timeout: float | None = None) -> "Deferred[Any]":
         if len(self.items) == 0 and self.error is not None:
             return defer.fail(self.error)
 
@@ -292,21 +293,21 @@ class ConnectionInstance:
     def __init__(self, parent: "Connection", start_reactor: bool = False) -> None:
         self._parent = parent
         self._closing = False
-        self._connection: Optional[DatabaseProtocol] = None
-        self._user_queries: Dict[int, tuple] = {}
-        self.__cursor_cache: Dict[int, TwistedCursor] = {}
+        self._connection: DatabaseProtocol | None = None
+        self._user_queries: dict[int, tuple] = {}
+        self.__cursor_cache: dict[int, TwistedCursor] = {}
 
         if start_reactor:
             # pylint: disable=no-member
             reactor.run()
 
-    def client_port(self) -> Optional[int]:
+    def client_port(self) -> int | None:
         """Return the client port for this connection."""
         if self.is_open() and self._connection:
             return self._connection.transport.getHost().port
         return None
 
-    def client_address(self) -> Optional[str]:
+    def client_address(self) -> str | None:
         """Return the client address for this connection."""
         if self.is_open() and self._connection:
             return self._connection.transport.getHost().host
@@ -397,7 +398,7 @@ class ConnectionInstance:
         return self._parent
 
     @property
-    def cursor_cache(self) -> Dict[int, "TwistedCursor"]:
+    def cursor_cache(self) -> dict[int, "TwistedCursor"]:
         """
         Return the cursor's cache.
         """
@@ -412,18 +413,17 @@ class ConnectionInstance:
     def is_open(self) -> bool:
         """Check if the connection is open."""
         return (
-            self._connection is not None
-            and self._connection._open  # pylint: disable=protected-access
+            self._connection is not None and self._connection._open  # pylint: disable=protected-access
         )
 
     def close(
         self,
         noreply_wait: bool = False,
-        token: Optional[int] = None,
-        exception: Optional[Exception] = None,
+        token: int | None = None,
+        exception: Exception | None = None,
     ) -> "Deferred[Any]":
         """Close the connection."""
-        d: "Deferred[Any]" = defer.succeed(None)
+        d: Deferred[Any] = defer.succeed(None)
         self._closing = True
         error_message = "Connection is closed"
         if exception is not None:
@@ -476,7 +476,7 @@ class Connection(ConnectionBase):
 
     @inlineCallbacks
     def reconnect(
-        self, noreply_wait: bool = True, timeout: Optional[int] = None
+        self, noreply_wait: bool = True, timeout: int | None = None
     ) -> Generator:
         yield self.close(noreply_wait)
         res = yield super().reconnect(noreply_wait, timeout)

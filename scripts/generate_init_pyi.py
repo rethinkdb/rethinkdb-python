@@ -11,7 +11,7 @@ from the `ast`, `errors`, `net`, and `query` modules.
 import inspect
 import os
 import sys
-from typing import Any, Callable
+from typing import Any
 
 # Add the project root to the path to allow importing from `rethinkdb`
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -134,7 +134,8 @@ def get_type_hint(obj: Any, name: str, module_name: str) -> str:
     # General cases
     if inspect.isfunction(obj):
         if module_name == "query":
-            import re, textwrap
+            import re
+            import textwrap
 
             try:
                 src = textwrap.dedent(inspect.getsource(obj))
@@ -197,9 +198,9 @@ def generate_pyi_content() -> str:
                     indented_doc = textwrap.indent(summary, " " * 4)
 
                     content.append(f"    {name}: {type_hint} = ...")
-                    content.append("    \"\"\"")
+                    content.append('    """')
                     content.append(indented_doc)
-                    content.append("    \"\"\"")
+                    content.append('    """')
                 else:
                     content.append(f"    {name}: {type_hint} = ...")
 

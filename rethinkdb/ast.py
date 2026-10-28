@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -26,16 +26,16 @@ AST module contains the way the queries are serialized and deserialized.
 # FIXME: do a major refactoring and re-enable docstring checks
 # pylint: disable=missing-function-docstring,missing-class-docstring
 
-__all__ = ["expr", "RqlQuery", "RqlBinary", "RqlTzinfo"]
+__all__ = ["RqlBinary", "RqlQuery", "RqlTzinfo", "expr"]
 
-from abc import abstractmethod
 import base64
 import binascii
-from collections import abc
 import datetime
 import threading
-from typing import TYPE_CHECKING, Any, Callable, Iterable, List, Mapping, Optional
-from typing import Union as TUnion
+from abc import abstractmethod
+from collections import abc
+from collections.abc import Callable, Iterable, Mapping
+from typing import TYPE_CHECKING, Any, Optional
 
 from rethinkdb import ql2_pb2
 from rethinkdb.errors import QueryPrinter, ReqlDriverCompileError, ReqlDriverError
@@ -57,7 +57,7 @@ class RqlQuery:  # pylint: disable=too-many-public-methods
     def __init__(self, *args, **kwargs: dict):
         self._args = [expr(e) for e in args]
         self.kwargs = {k: expr(v) for k, v in kwargs.items()}
-        self.term_type: Optional[int] = None
+        self.term_type: int | None = None
         self.statement: str = ""
 
     @abstractmethod
@@ -98,13 +98,13 @@ class RqlQuery:  # pylint: disable=too-many-public-methods
         """
         return f"<RqlQuery instance: {self} >"
 
-    def build(self) -> List[str]:
+    def build(self) -> list[str]:
         """
         Compile the query to a json-serializable object.
         """
 
         # TODO: Have a more specific typing here
-        res: List[Any] = [self.term_type, self._args]
+        res: list[Any] = [self.term_type, self._args]
 
         if len(self.kwargs) > 0:
             res.append(self.kwargs)
@@ -499,7 +499,7 @@ class RqlQuery:  # pylint: disable=too-many-public-methods
     # Operator used for get attr / nth / slice. Non-operator versions below
     # in cases of ambiguity
     # TODO
-    # Undestand the type of index. Apparently it can be of type slice
+    # Understand the type of index. Apparently it can be of type slice
     # but of some type accepted by Bracket,
     # which I can't understand where it's defined
     def __getitem__(self, index):
@@ -914,7 +914,7 @@ class Datum(RqlQuery):
     are alternately handled by the MakeArray and MakeObject nodes. Why do this?
     MakeArray and MakeObject are more flexible, allowing us to construct array
     and object expressions from nested Reql expressions. Constructing pure
-    R_ARRAYs and R_OBJECTs would require verifying that at all nested levels
+    R_ARRAY and R_OBJECT values would require verifying that at all nested levels
     our arrays and objects are composed only of basic types.
     """
 
@@ -2051,7 +2051,7 @@ class RqlBinary(bytes):
         excerpt = f", '{excerpt}{ellipsis}'" if len(self) > 0 else ""
 
         plural = "s" if len(self) != 1 else ""
-        return f"<binary, {str(len(self))} byte{plural}{excerpt}>"
+        return f"<binary, {len(self)!s} byte{plural}{excerpt}>"
 
 
 class Binary(RqlTopLevelQuery):
@@ -2411,17 +2411,15 @@ def needs_wrap(arg):
 
 # pylint: disable=too-many-return-statements
 def expr(
-    val: TUnion[
-        str,
-        bytes,
-        RqlQuery,
-        RqlBinary,
-        datetime.date,
-        datetime.datetime,
-        Mapping,
-        Iterable,
-        Callable,
-    ],
+    val: str
+    | bytes
+    | RqlQuery
+    | RqlBinary
+    | datetime.date
+    | datetime.datetime
+    | Mapping
+    | Iterable
+    | Callable,
     nesting_depth: int = 20,
 ):
     """
@@ -2461,7 +2459,7 @@ def expr(
                 without timezone information. You can add timezone information with
                 the third party module \"pytz\" or by constructing Reql compatible
                 timezone values with r.make_timezone(\"[+-]HH:MM\"). Alternatively,
-                use one of Reql's bultin time constructors, r.now, r.time,
+                use one of Reql's builtin time constructors, r.now, r.time,
                 or r.iso8601.
                 """
                 )
@@ -2473,7 +2471,7 @@ def expr(
         without timezone information. You can add timezone information with
         the third party module \"pytz\" or by constructing Reql compatible
         timezone values with r.make_timezone(\"[+-]HH:MM\"). Alternatively,
-        use one of Reql's bultin time constructors, r.now, r.time,
+        use one of Reql's builtin time constructors, r.now, r.time,
         or r.iso8601.
         """
         )
@@ -2483,7 +2481,7 @@ def expr(
 
 # Called on arguments that should be functions
 # TODO: expr may return different value types. Maybe use a base one?
-def func_wrap(val: TUnion[RqlQuery, ImplicitVar, list, dict]):
+def func_wrap(val: RqlQuery | ImplicitVar | list | dict):
     val = expr(val)
     if _ivar_scan(val):
         return Func(lambda x: val)

@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 import asyncio
 import socket
 import struct
-from typing import Any, Dict, Optional, cast
+from typing import Any, cast
 
 from tornado import gen, iostream
 from tornado.concurrent import Future
@@ -114,8 +114,10 @@ class TornadoCursor(Cursor):
             self._maybe_fetch_batch()
             if self.error is not None:
                 raise self.error
-            # Use asyncio.create_task for non-async method
-            asyncio.create_task(with_absolute_timeout(deadline, self.new_response))
+            # Keep a reference so the task is not garbage-collected before it runs.
+            self._response_task = asyncio.create_task(
+                with_absolute_timeout(deadline, self.new_response)
+            )
         return self.items.popleft()
 
 
@@ -124,18 +126,18 @@ class ConnectionInstance:
     The Tornado implementation of the Connection object.
     """
 
-    def __init__(self, parent: "Connection", io_loop: Optional[IOLoop] = None):
+    def __init__(self, parent: "Connection", io_loop: IOLoop | None = None):
         self._parent = parent
         self._closing = False
-        self._user_queries: Dict[int, Any] = {}
-        self._cursor_cache: Dict[int, TornadoCursor] = {}
-        self._ready: "Future[Any]" = Future()
+        self._user_queries: dict[int, Any] = {}
+        self._cursor_cache: dict[int, TornadoCursor] = {}
+        self._ready: Future[Any] = Future()
         self._io_loop: IOLoop = io_loop or IOLoop.current()
-        self._stream: Optional[iostream.IOStream] = None
+        self._stream: iostream.IOStream | None = None
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
-    def client_port(self) -> Optional[int]:
+    def client_port(self) -> int | None:
         """
         Get the client port of the connection.
         """
@@ -143,7 +145,7 @@ class ConnectionInstance:
             return self._socket.getsockname()[1]
         return None
 
-    def client_address(self) -> Optional[str]:
+    def client_address(self) -> str | None:
         """
         Get the client address of the connection.
         """
@@ -151,7 +153,7 @@ class ConnectionInstance:
             return self._socket.getsockname()[0]
         return None
 
-    async def connect(self, timeout: Optional[int] = None) -> "Connection":
+    async def connect(self, timeout: int | None = None) -> "Connection":
         """
         Connect to the RethinkDB server.
         """
@@ -236,8 +238,8 @@ class ConnectionInstance:
     async def close(
         self,
         noreply_wait: bool = False,
-        token: Optional[int] = None,
-        exception: Optional[Exception] = None,
+        token: int | None = None,
+        exception: Exception | None = None,
     ):
         """
         Close the connection.
@@ -267,9 +269,9 @@ class ConnectionInstance:
                 self._stream.close()
             except iostream.StreamClosedError:
                 pass
-        return None
+        return
 
-    async def run_query(self, query: Query, noreply: bool) -> Optional[Any]:
+    async def run_query(self, query: Query, noreply: bool) -> Any | None:
         """
         Run a query on the connection.
         """
@@ -367,9 +369,7 @@ class Connection(ConnectionBase):
         res = await ConnectionBase.reconnect(self, noreply_wait, timeout)
         return res
 
-    async def close(
-        self, *_args, **kwargs
-    ):  # pylint: disable=invalid-overridden-method
+    async def close(self, *_args, **kwargs):  # pylint: disable=invalid-overridden-method
         if self.is_open() is False:
             return
 

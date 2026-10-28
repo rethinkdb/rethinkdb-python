@@ -61,21 +61,25 @@ Get Started!
 .. note::
 
     You may want to see the developer documentation, not that one which is intended for
-    our users. To generate and open the documentation, run ``make docs``.
+    our users. To build the documentation, run ``mise run docs``.
 
 Ready to contribute? Here's how to set up `rethinkdb`'s Python client for local development.
 
-As `step 0` make sure you have python 3.10+, [https://python-poetry.org/](poetry) and [https://pre-commit.com/](pre-commit) installed.
+As step 0, install `mise`_. Python, uv, and pre-commit are pinned in ``mise.toml``.
+
+.. _mise: https://mise.jdx.dev/getting-started.html
 
 1. Fork the `rethinkdb-python` repo on GitHub.
 2. Clone your fork locally::
 
     $ git clone git@github.com:your_name_here/rethinkdb-python.git
 
-3. Install your local copy. Assuming you have poetry installed, this is how you set up your fork for local development::
+3. Install the toolchain and the local copy::
 
     $ cd rethinkdb-python/
-    $ poetry install -E all
+    $ mise install
+    $ mise run setup
+    $ pre-commit install
 
 4. Create a branch for local development::
 
@@ -85,23 +89,24 @@ As `step 0` make sure you have python 3.10+, [https://python-poetry.org/](poetry
 
 5. When you're done making changes, check that your changes pass linters and the tests::
 
-    $ poetry env activate
-    $ make format
-    $ make lint
-    $ make test
+    $ mise run format
+    $ mise run lint
+    $ mise run test
     $ pre-commit run --all-files
 
-   You will need ``make`` not just for executing the command, but to build (and test)
-   the documentations page as well.
+   ``mise run test`` runs integration tests. To make them pass, you need a
+   running RethinkDB server on ``localhost:28015``. To run only unit tests, execute
+   ``mise run test-unit``.
 
-   Also, running ``make test`` runs integration tests. To make them pass, you need a
-   running RethinkDB server. To run only unit tests, execute ``make test-unit``.
-
-6. Commit your changes and push your branch to GitHub::
+6. Commit your changes and push your branch to GitHub. Commit messages follow
+   `Conventional Commits`_ (``feat``, ``fix``, ``docs``, ``style``, ``refactor``,
+   ``perf``, ``test``, ``build``, ``ci``, ``chore``, ``revert``)::
 
     $ git add .
-    $ git commit -m "Your detailed description of your changes."
+    $ git commit -m "fix: correct the handshake timeout."
     $ git push origin name-of-your-bugfix-or-feature
+
+   .. _Conventional Commits: https://www.conventionalcommits.org/en/v1.0.0/
 
 7. Submit a pull request through the GitHub website.
 
@@ -114,23 +119,37 @@ Before you submit a pull request, check that it meets these guidelines:
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
-3. The pull request should work for Python 3.10+.
+3. The pull request should work for Python 3.12+.
+
+Dependencies
+------------
+
+Renovate opens pull requests for Python packages, GitHub Actions, and mise tools.
+The configuration is ``renovate.json``. Minor and patch updates are grouped.
+Major updates are opened separately. Install the Renovate GitHub App on the
+repository to enable it.
 
 Releasing
 ---------
 
-A reminder for the maintainers on how to release.
-Make sure all your changes are committed (including an entry in CHANGELOG.rst).
+Releases are cut by `Release Please`_ from conventional commits on ``master``.
+Merging its release pull request tags the version, updates ``CHANGELOG.md`` and
+``pyproject.toml``, and publishes a GitHub release. The publish workflow then
+builds the package and uploads it to PyPI with trusted publishing.
 
-After all, create a tag and a release on GitHub. The rest will be handled by
-Travis.
+The manifest currently records ``2.5.0``, which is not yet tagged. The next
+conventional commits on ``master`` open a pull request for the following
+version. Publishing ``2.5.0`` itself is a deliberate GitHub release; the
+publish workflow uploads that release as well.
 
-Please follow this checklist for the release:
+Before merging a release pull request:
 
-1. Make sure that formatters are not complaining (``make format`` returns 0)
-2. Make sure that linters are not complaining (``make lint`` returns 0)
-3. Make sure developer documentation is up-to-date (``make docs`` returns 0)
-4. Update CHANGELOG.rst - do not forget to update the unreleased link comparison
-5. Update version in ``pyproject.toml``, ``CHANGELOG.rst`` and ``rethinkdb/__init__.py``
-6. Create a new Release on GitHub with a detailed release description based on
-   the previous releases.
+1. ``mise run format`` succeeds.
+2. ``mise run lint`` succeeds.
+3. ``mise run test`` succeeds.
+4. ``mise run docs`` succeeds.
+
+PyPI needs a trusted publisher for this repository, workflow
+``.github/workflows/publish.yml``, and the GitHub environment ``pypi``.
+
+.. _Release Please: https://github.com/googleapis/release-please

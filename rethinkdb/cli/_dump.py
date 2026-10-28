@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -19,8 +17,6 @@
 
 # pylint: disable=too-many-arguments,too-many-locals,too-many-branches
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
 import json
 import logging
 import os
@@ -29,7 +25,9 @@ import sys
 import tarfile
 import tempfile
 import threading
-from typing import Any, Dict, List, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+from typing import Any
 
 import click
 
@@ -50,7 +48,7 @@ def default_output_file():
     return f"rethinkdb_dump_{now}.tar.gz"
 
 
-def get_all_tables(conn, dbs: Optional[List[str]] = None) -> list[tuple[str, str]]:
+def get_all_tables(conn, dbs: list[str] | None = None) -> list[tuple[str, str]]:
     """Return a list of (db, table) tuples for all tables in the given databases."""
     tables: list[tuple[str, str]] = []
     db_list = dbs
@@ -70,8 +68,8 @@ def dump_worker(
     table: str,
     work_dir: str,
     read_outdated: bool,
-    connection_args: Dict[str, Any],
-    progress_state: Dict[str, Any],
+    connection_args: dict[str, Any],
+    progress_state: dict[str, Any],
 ):
     """
     Dump a single table to JSON and metadata files.
@@ -116,8 +114,7 @@ def dump_worker(
             if read_outdated:
                 query = query.read_outdated()
             cursor = query.run(conn)
-            for row in cursor:
-                f.write(json.dumps(row, default=json_default) + "\n")
+            f.writelines(json.dumps(row, default=json_default) + "\n" for row in cursor)
 
         # - Update progress
         with progress_state["lock"]:

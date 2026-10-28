@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ RethinkDB CLI module defines the management commands that can be used to
 interact with the database. These commands are for exporting/importing data.
 
 Although these commands can be used to prepare data for backup, depending on
-your needs, you may want to evaluate more mature backup backup solutions.
+your needs, you may want to evaluate more mature backup solutions.
 """
 
 from rethinkdb.cli._dump import cmd_dump
@@ -26,3 +26,12 @@ from rethinkdb.cli._import import cmd_import
 from rethinkdb.cli._index_rebuild import cmd_index_rebuild
 from rethinkdb.cli._repl import cmd_repl
 from rethinkdb.cli._restore import cmd_restore
+
+__all__ = [
+    "cmd_dump",
+    "cmd_export",
+    "cmd_import",
+    "cmd_index_rebuild",
+    "cmd_repl",
+    "cmd_restore",
+]

@@ -2,7 +2,8 @@
 # pyright: reportUnknownMemberType=false, reportUnknownVariableType=false
 # mypy: ignore-errors
 import datetime
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Type, Union
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any
 
 from rethinkdb import ast as ast_module
 from rethinkdb import errors as errors_module
@@ -20,9 +21,9 @@ from rethinkdb.errors import (
     ReqlError,
     ReqlInternalError,
     ReqlNonExistenceError,
+    ReqlOperationError,
     ReqlOpFailedError,
     ReqlOpIndeterminateError,
-    ReqlOperationError,
     ReqlPermissionError,
     ReqlQueryLogicError,
     ReqlResourceLimitError,
@@ -39,14 +40,14 @@ class RethinkDB:
     errors: errors_module
     net: net_module
     query: query_module
-    connection_type: Optional[Type[Connection]]
+    connection_type: type[Connection] | None
 
     def __init__(self) -> None: ...
-    def set_loop_type(self, library: Optional[str] = None) -> None: ...
+    def set_loop_type(self, library: str | None = None) -> None: ...
     def connect(self, *connect_args: Any, **kwargs: Any) -> Connection: ...
 
     # from rethinkdb.ast
-    RqlBinary: Type[RqlBinary] = ...
+    RqlBinary: type[RqlBinary] = ...
     """
     bytes(iterable_of_ints) -> bytes
     bytes(string, encoding[, errors]) -> bytes
@@ -54,28 +55,26 @@ class RethinkDB:
     bytes(int) -> bytes object of size given by the parameter initialized with null bytes
     bytes() -> empty bytes object
     """
-    RqlQuery: Type[RqlQuery] = ...
+    RqlQuery: type[RqlQuery] = ...
     """
     The RethinkDB Query object which determines the operations we can request
     from the server.
     """
-    RqlTzinfo: Type[RqlTzinfo] = ...
+    RqlTzinfo: type[RqlTzinfo] = ...
     """
     RethinkDB timezone information.
     """
     expr: Callable[
         [
-            Union[
-                str,
-                bytes,
-                RqlQuery,
-                RqlBinary,
-                datetime.date,
-                datetime.datetime,
-                Mapping[Any, Any],
-                Iterable[Any],
-                Callable[..., Any],
-            ],
+            str
+            | bytes
+            | RqlQuery
+            | RqlBinary
+            | datetime.date
+            | datetime.datetime
+            | Mapping[Any, Any]
+            | Iterable[Any]
+            | Callable[..., Any],
             int,
         ],
         RqlQuery,
@@ -85,101 +84,101 @@ class RethinkDB:
     """
 
     # from rethinkdb.errors
-    InvalidHandshakeStateError: Type[InvalidHandshakeStateError] = ...
+    InvalidHandshakeStateError: type[InvalidHandshakeStateError] = ...
     """
     Exception raised when the client entered a not existing state during connection handshake.
     """
-    QueryPrinter: Type[QueryPrinter] = ...
+    QueryPrinter: type[QueryPrinter] = ...
     """
     Helper class to print Query failures in a formatted was using carets.
     """
-    ReqlAuthError: Type[ReqlAuthError] = ...
+    ReqlAuthError: type[ReqlAuthError] = ...
     """
     The exception raised when the authentication was unsuccessful to the database
     server.
     """
-    ReqlCompileError: Type[ReqlCompileError] = ...
+    ReqlCompileError: type[ReqlCompileError] = ...
     """
     Exception representing any kind of compilation error. A compilation error
     can be raised during parsing a Python primitive into a Reql primitive or even
     when the server cannot parse a Reql primitive, hence it returns an error.
     """
-    ReqlCursorEmpty: Type[ReqlCursorEmpty] = ...
+    ReqlCursorEmpty: type[ReqlCursorEmpty] = ...
     """
     Base exception indicates that the cursor was empty.
     """
-    ReqlDriverCompileError: Type[ReqlDriverCompileError] = ...
+    ReqlDriverCompileError: type[ReqlDriverCompileError] = ...
     """
     Exception indicates that a Python primitive cannot be converted into a
     Reql primitive.
     """
-    ReqlDriverError: Type[ReqlDriverError] = ...
+    ReqlDriverError: type[ReqlDriverError] = ...
     """
     Exception representing the Python client related exceptions.
     """
-    ReqlError: Type[ReqlError] = ...
+    ReqlError: type[ReqlError] = ...
     """
     Base RethinkDB Query Language Error.
     """
-    ReqlInternalError: Type[ReqlInternalError] = ...
+    ReqlInternalError: type[ReqlInternalError] = ...
     """
     Exception indicates that some internal error happened on server side.
     """
-    ReqlNonExistenceError: Type[ReqlNonExistenceError] = ...
+    ReqlNonExistenceError: type[ReqlNonExistenceError] = ...
     """
     Exception indicates an error related to the absence of an expected value.
     """
-    ReqlOpFailedError: Type[ReqlOpFailedError] = ...
+    ReqlOpFailedError: type[ReqlOpFailedError] = ...
     """
     Exception indicates that REQL operation failed.
     """
-    ReqlOpIndeterminateError: Type[ReqlOpIndeterminateError] = ...
+    ReqlOpIndeterminateError: type[ReqlOpIndeterminateError] = ...
     """
     Exception indicates that it is unknown whether an operation failed or not.
     """
-    ReqlOperationError: Type[ReqlOperationError] = ...
+    ReqlOperationError: type[ReqlOperationError] = ...
     """
     Exception indicates that the error happened due to availability issues.
     """
-    ReqlPermissionError: Type[ReqlPermissionError] = ...
+    ReqlPermissionError: type[ReqlPermissionError] = ...
     """
     Exception indicates that the connected user has no permission to execute the query.
     """
-    ReqlQueryLogicError: Type[ReqlQueryLogicError] = ...
+    ReqlQueryLogicError: type[ReqlQueryLogicError] = ...
     """
     Exception indicates that the query is syntactically correct, but not it has some
     logical errors.
     """
-    ReqlResourceLimitError: Type[ReqlResourceLimitError] = ...
+    ReqlResourceLimitError: type[ReqlResourceLimitError] = ...
     """
     Exception indicates that the server exceeded a resource limit (e.g. the array size limit).
     """
-    ReqlRuntimeError: Type[ReqlRuntimeError] = ...
+    ReqlRuntimeError: type[ReqlRuntimeError] = ...
     """
     Exception representing a runtime issue within the Python client. The runtime error
     is within the client and not the database.
     """
-    ReqlServerCompileError: Type[ReqlServerCompileError] = ...
+    ReqlServerCompileError: type[ReqlServerCompileError] = ...
     """
     Exception indicates that a Reql primitive cannot be parsed by the server, hence
     it returned an error.
     """
-    ReqlTimeoutError: Type[ReqlTimeoutError] = ...
+    ReqlTimeoutError: type[ReqlTimeoutError] = ...
     """
     Exception indicates that the request towards the server is timed out.
     """
-    ReqlUserError: Type[ReqlUserError] = ...
+    ReqlUserError: type[ReqlUserError] = ...
     """
     Exception indicates that en error caused by `r.error` with arguments.
     """
 
     # from rethinkdb.net
-    Connection: Type[Connection] = ...
+    Connection: type[Connection] = ...
     """
     Handle connection lifecycle, managing the connection instance, connect, reconnect,
     connection close and more.
     """
-    Cursor: Type[Cursor] = ...
+    Cursor: type[Cursor] = ...
     """
     This class encapsulates all shared behavior between cursor implementations.
     It provides iteration over the cursor using `iter`, as well as incremental
@@ -210,22 +209,22 @@ class RethinkDB:
     int([x]) -> integer
     int(x, base=10) -> integer
     """
-    DefaultConnection: Type[DefaultConnection] = ...
+    DefaultConnection: type[DefaultConnection] = ...
     """
     Default connection without async handlers.
     """
     make_connection: Callable[
         [
-            Type[Connection],
+            type[Connection],
             str,
             int,
-            Optional[str],
+            str | None,
             str,
-            Optional[str],
+            str | None,
             int,
-            Optional[Dict[str, Any]],
-            Optional[str],
-            Type[BaseHandshake],
+            dict[str, Any] | None,
+            str | None,
+            type[BaseHandshake],
         ],
         Connection,
     ] = ...

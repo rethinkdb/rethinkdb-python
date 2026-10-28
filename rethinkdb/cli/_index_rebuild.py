@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -19,9 +17,9 @@
 
 # pylint: disable=too-many-arguments,too-many-locals
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
-from typing import Any, Dict, List, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 import click
 
@@ -34,7 +32,7 @@ from rethinkdb.cli.utils import (
 )
 
 
-def get_all_tables(conn, dbs: Optional[List[str]] = None) -> list[tuple[str, str]]:
+def get_all_tables(conn, dbs: list[str] | None = None) -> list[tuple[str, str]]:
     """Return a list of (db, table) tuples for all tables in the given databases."""
     tables: list[tuple[str, str]] = []
     db_list = dbs
@@ -53,8 +51,8 @@ def rebuild_worker(
     db: str,
     table: str,
     index: str,
-    connection_args: Dict[str, Any],
-    progress_state: Dict[str, Any],
+    connection_args: dict[str, Any],
+    progress_state: dict[str, Any],
 ):
     """
     Rebuild a single index.
@@ -136,7 +134,7 @@ def cmd_index_rebuild(db_table, concurrent, force, **connection_args):
     try:
         conn = get_connection(**connection_args)
     except errors.ReqlDriverError as e:
-        click.echo("Error connecting to RethinkDB: %s" % e, err=True)
+        click.echo(f"Error connecting to RethinkDB: {e}", err=True)
         return
 
     # -- Determine tables to scan for indexes
@@ -149,14 +147,14 @@ def cmd_index_rebuild(db_table, concurrent, force, **connection_args):
 
         for db, tables in parsed_dbs_tables.items():
             if db not in all_dbs:
-                raise click.UsageError("Database '%s' not found." % db)
+                raise click.UsageError(f"Database '{db}' not found.")
             if not tables:
                 tables_to_scan.extend(get_all_tables(conn, [db]))
             else:
                 all_tables_in_db = r.db(db).table_list().run(conn)
                 for table in tables:
                     if table not in all_tables_in_db:
-                        raise click.UsageError("Table '%s.%s' not found." % (db, table))
+                        raise click.UsageError(f"Table '{db}.{table}' not found.")
                     tables_to_scan.append((db, table))
 
     # -- Find all indexes to rebuild
@@ -209,7 +207,7 @@ def cmd_index_rebuild(db_table, concurrent, force, **connection_args):
             except Exception as e:
                 db, table, index = futures[future]
                 click.echo(
-                    "\nError rebuilding index %s.%s.%s: %s" % (db, table, index, e),
+                    f"\nError rebuilding index {db}.{table}.{index}: {e}",
                     err=True,
                 )
 

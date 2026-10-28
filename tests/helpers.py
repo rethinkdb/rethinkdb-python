@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -13,10 +13,11 @@
 # limitations under the License.
 
 import os
-from typing import Any, Callable, Iterable, List, Optional, Tuple
+from collections.abc import Callable, Iterable
+from typing import Any
 
-from pydantic import BaseModel
 import pytest
+from pydantic import BaseModel
 
 from rethinkdb import ast, net, r
 
@@ -27,8 +28,8 @@ class Scenario(BaseModel):
     kwargs: dict = {}
     expr_args: Any = []
     expected: Any
-    expected_field: Optional[str] = None
-    callback: Optional[Callable[[], None]] = None
+    expected_field: str | None = None
+    callback: Callable[[], None] | None = None
     result_as_string: bool = False
     result_as_list: bool = False
     approximate_results: bool = False
@@ -95,7 +96,7 @@ def assert_test_table(
     Run table test assertions.
     """
 
-    failed: List[Tuple] = []
+    failed: list[tuple] = []
 
     for scenario in scenarios:
         executor = ast.expr(*scenario.expr_args) if scenario.expr_args else r
@@ -127,7 +128,7 @@ def assert_test_table(
     assert len(failed) == 0, f"The following scenario(s) failed:\n\t{error_message}"
 
 
-def get_user(username: str, conn: net.Connection) -> Optional[dict]:
+def get_user(username: str, conn: net.Connection) -> dict | None:
     """
     Return the user if exists.
     """

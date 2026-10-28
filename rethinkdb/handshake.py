@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -23,15 +23,14 @@ the calling application.
 This module contains the supported handshakes which can be used to establish a new connection.
 """
 
-from abc import abstractmethod
 import base64
-from enum import Enum
 import hashlib
 import hmac
 import json
-from random import SystemRandom
 import struct
-from typing import Dict, Optional
+from abc import abstractmethod
+from enum import Enum
+from random import SystemRandom
 
 from rethinkdb import ql2_pb2
 from rethinkdb.errors import InvalidHandshakeStateError, ReqlAuthError, ReqlDriverError
@@ -55,7 +54,7 @@ class BaseHandshake:
     handshake versions can reuse later.
     """
 
-    STATE_TRANSITIONS: Dict[int, HandshakeState] = {
+    STATE_TRANSITIONS: dict[int, HandshakeState] = {
         0: HandshakeState.INITIAL_CONNECTION,
         1: HandshakeState.INITIAL_RESPONSE,
     }
@@ -123,7 +122,7 @@ class HandshakeV1_0(BaseHandshake):  # pylint: disable=invalid-name
     More info: https://rethinkdb.com/docs/writing-drivers/
     """
 
-    STATE_TRANSITIONS: Dict[int, HandshakeState] = {
+    STATE_TRANSITIONS: dict[int, HandshakeState] = {
         0: HandshakeState.INITIAL_CONNECTION,
         1: HandshakeState.INITIAL_RESPONSE,
         2: HandshakeState.AUTH_REQUEST,
@@ -136,9 +135,9 @@ class HandshakeV1_0(BaseHandshake):  # pylint: disable=invalid-name
         self.__username = username.replace("=", "=3D").replace(",", "=2C")
         self.__password = password
 
-        self._random_nonce = bytes()
-        self._first_client_message = bytes()
-        self._server_signature = bytes()
+        self._random_nonce = b""
+        self._first_client_message = b""
+        self._server_signature = b""
 
         self.json_encoder = kwargs.pop("json_encoder", json.JSONEncoder)()
         self.json_decoder = kwargs.pop("json_decoder", json.JSONDecoder)()
@@ -156,13 +155,13 @@ class HandshakeV1_0(BaseHandshake):  # pylint: disable=invalid-name
         return 0
 
     @staticmethod
-    def __get_authentication_message(response: Dict[str, str]) -> Dict[bytes, bytes]:
+    def __get_authentication_message(response: dict[str, str]) -> dict[bytes, bytes]:
         """
         Get the first client message and the authentication related data from the
         response provided by RethinkDB.
         """
 
-        message: Dict[bytes, bytes] = {}
+        message: dict[bytes, bytes] = {}
 
         for auth in response["authentication"].encode("ascii").split(b","):
             key, value = auth.split(b"=", 1)
@@ -170,14 +169,14 @@ class HandshakeV1_0(BaseHandshake):  # pylint: disable=invalid-name
 
         return message
 
-    def __decode_json_response(self, response: str) -> Dict[str, str]:
+    def __decode_json_response(self, response: str) -> dict[str, str]:
         """
         Get decoded json response from response.
 
         :raises: ReqlDriverError | ReqlAuthError
         """
 
-        json_response: Dict[str, str] = self.json_decoder.decode(response)
+        json_response: dict[str, str] = self.json_decoder.decode(response)
 
         if not json_response.get("success"):
             if 10 <= int(json_response["error_code"]) <= 20:
@@ -226,7 +225,7 @@ class HandshakeV1_0(BaseHandshake):  # pylint: disable=invalid-name
         :raises: ReqlDriverError | ReqlAuthError
         """
 
-        json_response: Dict[str, str] = self.__decode_json_response(response)
+        json_response: dict[str, str] = self.__decode_json_response(response)
         min_protocol_version: int = int(json_response["min_protocol_version"])
         max_protocol_version: int = int(json_response["max_protocol_version"])
 
@@ -243,7 +242,7 @@ class HandshakeV1_0(BaseHandshake):  # pylint: disable=invalid-name
         :raises: ReqlDriverError | ReqlAuthError
         """
 
-        json_response: Dict[str, str] = self.__decode_json_response(response)
+        json_response: dict[str, str] = self.__decode_json_response(response)
         first_client_message = json_response["authentication"].encode("ascii")
         authentication = self.__get_authentication_message(json_response)
 
@@ -312,7 +311,7 @@ class HandshakeV1_0(BaseHandshake):  # pylint: disable=invalid-name
         :raises: ReqlDriverError | ReqlAuthError
         """
 
-        json_response: Dict[str, str] = self.__decode_json_response(response)
+        json_response: dict[str, str] = self.__decode_json_response(response)
         authentication = self.__get_authentication_message(json_response)
         signature: bytes = base64.standard_b64decode(authentication[b"v"])
 
@@ -329,13 +328,13 @@ class HandshakeV1_0(BaseHandshake):  # pylint: disable=invalid-name
         self._server_signature = None
         self.state = HandshakeState.INITIAL_CONNECTION
 
-    def next_message(self, raw_response: Optional[bytes]) -> Optional[bytes]:
+    def next_message(self, raw_response: bytes | None) -> bytes | None:
         """
         Handle the next message to send or receive.
         """
 
         response: str = ""
-        message: Optional[bytes] = None
+        message: bytes | None = None
 
         if raw_response is not None:
             response = raw_response.decode("utf-8")
@@ -353,9 +352,9 @@ class HandshakeV1_0(BaseHandshake):  # pylint: disable=invalid-name
         elif self.state == HandshakeState.INITIAL_RESPONSE:
             self.__read_response(response)
             self.next_state()
-            # return empty bytes as the networking handler need to differenciate
+            # return empty bytes as the networking handler need to differentiate
             # between empty strings and None
-            message = bytes()
+            message = b""
 
         elif self.state == HandshakeState.AUTH_REQUEST:
             message = self.__prepare_auth_request(response)

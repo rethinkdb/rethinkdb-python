@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@
 """
 Utility functions to make it easier to work with other parts of the code.
 """
-
-from typing import Union
 
 __all__ = ["EnhancedTuple", "chain_to_bytes"]
 
@@ -49,7 +47,7 @@ class EnhancedTuple:  # pylint: disable=too-few-public-methods
             yield from token
 
 
-def chain_to_bytes(*strings: Union[bytes, str]) -> bytes:
+def chain_to_bytes(*strings: bytes | str) -> bytes:
     """
     Ensure the bytes and/or strings are chained as bytes.
     """

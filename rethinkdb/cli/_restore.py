@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -30,7 +28,7 @@ import tarfile
 import tempfile
 import time
 import traceback
-from typing import Any, Dict, List
+from typing import Any
 
 import click
 
@@ -43,7 +41,7 @@ from rethinkdb.cli.utils import (
 )
 
 
-def do_unzip(temp_dir: str, options: Dict[str, Any]) -> List[str]:
+def do_unzip(temp_dir: str, options: dict[str, Any]) -> list[str]:
     """Extract the tarfile to the filesystem."""
     logger = get_logger()
     tables_to_export = set(options.get("db_tables", []))
@@ -79,25 +77,23 @@ def do_unzip(temp_dir: str, options: Dict[str, Any]) -> List[str]:
                 continue
 
             # Skip file types other than what we use
-            if not os.path.splitext(relpath)[1] in (".json", ".csv", ".info"):
+            if os.path.splitext(relpath)[1] not in (".json", ".csv", ".info"):
                 files_ignored.append(tarinfo.name)
                 continue
 
             # Ensure this looks like our structure
             try:
                 top, db, file_name = relpath.split(os.sep)
-            except ValueError:
+            except ValueError as exc:
                 raise RuntimeError(
-                    "Error: Archive file has an unexpected directory structure: %s"
-                    % tarinfo.name
-                )
+                    f"Error: Archive file has an unexpected directory structure: {tarinfo.name}"
+                ) from exc
 
             if not top_level:
                 top_level = top
             elif top != top_level:
                 raise RuntimeError(
-                    "Error: Archive file has an unexpected directory structure (%s vs %s)"
-                    % (top, top_level)
+                    f"Error: Archive file has an unexpected directory structure ({top} vs {top_level})"
                 )
 
             # Filter out tables we are not looking for
@@ -147,7 +143,7 @@ def do_unzip(temp_dir: str, options: Dict[str, Any]) -> List[str]:
     return files_ignored
 
 
-def do_restore(options: Dict[str, Any]) -> None:
+def do_restore(options: dict[str, Any]) -> None:
     """Main restore function."""
     logger = get_logger()
 
@@ -215,7 +211,7 @@ def do_restore(options: Dict[str, Any]) -> None:
             try:
                 return query.run(conn)
             except Exception as e:
-                raise RuntimeError("Error in %s: %s" % (description, e))
+                raise RuntimeError(f"Error in {description}: {e}") from e
 
         import_options["query_runner"] = query_runner
 
@@ -254,12 +250,10 @@ def do_restore(options: Dict[str, Any]) -> None:
                 if str(exc) == "Warnings occurred during import":
                     raise RuntimeError(
                         "Warning: import did not create some secondary indexes."
-                    )
-                else:
-                    error_string = str(exc)
-                    if error_string.startswith("Error: "):
-                        error_string = error_string[len("Error: ") :]
-                    raise RuntimeError(f"Error: import failed: {error_string}")
+                    ) from exc
+                error_string = str(exc)
+                error_string = error_string.removeprefix("Error: ")
+                raise RuntimeError(f"Error: import failed: {error_string}") from exc
 
             logger.info("Restore completed successfully")
 
@@ -390,7 +384,7 @@ def cmd_restore(
         logger.info("Reading archive from stdin")
     else:
         if not os.path.isfile(archive):
-            raise click.UsageError("Archive file does not exist: %s" % archive)
+            raise click.UsageError(f"Archive file does not exist: {archive}")
         in_file = os.path.realpath(archive)
         logger.info("Restoring from archive: %s", archive)
 
@@ -398,10 +392,10 @@ def cmd_restore(
     if temp_dir:
         if not os.path.isdir(temp_dir):
             raise click.UsageError(
-                "Temporary directory doesn't exist or is not a directory: %s" % temp_dir
+                f"Temporary directory doesn't exist or is not a directory: {temp_dir}"
             )
         if not os.access(temp_dir, os.W_OK):
-            raise click.UsageError("Temporary directory inaccessible: %s" % temp_dir)
+            raise click.UsageError(f"Temporary directory inaccessible: {temp_dir}")
         logger.debug("Using temporary directory: %s", temp_dir)
 
     # Prepare options for restore

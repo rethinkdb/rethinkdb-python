@@ -71,22 +71,22 @@ async def test_tornado_connection(conn):
     db_name = "test_tornado_db"
 
     create_result = await connection.start(query.db_create(db_name))
-    assert (
-        create_result["dbs_created"] == 1
-    ), f"Expected 1 database created, got {create_result['dbs_created']}"
+    assert create_result["dbs_created"] == 1, (
+        f"Expected 1 database created, got {create_result['dbs_created']}"
+    )
 
     db_list = await connection.start(query.db_list())
     assert db_name in db_list, f"Database {db_name} should be in the list"
 
     drop_result = await connection.start(query.db_drop(db_name))
-    assert (
-        drop_result["dbs_dropped"] == 1
-    ), f"Expected 1 database dropped, got {drop_result['dbs_dropped']}"
+    assert drop_result["dbs_dropped"] == 1, (
+        f"Expected 1 database dropped, got {drop_result['dbs_dropped']}"
+    )
 
     db_list_after = await connection.start(query.db_list())
-    assert (
-        db_name not in db_list_after
-    ), f"Database {db_name} should not be in the list after dropping"
+    assert db_name not in db_list_after, (
+        f"Database {db_name} should not be in the list after dropping"
+    )
 
     return True
 
@@ -218,9 +218,9 @@ async def assert_test_table_async(query_func, conn, scenarios):
         else:
             actual = result
 
-        assert (
-            actual == scenario.expected
-        ), f"Expected {scenario.expected}, got {actual}"
+        assert actual == scenario.expected, (
+            f"Expected {scenario.expected}, got {actual}"
+        )
 
         if scenario.callback:
             await scenario.callback()

@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -37,7 +35,6 @@ import tempfile
 import threading
 import time
 import traceback
-from typing import Optional
 
 import click
 
@@ -61,8 +58,8 @@ Error = collections.namedtuple("Error", ["message", "traceback", "file"])
 class SourceFile:
     """Base class for source files that can be imported."""
 
-    format: Optional[str] = None  # set by subclasses
-    name: Optional[str] = None
+    format: str | None = None  # set by subclasses
+    name: str | None = None
     db = None
     table = None
     primary_key = None
@@ -119,8 +116,10 @@ class SourceFile:
         else:
             try:
                 self._source = codecs.open(source, mode="r", encoding="utf-8")
-            except IOError as exc:
-                raise ValueError(f'Unable to open source file "{source}": {exc}')
+            except OSError as exc:
+                raise ValueError(
+                    f'Unable to open source file "{source}": {exc}'
+                ) from exc
 
         if (
             hasattr(self._source, "name")
@@ -313,10 +312,9 @@ class SourceFile:
                         f"Failed to create index '{index_name}' on {self.db}.{self.table}: {e}"
                     )
                     raise
-                else:
-                    logger.debug(
-                        f"Index '{index_name}' already exists on {self.db}.{self.table}"
-                    )
+                logger.debug(
+                    f"Index '{index_name}' already exists on {self.db}.{self.table}"
+                )
 
 
 class JsonSourceFile(SourceFile):
@@ -366,7 +364,7 @@ def parse_sources(options, files_ignored=None):
         write_hook = None
 
         try:
-            with open(path, "r", encoding="utf-8") as info_file:
+            with open(path, encoding="utf-8") as info_file:
                 metadata = json.load(info_file)
                 if "primary_key" in metadata:
                     primary_key = metadata["primary_key"]
@@ -392,7 +390,7 @@ def parse_sources(options, files_ignored=None):
         raise RuntimeError(
             "Error: Both --directory and --file cannot be specified together"
         )
-    elif options.get("file"):
+    if options.get("file"):
         logger.info("Importing single file: %s", options["file"])
         db, table = options["import_table"].split(".", 1)
         path, ext = os.path.splitext(options["file"])
@@ -918,7 +916,7 @@ def cmd_import(
             try:
                 return query.run(conn)
             except Exception as e:
-                raise RuntimeError(f"Error in {description}: {e}")
+                raise RuntimeError(f"Error in {description}: {e}") from e
 
         # Parse sources
         options = {

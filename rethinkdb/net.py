@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import socket
 import ssl
 import struct
 import time
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Union
 from urllib.parse import parse_qs, urlparse
 
 from rethinkdb.ast import DB, RqlQuery, expr
@@ -55,9 +55,9 @@ from rethinkdb.ql2_pb2 import Response as PbResponse
 from rethinkdb.repl import Repl
 
 __all__ = [
+    "DEFAULT_PORT",
     "Connection",
     "Cursor",
-    "DEFAULT_PORT",
     "DefaultConnection",
     "make_connection",
 ]
@@ -102,8 +102,8 @@ class Query:  # pylint: disable=too-few-public-methods
         self,
         query_type: int,
         token: int,
-        term_type: Optional[RqlQuery],
-        kwargs: Optional[Dict[str, Any]] = None,
+        term_type: RqlQuery | None,
+        kwargs: dict[str, Any] | None = None,
     ):
         self.query_type = query_type
         self.token = token
@@ -118,7 +118,7 @@ class Query:  # pylint: disable=too-few-public-methods
         Serialize Query using the Reql encoder.
         """
 
-        message: List[Union[PbQuery.QueryType, RqlQuery, int]] = [self.query_type]
+        message: list[PbQuery.QueryType | RqlQuery | int] = [self.query_type]
 
         if self.term_type is not None:
             message.append(self.term_type)
@@ -148,9 +148,9 @@ class Response:  # pylint: disable=too-few-public-methods
         self.token: int = token
         self.response_type: int = response["t"]
         self.data: list = response["r"]
-        self.backtrace: Optional[List[int]] = response.get("b", None)
+        self.backtrace: list[int] | None = response.get("b", None)
         self.profile = response.get("p", None)
-        self.error_type: Optional[int] = response.get("e", None)
+        self.error_type: int | None = response.get("e", None)
 
     def make_error(self, query: Query) -> ReqlError:
         """
@@ -191,37 +191,35 @@ class Response:  # pylint: disable=too-few-public-methods
 
 
 class Cursor:
-    """
-    This class encapsulates all shared behavior between cursor implementations.
-    It provides iteration over the cursor using `iter`, as well as incremental
-    iteration using `next`.
-        query - the original query that resulted in the cursor, used for:
-        query.term_type - the term to be used for pretty-printing backtraces
-        query.token - the token to use for subsequent CONTINUE and STOP requests
-        query.kwargs - dictate how to format results
-    items - The current list of items obtained from the server, this is
-        added to in `_extend`, which is called by the ConnectionInstance when a
-        new response arrives for this cursor.
-    outstanding_requests - The number of requests that are currently awaiting
-        a response from the server.  This will typically be 0 or 1 unless the
-        cursor is exhausted, but this can be higher if `close` is called.
-    threshold - a CONTINUE request will be sent when the length of `items` goes
-        below this number.
-    error - indicates the current state of the cursor:
-        None - there is more data available from the server and no errors have
-            occurred yet
-         Exception - an error has occurred in the cursor and should be raised
-             to the user once all results in `items` have been returned.  This
-             will be a ReqlCursorEmpty exception if the cursor completed successfully.
-             TODO @gabor-boros: We should not set the `errors` to ReqlCursorEmpty, due
-             to it is not an error but a success state.
+    """Shared behavior for every cursor implementation.
 
-     A class that derives from this should implement the following functions:
-         def _get_next(self, timeout):
-             where `timeout` is the maximum amount of time (in seconds) to wait for the
-             next result in the cursor before raising a ReqlTimeoutError.
-         def _empty_error(self):
-             which returns the appropriate error to be raised when the cursor is empty
+    Callers iterate with ``iter`` or advance one result at a time with ``next``.
+
+    * ``query`` is the original query that produced this cursor.
+
+      * ``query.term_type`` is the term used when pretty-printing backtraces.
+      * ``query.token`` is the token for later CONTINUE and STOP requests.
+      * ``query.kwargs`` controls how results are formatted.
+    * ``items`` holds items already received from the server.
+      ``ConnectionInstance`` appends to this list in ``_extend`` when a new
+      response arrives.
+    * ``outstanding_requests`` counts requests still waiting for a response.
+      This is typically 0 or 1 unless the cursor is exhausted, and it can be
+      higher after ``close`` is called.
+    * ``threshold`` is the ``items`` length below which a CONTINUE request is
+      sent.
+    * ``error`` is the current cursor state.
+
+      * ``None`` means the server has more data and no error has occurred.
+      * An exception is raised after the remaining ``items`` are returned.
+        A cursor that finished successfully stores ``ReqlCursorEmpty``.
+        That value marks success, so it should not be treated as an error.
+
+    Subclasses implement:
+
+    * ``_get_next(self, timeout)`` waits up to ``timeout`` seconds for the
+      next result and raises ``ReqlTimeoutError`` if it does not arrive.
+    * ``_empty_error(self)`` returns the error raised when the cursor is empty.
     """
 
     def __init__(
@@ -231,12 +229,12 @@ class Cursor:
         first_response: Response,
         items_type: type = collections.deque,
     ):
-        self.conn: "ConnectionInstance" = conn_instance
+        self.conn: ConnectionInstance = conn_instance
         self.query = query
         self.items = items_type()
         self.outstanding_requests = 0
         self.threshold = 1
-        self.error: Optional[Union[ReqlError, Type[ReqlCursorEmpty]]] = None
+        self.error: ReqlError | type[ReqlCursorEmpty] | None = None
         self._json_decoder = self.conn.parent.get_json_decoder(self.query)
 
         self.conn.cursor_cache[self.query.token] = self
@@ -251,13 +249,13 @@ class Cursor:
         self.close()
 
     @staticmethod
-    def _empty_error() -> Type[ReqlCursorEmpty]:
+    def _empty_error() -> type[ReqlCursorEmpty]:
         """
         Return the empty cursor exception's class.
         """
         return ReqlCursorEmpty
 
-    def _get_next(self, timeout: Optional[float] = None):
+    def _get_next(self, timeout: float | None = None):
         """
         Return the next item through the cursor.
 
@@ -280,7 +278,7 @@ class Cursor:
         self.conn.parent.stop(self)
 
     @staticmethod
-    def _wait_to_timeout(wait) -> Optional[float]:
+    def _wait_to_timeout(wait) -> float | None:
         if isinstance(wait, bool):
             return None if wait else 0.0
 
@@ -399,7 +397,7 @@ class DefaultCursor(Cursor):
     def _empty_error():
         return DefaultCursorEmpty
 
-    def _get_next(self, timeout: Optional[float] = None):
+    def _get_next(self, timeout: float | None = None):
         deadline = None if timeout is None else time.time() + timeout
 
         while len(self.items) == 0:
@@ -424,8 +422,8 @@ class SocketWrapper:
         self.host: str = parent.parent.host
         self.port: int = parent.parent.port
         self.ssl: dict = parent.parent.ssl
-        self._read_buffer: Optional[bytes] = None
-        self.__socket: Optional[Union[socket.socket, ssl.SSLSocket]] = None
+        self._read_buffer: bytes | None = None
+        self.__socket: socket.socket | ssl.SSLSocket | None = None
 
         deadline: float = time.time() + timeout
 
@@ -438,7 +436,6 @@ class SocketWrapper:
 
             if len(self.ssl) > 0:
                 try:
-
                     ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
                     ssl_context.check_hostname = True
                     ssl_context.verify_mode = ssl.CERT_REQUIRED
@@ -448,7 +445,7 @@ class SocketWrapper:
                         self.socket = ssl_context.wrap_socket(
                             self.__socket, server_hostname=self.host
                         )
-                except IOError as err:
+                except OSError as err:
                     if self.__socket is not None:
                         self.__socket.close()
 
@@ -500,7 +497,7 @@ class SocketWrapper:
                 .replace("sending to", "during handshake with")
             )
             raise ReqlDriverError(error) from exc
-        except socket.timeout as exc:
+        except TimeoutError as exc:
             self.close()
             raise ReqlTimeoutError(self.host, self.port) from exc
         except Exception as exc:
@@ -510,14 +507,14 @@ class SocketWrapper:
             ) from exc
 
     @property
-    def socket(self) -> "Optional[Union[socket.socket, ssl.SSLSocket]]":
+    def socket(self) -> "socket.socket | ssl.SSLSocket | None":
         """
         Return the wrapped socket.
         """
         return self.__socket
 
     @socket.setter
-    def socket(self, value: "Optional[Union[socket.socket, ssl.SSLSocket]]"):
+    def socket(self, value: "socket.socket | ssl.SSLSocket | None"):
         """
         Set the socket instance.
         """
@@ -547,12 +544,12 @@ class SocketWrapper:
         finally:
             self.socket = None
 
-    def recvall(self, length: int, deadline: Optional[float]):
+    def recvall(self, length: int, deadline: float | None):
         """
         Read data received through the socket.
         """
-        res: bytes = bytes() if self._read_buffer is None else self._read_buffer
-        timeout: Optional[float] = (
+        res: bytes = b"" if self._read_buffer is None else self._read_buffer
+        timeout: float | None = (
             None if deadline is None else max(0.0, deadline - time.time())
         )
         if self.__socket is not None:
@@ -565,12 +562,12 @@ class SocketWrapper:
                     chunk = self.__socket.recv(length - len(res))
                     self.__socket.settimeout(None)
                     break
-                except socket.timeout as exc:
+                except TimeoutError as exc:
                     self._read_buffer = res
                     if self.__socket is not None:
                         self.__socket.settimeout(None)
                     raise ReqlTimeoutError(self.host, self.port) from exc
-                except IOError as exc:
+                except OSError as exc:
                     if exc.errno == errno.ECONNRESET:
                         self.close()
                         raise ReqlDriverError("Connection is closed.") from exc
@@ -606,7 +603,7 @@ class SocketWrapper:
                 if self.__socket is None:
                     raise ReqlDriverError("Socket is None")
                 offset += self.__socket.send(data[offset:])
-            except IOError as exc:
+            except OSError as exc:
                 if exc.errno == errno.ECONNRESET:
                     self.close()
                     raise ReqlDriverError("Connection is closed.") from exc
@@ -633,10 +630,10 @@ class ConnectionInstance:
     """
 
     def __init__(self, parent: "Connection"):
-        self.__parent: "Connection" = parent
+        self.__parent: Connection = parent
         self.__cursor_cache: dict = {}
-        self._header_in_progress: Optional[bytes] = None
-        self.__socket: Optional[SocketWrapper] = None
+        self._header_in_progress: bytes | None = None
+        self.__socket: SocketWrapper | None = None
         self._closing: bool = False
 
     @property
@@ -647,20 +644,20 @@ class ConnectionInstance:
         return self.__parent
 
     @property
-    def socket(self) -> Optional[SocketWrapper]:
+    def socket(self) -> SocketWrapper | None:
         """
         Return the socket wrapper.
         """
         return self.__socket
 
     @socket.setter
-    def socket(self, wrapper: Optional[SocketWrapper]) -> None:
+    def socket(self, wrapper: SocketWrapper | None) -> None:
         """
         Set the socket wrapper.
         """
         self.__socket = wrapper
 
-    def client_port(self) -> Optional[int]:
+    def client_port(self) -> int | None:
         """
         Return the port on which the connection instance is connected to the server.
         """
@@ -677,7 +674,7 @@ class ConnectionInstance:
             return socket_obj.getsockname()[1]
         return None
 
-    def client_address(self) -> Optional[str]:
+    def client_address(self) -> str | None:
         """
         Return the address on which the connection instance is connected to the server.
         """
@@ -727,8 +724,7 @@ class ConnectionInstance:
             if noreply_wait:
                 query = Query(
                     PbQuery.QueryType.NOREPLY_WAIT,
-                    token
-                    or self.parent._new_token(),  # pylint: disable=protected-access
+                    token or self.parent._new_token(),  # pylint: disable=protected-access
                     None,
                     None,
                 )
@@ -759,7 +755,7 @@ class ConnectionInstance:
         if response is None:
             raise AssertionError("Response unexpectedly returned none.")
 
-        response_type = getattr(response, "response_type")
+        response_type = response.response_type
 
         if response_type == PbResponse.ResponseType.SUCCESS_ATOM:
             return maybe_profile(response.data[0], response)
@@ -778,7 +774,7 @@ class ConnectionInstance:
 
         raise response.make_error(query)
 
-    def read_response(self, query, deadline=None) -> Optional[Response]:
+    def read_response(self, query, deadline=None) -> Response | None:
         """
         Read response sent by the server.
         """
@@ -809,7 +805,7 @@ class ConnectionInstance:
 
             res = None
 
-            cursor: Optional[Cursor] = self.cursor_cache.get(res_token)
+            cursor: Cursor | None = self.cursor_cache.get(res_token)
             if cursor is not None:
                 # Construct response
                 cursor.extend(res_buf)
@@ -851,13 +847,13 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self,
         conn_type,
         host: str,
-        port: Union[int, str],
+        port: int | str,
         db: str,
         user: str,
         password: str = "",
         timeout: int = 0,
-        ssl: Optional[dict] = None,  # pylint: disable=redefined-outer-name
-        _handshake_version: Type[BaseHandshake] = HandshakeV1_0,
+        ssl: dict | None = None,  # pylint: disable=redefined-outer-name
+        _handshake_version: type[BaseHandshake] = HandshakeV1_0,
         **kwargs,
     ):
         if ssl is None:
@@ -879,7 +875,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         self._conn_type = conn_type
         self._child_kwargs: dict = kwargs
-        self._instance: Optional[ConnectionInstance] = None
+        self._instance: ConnectionInstance | None = None
         self._next_token: int = 0
         self._repl: Repl = Repl()
 
@@ -902,7 +898,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
             json_decoder=self._json_decoder,
         )
 
-    def client_port(self) -> Optional[int]:
+    def client_port(self) -> int | None:
         """
         Return the port on which the connection instance is connected to the server.
         """
@@ -914,7 +910,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         return self._instance.client_port()
 
-    def client_address(self) -> Optional[str]:
+    def client_address(self) -> str | None:
         """
         Return the address on which the connection instance is connected to the server.
         """
@@ -926,7 +922,7 @@ class Connection:  # pylint: disable=too-many-instance-attributes
 
         return self._instance.client_address()
 
-    def reconnect(self, noreply_wait: bool = True, timeout: Optional[int] = None):
+    def reconnect(self, noreply_wait: bool = True, timeout: int | None = None):
         """
         Reconnect to the server.
         """

@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from rethinkdb import ast, r
 
 
 @pytest.mark.unit
-class TestNow(object):
+class TestNow:
     def setup_method(self):
         pass
 

@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ __all__ = [
 ]
 
 
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from rethinkdb.ast import RqlQuery
@@ -54,9 +54,9 @@ class QueryPrinter:
     Helper class to print Query failures in a formatted was using carets.
     """
 
-    def __init__(self, root: "RqlQuery", frames: Optional[List[int]] = None) -> None:
+    def __init__(self, root: "RqlQuery", frames: list[int] | None = None) -> None:
         self.root = root
-        self.frames: List[int] = frames or []
+        self.frames: list[int] = frames or []
 
     def print_query(self) -> str:
         """
@@ -72,23 +72,23 @@ class QueryPrinter:
 
         return "".join(self.__compose_carets(self.root, self.frames))
 
-    def __compose_term(self, term: "RqlQuery") -> List[str]:
+    def __compose_term(self, term: "RqlQuery") -> list[str]:
         """
         Recursively compose the query term.
         """
 
-        args: List[list] = [
+        args: list[list] = [
             self.__compose_term(arg)
             for arg in term._args  # pylint: disable=protected-access
         ]
 
-        kwargs: Dict[Union[str, int], List[str]] = {
+        kwargs: dict[str | int, list[str]] = {
             k: self.__compose_term(v) for k, v in term.kwargs.items()
         }
 
         return term.compose(args, kwargs)
 
-    def __compose_carets(self, term: "RqlQuery", frames: List[int]) -> List[str]:
+    def __compose_carets(self, term: "RqlQuery", frames: list[int]) -> list[str]:
         """
         Generate the carets for the query term which caused the error.
         """
@@ -100,7 +100,7 @@ class QueryPrinter:
 
         current_frame: int = frames.pop(0)
 
-        args: List[List[str]] = [
+        args: list[list[str]] = [
             (
                 self.__compose_carets(arg, frames)
                 if current_frame == i
@@ -109,7 +109,7 @@ class QueryPrinter:
             for i, arg in enumerate(term._args)  # pylint: disable=protected-access
         ]
 
-        kwargs: Dict[Union[str, int], List[str]] = {}
+        kwargs: dict[str | int, list[str]] = {}
         for key, value in term.kwargs.items():
             if current_frame == key:
                 kwargs[key] = self.__compose_carets(value, frames)
@@ -129,14 +129,14 @@ class ReqlError(Exception):
         self,
         message: str,
         term: Optional["RqlQuery"] = None,
-        frames: Optional[List[int]] = None,
+        frames: list[int] | None = None,
     ) -> None:
         super().__init__(message)
 
         self.message: str = message
         self.term = term
-        self.frames: Optional[List[int]] = frames
-        self.__query_printer: Optional[QueryPrinter] = None
+        self.frames: list[int] | None = frames
+        self.__query_printer: QueryPrinter | None = None
 
         if self.term is not None and self.frames is not None:
             self.__query_printer = QueryPrinter(self.term, self.frames)
@@ -160,7 +160,7 @@ class ReqlError(Exception):
         Return the representation of the error class.
         """
 
-        return f"<{self.__class__.__name__} instance: {str(self)} >"
+        return f"<{self.__class__.__name__} instance: {self!s} >"
 
 
 class ReqlDriverError(ReqlError):
@@ -182,9 +182,7 @@ class ReqlAuthError(ReqlDriverError):
     server.
     """
 
-    def __init__(
-        self, message: str, host: Optional[str] = None, port: Optional[int] = None
-    ):
+    def __init__(self, message: str, host: str | None = None, port: int | None = None):
         if host and port:
             message = f"Could not connect to {host}:{port}, {message}"
         elif host and port is None:
@@ -281,7 +279,7 @@ class ReqlTimeoutError(ReqlDriverError, TimeoutError):
     Exception indicates that the request towards the server is timed out.
     """
 
-    def __init__(self, host: Optional[str] = None, port: Optional[int] = None):
+    def __init__(self, host: str | None = None, port: int | None = None):
         message = "Operation timed out."
 
         if host and port:

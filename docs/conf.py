@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # rethinkdb documentation build configuration file, created by
 # sphinx-quickstart on Fri Jun  9 13:47:02 2017.
@@ -19,8 +17,11 @@
 # absolute, like shown here.
 
 import os
+import re
 import sys
 from datetime import date
+
+from sphinx.application import Sphinx
 
 sys.path.insert(0, os.path.abspath(".."))
 
@@ -33,16 +34,18 @@ sys.path.insert(0, os.path.abspath(".."))
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "sphinx_rtd_theme"]
+extensions = [
+    "myst_parser",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.viewcode",
+    "sphinx_rtd_theme",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
-# You can specify multiple suffix as a list of string:
-#
-# source_suffix = ['.rst', '.md']
-source_suffix = ".rst"
+source_suffix = {".rst": "restructuredtext"}
 
 # The master toctree document.
 master_doc = "index"
@@ -66,7 +69,7 @@ release = "latest"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -92,12 +95,6 @@ html_theme = "sphinx_rtd_theme"
 # documentation.
 #
 # html_theme_options = {}
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
-
 
 # -- Options for HTMLHelp output ---------------------------------------
 
@@ -153,3 +150,36 @@ texinfo_documents = [
         "Miscellaneous",
     )
 ]
+
+# Annotations outside the driver modules say ``Connection``. Each driver also
+# documents its own class of that name, so the short name matches all of them.
+_CONNECTION_TYPE = re.compile(r"(?<![\w.])Connection\b")
+
+
+def _qualify_connection_annotations(
+    _app: Sphinx,
+    _obj_type: str,
+    full_name: str,
+    _obj: object,
+    _options: object,
+    args: str | None,
+    retann: str | None,
+) -> tuple[str | None, str | None] | None:
+    """Link unqualified Connection annotations to rethinkdb.net.Connection."""
+    if not full_name.startswith(("rethinkdb.ast.", "rethinkdb.repl.")):
+        return None
+
+    def qualify(text: str | None) -> str | None:
+        if not text:
+            return text
+        return _CONNECTION_TYPE.sub("~rethinkdb.net.Connection", text)
+
+    qualified_args = qualify(args)
+    qualified_retann = qualify(retann)
+    if qualified_args == args and qualified_retann == retann:
+        return None
+    return qualified_args, qualified_retann
+
+
+def setup(app: Sphinx) -> None:
+    app.connect("autodoc-process-signature", _qualify_connection_annotations)

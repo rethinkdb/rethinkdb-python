@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ def translate_timeout_errors():
     """Translate asyncio.TimeoutError to ReqlTimeoutError."""
     try:
         yield
-    except asyncio.TimeoutError as exc:
+    except TimeoutError as exc:
         raise ReqlTimeoutError() from exc
 
 
@@ -121,9 +121,7 @@ class AsyncioCursor(Cursor):
     async def fetch_next(self, wait=True):
         """Fetch the next item from the cursor."""
         timeout = Cursor._wait_to_timeout(wait)
-        waiter = reusable_waiter(
-            self.conn.io_loop, timeout
-        )  # pylint: disable=protected-access
+        waiter = reusable_waiter(self.conn.io_loop, timeout)  # pylint: disable=protected-access
         while len(self.items) == 0 and self.error is None:
             self._maybe_fetch_batch()
             if self.error is not None:
@@ -143,9 +141,7 @@ class AsyncioCursor(Cursor):
     async def _get_next(  # pylint: disable=invalid-overridden-method,signature-differs
         self, timeout
     ):
-        waiter = reusable_waiter(
-            self.conn.io_loop, timeout
-        )  # pylint: disable=protected-access
+        waiter = reusable_waiter(self.conn.io_loop, timeout)  # pylint: disable=protected-access
         while len(self.items) == 0:
             self._maybe_fetch_batch()
             if self.error is not None:
@@ -161,7 +157,8 @@ class AsyncioCursor(Cursor):
             and self.outstanding_requests == 0
         ):
             self.outstanding_requests += 1
-            asyncio.ensure_future(
+            # Keep a reference so the task is not garbage-collected before it runs.
+            self._fetch_batch_task = asyncio.ensure_future(
                 self.conn.parent._continue(self),  # pylint: disable=protected-access
                 loop=self.conn.io_loop,
             )
@@ -298,14 +295,12 @@ class ConnectionInstance:
         if self._reader_task and exception is None:
             await self._reader_task
 
-        return None
+        return
 
     async def run_query(self, query, noreply):
         """Run a query on the connection."""
         self._streamwriter.write(
-            query.serialize(
-                self._parent.get_json_encoder(query)
-            )  # pylint: disable=protected-access
+            query.serialize(self._parent.get_json_encoder(query))  # pylint: disable=protected-access
         )
         if noreply:
             return None
@@ -340,9 +335,7 @@ class ConnectionInstance:
                     res = Response(
                         token,
                         buf,
-                        self._parent.get_json_decoder(
-                            query
-                        ),  # pylint: disable=protected-access
+                        self._parent.get_json_decoder(query),  # pylint: disable=protected-access
                     )
                     if res.response_type == PbResponse.ResponseType.SUCCESS_ATOM:
                         future.set_result(maybe_profile(res.data[0], res))
@@ -387,9 +380,7 @@ class Connection(ConnectionBase):
     async def _stop(self, cursor):
         self.check_open()
         q = Query(PbQuery.QueryType.STOP, cursor.query.token, None, None)
-        return await self._instance.run_query(
-            q, True
-        )  # pylint: disable=protected-access
+        return await self._instance.run_query(q, True)  # pylint: disable=protected-access
 
     async def reconnect(  # pylint: disable=invalid-overridden-method
         self, noreply_wait=True, timeout=None
@@ -398,13 +389,12 @@ class Connection(ConnectionBase):
         # and then fail to return the Future (this is a little awkward).
         await self.close(noreply_wait)
         self._instance = self._conn_type(  # pylint: disable=protected-access
-            self, **self._child_kwargs  # pylint: disable=protected-access
+            self,
+            **self._child_kwargs,  # pylint: disable=protected-access
         )
         return await self._instance.connect(timeout)  # pylint: disable=protected-access
 
-    async def close(
-        self, noreply_wait=True
-    ):  # pylint: disable=invalid-overridden-method
+    async def close(self, noreply_wait=True):  # pylint: disable=invalid-overridden-method
         if self.is_open() is False:
             return
 

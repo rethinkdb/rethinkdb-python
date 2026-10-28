@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ def conn_params() -> dict:
         "port": 1234,
         "timeout": 20,
         "user": "myuser",
-        "ssl": dict(),
+        "ssl": {},
     }
 
 

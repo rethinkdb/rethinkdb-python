@@ -1,4 +1,4 @@
-# Copyright 2016-2025 RethinkDB
+# Copyright 2016-2026 RethinkDB
 #
 # Licensed under the Apache License, Version 2.0 (the 'License');
 # you may not use this file except in compliance with the License.
@@ -826,9 +826,7 @@ def test_literal(conn):
     drop_table("test", "literal", conn)
 
     assert result == expected, (
-        f'Failed scenario: "literal update"\n'
-        f"\t  wanted: \n{expected}"
-        f"\t  got: {result}"
+        f'Failed scenario: "literal update"\n\t  wanted: \n{expected}\t  got: {result}'
     )
 
 
@@ -1034,7 +1032,7 @@ def test_random(conn):
     # This test is not accurate. The sole purpose is to validate the server is
     # returning a random number that we can parse. We run the tests in a loop
     # to have some chance to catch issues.
-    for _ in range(0, 99):
+    for _ in range(99):
         assert 0 <= query.random().run(conn) < 1
         assert 0 <= query.random(100).run(conn) < 100
         assert 0 <= query.random(0, 100).run(conn) < 100
