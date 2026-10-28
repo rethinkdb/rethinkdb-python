@@ -39,11 +39,11 @@ dependencies = [
   "pyyaml>=6.0.3",
   "ujson>=6",
 ]
-optional-dependencies.all = [ "gevent>=26.9", "tornado>=6.6", "trio>=0.34", "twisted>=26.4" ]
+optional-dependencies.all = [ "gevent>=26.9", "tornado>=6.6", "trio>=0.34", "twisted>=26.10.0rc2" ]
 optional-dependencies.gevent = [ "gevent>=26.9" ]
 optional-dependencies.tornado = [ "tornado>=6.6" ]
 optional-dependencies.trio = [ "trio>=0.34" ]
-optional-dependencies.twisted = [ "twisted>=26.4" ]
+optional-dependencies.twisted = [ "twisted>=26.10.0rc2" ]
 urls."Bug Tracker" = "https://github.com/rethinkdb/rethinkdb-python/issues/"
 urls.Documentation = "https://rethinkdb.com/api/python/"
 urls.Repository = "https://github.com/rethinkdb/rethinkdb-python/"

@@ -1390,8 +1390,8 @@ requires-dist = [
     { name = "tornado", marker = "extra == 'tornado'", specifier = ">=6.6" },
     { name = "trio", marker = "extra == 'all'", specifier = ">=0.34" },
     { name = "trio", marker = "extra == 'trio'", specifier = ">=0.34" },
-    { name = "twisted", marker = "extra == 'all'", specifier = ">=26.4" },
-    { name = "twisted", marker = "extra == 'twisted'", specifier = ">=26.4" },
+    { name = "twisted", marker = "extra == 'all'", specifier = ">=26.10.0rc2" },
+    { name = "twisted", marker = "extra == 'twisted'", specifier = ">=26.10.0rc2" },
     { name = "ujson", specifier = ">=6" },
 ]
 provides-extras = ["all", "gevent", "tornado", "trio", "twisted"]
@@ -1686,7 +1686,7 @@ wheels = [
 
 [[package]]
 name = "twisted"
-version = "26.4.0"
+version = "26.10.0rc2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
@@ -1697,9 +1697,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "zope-interface" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/db/97/6e9beb1e78247ae6dc34114f27d538cf2cb183c4afcd3609dfdf2b0439c8/twisted-26.4.0.tar.gz", hash = "sha256:dbfd0fe1ee409d0243fdd7a6a6ff14f4948cec1fd78e0376291f805e1501fae9", size = 3575095, upload-time = "2026-05-11T11:24:51.861Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c1/84/a6a74d94989028bf0d74f936e1ecf20c841a234b01a6a86126721bf28e0d/twisted-26.10.0rc2.tar.gz", hash = "sha256:1dd1599faddfaa06c2a27caa880ee73913d8157264f5a9f3748de74e0999fc92", size = 3603808, upload-time = "2026-10-27T01:45:43.294Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/57/bcf4e2370dd218c9aa68a9140a65d86729c73f1d529f7e94786c2766fc72/twisted-26.4.0-py3-none-any.whl", hash = "sha256:dc25ea0ebf6511c24f03232ee9f4afa54b291c5d897990e3a39cc4d14a1ef4c0", size = 3230362, upload-time = "2026-05-11T11:24:49.5Z" },
+    { url = "https://files.pythonhosted.org/packages/a5/4e/071a5580ada312d6c35ad7555216162613e4254f7266559da499385da47e/twisted-26.10.0rc2-py3-none-any.whl", hash = "sha256:e3e5ee91341a87cf08813f02eb3be2a69e6f429eafa64de07a1f9b39050b88fd", size = 3251811, upload-time = "2026-10-27T01:45:40.557Z" },
 ]
 
 [[package]]

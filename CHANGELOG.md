@@ -84,6 +84,7 @@ API and behavior changes (including breaking changes) compared to 2.4.x:
 - Circular import issues and import path clean-ups
 - Error propagation and context in async operations
 - Potential memory leaks in connection handling and cursors
+- Twisted extra now requires 26.10.0rc2, which includes fixes for the advisories reported against 26.4.0
 
 ### Removed
 
