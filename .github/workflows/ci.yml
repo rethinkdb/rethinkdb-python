@@ -77,7 +77,7 @@ jobs:
         python-version: ["3.12", "3.13", "3.14", "3.15"]
     services:
       rethinkdb:
-        image: rethinkdb:2.4.4
+        image: rethinkdb:2.4.4-bookworm-slim
         ports:
           - 28015:28015
     steps:
