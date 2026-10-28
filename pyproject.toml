@@ -1,0 +1,190 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [ "hatchling>=1.27" ]
+
+[project]
+name = "rethinkdb"
+version = "2.5.0"
+description = "Python client for RethinkDB."
+readme = "README.rst"
+keywords = [ "client", "database", "rethinkdb" ]
+license = "Apache-2.0"
+license-files = [ "LICENSE" ]
+maintainers = [ { name = "RethinkDB", email = "bugs@rethinkdb.com" } ]
+authors = [ { name = "RethinkDB", email = "bugs@rethinkdb.com" } ]
+requires-python = ">=3.12"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Natural Language :: English",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft",
+  "Operating System :: POSIX",
+  "Operating System :: Unix",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
+  "Topic :: Database",
+  "Topic :: Database :: Front-Ends",
+  "Topic :: Software Development",
+  "Typing :: Typed",
+]
+dependencies = [
+  "click>=8.5",
+  "pydantic>=2.14.1",
+  "pyyaml>=6.0.3",
+  "ujson>=6",
+]
+optional-dependencies.all = [ "gevent>=26.9", "tornado>=6.6", "trio>=0.34", "twisted>=26.10.0rc2" ]
+optional-dependencies.gevent = [ "gevent>=26.9" ]
+optional-dependencies.tornado = [ "tornado>=6.6" ]
+optional-dependencies.trio = [ "trio>=0.34" ]
+optional-dependencies.twisted = [ "twisted>=26.10.0rc2" ]
+urls."Bug Tracker" = "https://github.com/rethinkdb/rethinkdb-python/issues/"
+urls.Documentation = "https://rethinkdb.com/api/python/"
+urls.Repository = "https://github.com/rethinkdb/rethinkdb-python/"
+# RethinkDB aliases these commands to `rethinkdb <command>`, so they can be
+# executed as `rethinkdb dump` or `rethinkdb-dump`.
+scripts.rethinkdb-dump = "rethinkdb.cli._dump:cmd_dump"
+scripts.rethinkdb-export = "rethinkdb.cli._export:cmd_export"
+scripts.rethinkdb-import = "rethinkdb.cli._import:cmd_import"
+scripts.rethinkdb-index-rebuild = "rethinkdb.cli._index_rebuild:cmd_index_rebuild"
+scripts.rethinkdb-repl = "rethinkdb.cli._repl:cmd_repl"
+scripts.rethinkdb-restore = "rethinkdb.cli._restore:cmd_restore"
+
+[dependency-groups]
+dev = [
+  "coverage>=7.17",
+  "hypothesis>=6.170.12",
+  "mypy>=2.4",
+  "myst-parser>=5.1",
+  "pytest>=9.1.1",
+  "pytest-asyncio>=1.4.1",
+  "pytest-trio>=0.8",
+  "pytest-twisted>=1.14.3",
+  "ruff>=0.17.3",
+  "sphinx>=9.1.1",
+  "sphinx-rtd-theme>=3.1",
+]
+
+[tool.hatch]
+build.targets.wheel.packages = [ "rethinkdb" ]
+build.targets.sdist.include = [
+  "/AUTHORS.rst",
+  "/CHANGELOG.md",
+  "/CONTRIBUTING.rst",
+  "/LICENSE",
+  "/README.rst",
+  "/docs",
+  "/rethinkdb",
+  "/scripts",
+  "/tests",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+extend-exclude = [ "rethinkdb/ql2_pb2.py" ]
+lint.select = [
+  "ASYNC",
+  "B",
+  "C4",
+  "E",
+  "EXE",
+  "F",
+  "FURB",
+  "I",
+  "ISC",
+  "PERF",
+  "PIE",
+  "PT",
+  "RET",
+  "RUF",
+  "S",
+  "SIM",
+  "TID",
+  "UP",
+  "W",
+]
+lint.ignore = [
+  "ASYNC109", # timeout parameters are part of the driver API
+  "B007",     # unused loop variables name the ignored value
+  "B008",     # Click and pytest use callables as parameter defaults
+  "B017",     # tests assert broad failures from the server
+  "B905",     # strict zip would change existing iteration
+  "C403",     # set-comprehension rewrites are behavior-neutral noise
+  "C408",     # empty dict() calls are intentional in fixtures
+  "C417",     # map rewrites are behavior-neutral noise
+  "C419",     # comprehension-in-call rewrites are behavior-neutral noise
+  "COM812",   # formatter owns trailing commas
+  "E501",     # formatter owns line length
+  "E721",     # type comparisons distinguish query classes
+  "ISC001",   # formatter owns implicit string concatenation
+  "PERF401",  # manual loops accumulate driver and cursor results
+  "PERF402",  # manual copies preserve cursor iteration
+  "PIE810",   # startswith tuples would be a behavior-neutral rewrite
+  "PT003",    # explicit function scope documents fixture lifetime
+  "PT011",    # tests assert broad server and driver failures
+  "PT018",    # composite assertions document query scenarios
+  "RET504",   # named return values document the result
+  "RUF005",   # collection concatenation is clearer than unpacking here
+  "RUF012",   # mutable class defaults are part of existing models
+  "RUF015",   # next(iter(...)) rewrites are behavior-neutral noise
+  "S101",     # pytest asserts
+  "S110",     # try/except/pass is used for optional driver imports
+  "S202",     # archive extraction is the dump/restore CLI
+  "SIM102",   # nested conditions document protocol branches
+  "SIM103",   # explicit returns document boolean results
+  "SIM105",   # contextlib.suppress would be a behavior-neutral rewrite
+  "SIM108",   # if/else blocks document driver branches
+  "SIM115",   # some file handles stay open for the life of a CLI command
+  "UP031",    # percent formatting is used in existing messages
+]
+lint.per-file-ignores."tests/**" = [ "S105", "S106" ]
+lint.isort.known-first-party = [ "rethinkdb" ]
+
+[tool.mypy]
+plugins = [ "pydantic.mypy" ]
+overrides = [
+  { module = [ "tornado.*", "twisted.*" ], ignore_missing_imports = true },
+  { module = [ "rethinkdb.net_twisted", "rethinkdb.ql2_pb2" ], ignore_errors = true },
+]
+
+[tool.pytest]
+ini_options.python_files = [ "test_*.py" ]
+ini_options.python_classes = [ "*TestCase" ]
+ini_options.python_functions = [ "test_*" ]
+ini_options.markers = [
+  "asyncio: Select only asyncio tests",
+  "gevent: Select only gevent tests",
+  "integration: Select only integration tests",
+  "tornado: Select only Tornado tests",
+  "trio: Select only Trio tests",
+  "twisted: Select only Twisted tests",
+  "unit: Select only unit tests",
+  "v2_5: RethinkDB 2.5+ compatible tests",
+]
+
+[tool.coverage]
+run.source = [ "rethinkdb" ]
+run.omit = [
+  "*/__init__*",
+  "*/tests/*",
+  "rethinkdb/cli/_dump.py",
+  "rethinkdb/cli/_export.py",
+  "rethinkdb/cli/_import.py",
+  "rethinkdb/cli/_index_rebuild.py",
+  "rethinkdb/cli/_repl.py",
+  "rethinkdb/cli/_restore.py",
+  "rethinkdb/cli/main.py",
+  "rethinkdb/cli/utils.py",
+  "rethinkdb/ql2_pb2.py",
+]
+run.branch = true
+report.fail_under = 60
+report.exclude_lines = [ "if __name__ == .__main__.:", "pragma: no cover" ]
+report.sort = "cover"

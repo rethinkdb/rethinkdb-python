@@ -1,8 +1,0 @@
-include LICENSE
-include *.txt
-include Makefile
-include pytest.ini
-include .coveragerc
-recursive-include scripts *.py
-recursive-include scripts *.sh
-recursive-include tests *.py
