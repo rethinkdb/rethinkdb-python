@@ -24,6 +24,7 @@ def cleanup_test_dbs():
     yield
 
     test_dbs = [
+        "test_twisted_between_db",
         "test_twisted_cursor_db",
         "test_twisted_helpers_db",
         "test_twisted_db",
@@ -190,6 +191,56 @@ def test_twisted_cursor_operations(conn):
             yield connection.start(query.db_drop(db_name))
         except Exception:
             pass
+
+    return run_test()
+
+
+@pytest.mark.twisted
+@pytest.mark.integration
+def test_twisted_between_secondary_index(conn):
+    """A secondary-index between query returns every row and the connection closes."""
+
+    @defer.inlineCallbacks
+    def run_test():
+        connection = yield conn
+        assert connection.is_open(), "Connection should be open"
+
+        db_name = "test_twisted_between_db"
+        table_name = "station"
+
+        try:
+            yield connection.start(query.db_drop(db_name))
+        except Exception:
+            pass
+
+        yield connection.start(query.db_create(db_name))
+        yield connection.start(query.db(db_name).table_create(table_name))
+        table = query.db(db_name).table(table_name)
+        docs = [{"id": i, "n": i} for i in range(5)]
+        inserted = yield connection.start(table.insert(docs))
+        assert inserted["inserted"] == 5
+        yield connection.start(table.index_create("n"))
+        yield connection.start(table.index_wait("n"))
+
+        cursor = yield connection.start(
+            table.between(0, 4, index="n", right_bound="closed")
+        )
+        results = []
+        error = None
+        try:
+            while True:
+                has_next = yield cursor.fetch_next()
+                if not has_next:
+                    break
+                item = yield cursor.next()
+                results.append(item)
+        except Exception as exc:
+            error = exc
+
+        assert sorted(row["id"] for row in results) == [0, 1, 2, 3, 4], error
+        yield connection.start(query.db_drop(db_name))
+        yield connection.close()
+        assert connection.is_open() is False
 
     return run_test()
 

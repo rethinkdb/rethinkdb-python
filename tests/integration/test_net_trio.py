@@ -25,6 +25,7 @@ def cleanup_test_dbs():
     yield
 
     test_dbs = [
+        "test_trio_between_db",
         "test_trio_cursor_db",
         "test_trio_helpers_db",
         "test_trio_db",
@@ -174,6 +175,41 @@ async def test_trio_cursor_operations(conn):
         await connection.start(query.db_drop(db_name))
     except Exception:
         pass
+
+
+@pytest.mark.trio
+@pytest.mark.integration
+async def test_trio_between_secondary_index(conn):
+    """A secondary-index between query returns every row and the connection closes."""
+    connection = await conn
+    assert connection.is_open(), "Connection should be open"
+
+    db_name = "test_trio_between_db"
+    table_name = "station"
+
+    try:
+        await connection.start(query.db_drop(db_name))
+    except Exception:
+        pass
+
+    await connection.start(query.db_create(db_name))
+    await connection.start(query.db(db_name).table_create(table_name))
+    table = query.db(db_name).table(table_name)
+    docs = [{"id": i, "n": i} for i in range(5)]
+    inserted = await connection.start(table.insert(docs))
+    assert inserted["inserted"] == 5
+    await connection.start(table.index_create("n"))
+    await connection.start(table.index_wait("n"))
+
+    cursor = await connection.start(
+        table.between(0, 4, index="n", right_bound="closed")
+    )
+    results = [item async for item in cursor]
+    assert sorted(row["id"] for row in results) == [0, 1, 2, 3, 4]
+
+    await connection.start(query.db_drop(db_name))
+    await connection.close()
+    assert connection.is_open() is False
 
 
 @pytest.mark.trio

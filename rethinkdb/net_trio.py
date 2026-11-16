@@ -137,13 +137,13 @@ class TrioCursor(Cursor, trio.abc.AsyncResource):
 
     aclose = close
 
+    def extend(self, res_buf):
+        """Extend the cursor and wake tasks waiting for the next batch."""
+        self._extend(res_buf)
+
     def _extend(self, res_buf):
-        """Override so that we can make this async, and also to wake up blocked
-        tasks."""
-        self.outstanding_requests -= 1
-        self._maybe_fetch_batch()
-        res = Response(self.query.token, res_buf, self._json_decoder)
-        self._extend_internal(res)
+        """Append a response batch and wake tasks waiting for it."""
+        super().extend(res_buf)
         self._new_response.set()
         self._new_response = trio.Event()
 
@@ -179,8 +179,8 @@ class TrioCursor(Cursor, trio.abc.AsyncResource):
         return item
 
     async def _parent_continue(self):
-        # pylint: disable=protected-access
-        return await self.conn._parent._continue(self)
+        """Send a CONTINUE request for this cursor."""
+        return await self.conn.parent.resume(self)
 
     def _maybe_fetch_batch(self):
         if (
@@ -189,8 +189,7 @@ class TrioCursor(Cursor, trio.abc.AsyncResource):
             and self.outstanding_requests == 0
         ):
             self.outstanding_requests += 1
-            # pylint: disable=protected-access
-            self._nursery.start_soon(self.conn._parent._continue, self)
+            self._nursery.start_soon(self._parent_continue)
 
 
 class ConnectionInstance:
@@ -205,6 +204,16 @@ class ConnectionInstance:
         self._cursor_cache = {}
         self._reader_ended_event = None
         self._nursery = nursery
+
+    @property
+    def parent(self):
+        """Return the parent connection."""
+        return self._parent
+
+    @property
+    def cursor_cache(self):
+        """Return the cursor cache."""
+        return self._cursor_cache
 
     def client_port(self):
         if self.is_open():
@@ -319,7 +328,7 @@ class ConnectionInstance:
 
         # Cursors may remove themselves when errored, so copy a list of them
         for cursor in list(self._cursor_cache.values()):
-            cursor._error(err_message)  # pylint: disable=protected-access
+            cursor.raise_error(err_message)
 
         for _, future in self._user_queries.values():
             if not future.done():

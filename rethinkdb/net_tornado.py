@@ -73,10 +73,17 @@ class TornadoCursor(Cursor):
 
     async def __anext__(self):
         """Get the next item from the cursor."""
-        if await self.fetch_next():
-            return await self.next()
-
-        raise StopAsyncIteration
+        try:
+            if not await self.fetch_next():
+                raise StopAsyncIteration
+            # next() returns the buffered row directly. It is only awaitable when
+            # a subclass waits for the next batch inside _get_next.
+            item = self.next()
+            if asyncio.iscoroutine(item) or asyncio.isfuture(item):
+                return await item
+            return item
+        except ReqlCursorEmpty as exc:
+            raise StopAsyncIteration from exc
 
     def extend(self, res_buf):
         Cursor.extend(self, res_buf)
@@ -120,6 +127,19 @@ class TornadoCursor(Cursor):
             )
         return self.items.popleft()
 
+    def _maybe_fetch_batch(self):
+        if (
+            self.error is None
+            and len(self.items) < self.threshold
+            and self.outstanding_requests == 0
+        ):
+            self.outstanding_requests += 1
+            # resume() is a coroutine; the IOLoop must run it so CONTINUE is sent.
+            self.conn._io_loop.spawn_callback(  # pylint: disable=protected-access
+                self.conn.parent.resume,
+                self,
+            )
+
 
 class ConnectionInstance:
     """
@@ -136,6 +156,16 @@ class ConnectionInstance:
         self._stream: iostream.IOStream | None = None
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
         self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+    @property
+    def parent(self) -> "Connection":
+        """Return the parent connection."""
+        return self._parent
+
+    @property
+    def cursor_cache(self) -> dict[int, TornadoCursor]:
+        """Return the cursor cache."""
+        return self._cursor_cache
 
     def client_port(self) -> int | None:
         """
