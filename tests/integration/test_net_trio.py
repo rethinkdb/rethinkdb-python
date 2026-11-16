@@ -1,8 +1,26 @@
+# Copyright 2016-2026 RethinkDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
+import socket
+import threading
 
 import pytest
+import trio
 
 from rethinkdb import net, net_trio, query
+from rethinkdb.errors import ReqlRuntimeError
 from tests.helpers import Scenario
 
 
@@ -30,6 +48,7 @@ def cleanup_test_dbs():
         "test_trio_cursor_db",
         "test_trio_helpers_db",
         "test_trio_db",
+        "test_trio_feed_drop_db",
         "test_trio_queries_db",
     ]
 
@@ -350,5 +369,148 @@ async def test_trio_cursor_context_manager(conn):
     finally:
         try:
             await connection.start(query.db_drop(db_name))
+        except Exception:
+            pass
+
+
+class _FinProxy:
+    """Forward one TCP connection, then half-close the client side."""
+
+    def __init__(self, upstream_host: str, upstream_port: int) -> None:
+        self._upstream_host = upstream_host
+        self._upstream_port = upstream_port
+        self._ready = threading.Event()
+        self._stop_pump = threading.Event()
+        self._server: socket.socket | None = None
+        self._client: socket.socket | None = None
+        self._upstream: socket.socket | None = None
+        self.port = 0
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def start(self) -> int:
+        """Listen, and return the local port once it is accepting."""
+        self._thread.start()
+        assert self._ready.wait(5)
+        return self.port
+
+    def fin(self) -> None:
+        """Stop forwarding and send a FIN to the driver, leaving the socket open."""
+        self._stop_pump.set()
+        if self._client is None:
+            return
+        try:
+            self._client.shutdown(socket.SHUT_WR)
+        except OSError:
+            pass
+
+    def close(self) -> None:
+        """Close the proxy sockets."""
+        self._stop_pump.set()
+        for sock in (self._client, self._upstream, self._server):
+            if sock is None:
+                continue
+            try:
+                sock.close()
+            except OSError:
+                pass
+
+    def _run(self) -> None:
+        server = socket.socket()
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        self._server = server
+        self.port = server.getsockname()[1]
+        self._ready.set()
+        client, _addr = server.accept()
+        self._client = client
+        upstream = socket.create_connection((self._upstream_host, self._upstream_port))
+        self._upstream = upstream
+
+        def pump(src: socket.socket, dst: socket.socket) -> None:
+            try:
+                while not self._stop_pump.is_set():
+                    src.settimeout(0.2)
+                    try:
+                        data = src.recv(65536)
+                    except TimeoutError:
+                        continue
+                    if not data:
+                        break
+                    dst.sendall(data)
+            except OSError:
+                return
+
+        threading.Thread(target=pump, args=(client, upstream), daemon=True).start()
+        threading.Thread(target=pump, args=(upstream, client), daemon=True).start()
+        self._stop_pump.wait()
+
+
+def _sync_run(host: str, port: int, term: object) -> None:
+    connection = net.make_connection(net.DefaultConnection, host=host, port=port)
+    try:
+        term.run(connection)  # type: ignore[attr-defined]
+    finally:
+        connection.close()
+
+
+@pytest.mark.trio
+@pytest.mark.integration
+async def test_trio_changefeed_peer_fin_raises(nursery):
+    """A clean TCP close while waiting for changes raises and the context exits."""
+    host = os.getenv("RDB_TEST_HOST", "localhost")
+    port = int(os.getenv("RDB_TEST_PORT", 28015))
+    db_name = "test_trio_feed_drop_db"
+    table_name = "feed"
+    try:
+        _sync_run(host, port, query.db_drop(db_name))
+    except Exception:
+        pass
+    _sync_run(host, port, query.db_create(db_name))
+    proxy = None
+    try:
+        _sync_run(host, port, query.db(db_name).table_create(table_name))
+        proxy = _FinProxy(host, port)
+        proxy_port = proxy.start()
+
+        def insert_row() -> None:
+            _sync_run(
+                host,
+                port,
+                query.db(db_name).table(table_name).insert({"n": 1}),
+            )
+
+        with trio.fail_after(8):
+            connection = await net.make_connection(
+                net_trio.Connection,
+                host="127.0.0.1",
+                port=proxy_port,
+                db=db_name,
+                nursery=nursery,
+            )
+
+            async def watch_feed() -> None:
+                async with connection:
+                    cursor = (
+                        await query.db(db_name)
+                        .table(table_name)
+                        .changes()
+                        .run(connection)
+                    )
+                    threading.Thread(target=insert_row, daemon=True).start()
+                    saw_change = False
+                    async for _change in cursor:
+                        assert saw_change is False
+                        saw_change = True
+                        proxy.fin()
+
+            with pytest.raises(ReqlRuntimeError, match="Connection is closed"):
+                await watch_feed()
+            assert connection.is_open() is False
+    finally:
+        if proxy is not None:
+            proxy.close()
+        try:
+            _sync_run(host, port, query.db_drop(db_name))
         except Exception:
             pass
