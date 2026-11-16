@@ -15,7 +15,9 @@
 import pytest
 import trio
 
+from rethinkdb.encoder import ReqlEncoder
 from rethinkdb.errors import ReqlDriverError
+from rethinkdb.net import Query
 from rethinkdb.net_trio import ConnectionInstance, TrioCursor
 
 
@@ -145,3 +147,73 @@ async def test_parent_continue_swallows_closed_connection() -> None:
     cursor.conn = _CursorConn()  # type: ignore[assignment]
 
     assert await cursor._parent_continue() is None  # pylint: disable=protected-access
+
+
+class _QueryParent:
+    """Parent connection that encodes queries with the stock encoder."""
+
+    def get_json_encoder(self, query: object) -> ReqlEncoder:
+        del query
+        return ReqlEncoder()
+
+
+class _RecordingStream:
+    """Stream that reports whether the response waiter exists during ``send_all``."""
+
+    def __init__(self, instance: ConnectionInstance, token: int, *, fail: bool) -> None:
+        self.instance = instance
+        self.token = token
+        self.fail = fail
+        self.saw_token = False
+
+    async def send_all(self, data: bytes) -> None:
+        del data
+        # pylint: disable=protected-access
+        self.saw_token = self.token in self.instance._user_queries
+        if self.fail:
+            raise trio.BrokenResourceError("reset")
+        if self.saw_token:
+            _, future = self.instance._user_queries[self.token]
+            future.set_result("ok")
+
+
+def _query_instance(
+    token: int, *, fail: bool = False
+) -> tuple[ConnectionInstance, _RecordingStream]:
+    instance = ConnectionInstance(_QueryParent())
+    stream = _RecordingStream(instance, token, fail=fail)
+    instance._stream = stream  # pylint: disable=protected-access
+    return instance, stream
+
+
+@pytest.mark.trio
+@pytest.mark.unit
+async def test_run_query_registers_before_send() -> None:
+    """The response waiter exists before ``send_all`` yields to the reader."""
+    instance, stream = _query_instance(9)
+
+    assert await instance.run_query(Query(1, 9, None), noreply=False) == "ok"
+    assert stream.saw_token is True
+
+
+@pytest.mark.trio
+@pytest.mark.unit
+async def test_noreply_query_sends_without_a_waiter() -> None:
+    """A noreply write does not occupy the response table."""
+    instance, stream = _query_instance(9)
+
+    assert await instance.run_query(Query(1, 9, None), noreply=True) is None
+    assert stream.saw_token is False
+
+
+@pytest.mark.trio
+@pytest.mark.unit
+async def test_send_failure_drops_pending_waiter() -> None:
+    """A failed send removes the waiter the caller will not await."""
+    instance, stream = _query_instance(9, fail=True)
+
+    with pytest.raises(ReqlDriverError, match="Connection is closed"):
+        await instance.run_query(Query(1, 9, None), noreply=False)
+
+    assert stream.saw_token is True
+    assert 9 not in instance._user_queries  # pylint: disable=protected-access
