@@ -42,21 +42,6 @@ from rethinkdb.ql2_pb2 import Response as PbResponse
 __all__ = ["Connection"]
 
 
-async def _read_until(streamreader, delimiter):
-    """Naive implementation of reading until a delimiter"""
-    buffer = bytearray()
-
-    while True:
-        chunk = await streamreader.read(1)
-        if not chunk:
-            break  # EOF
-        buffer.append(chunk[0])
-        if chunk == delimiter:
-            break
-
-    return bytes(buffer)
-
-
 def reusable_waiter(loop, timeout):
     """Wait for something, with a timeout from when the waiter was created.
 
@@ -173,9 +158,8 @@ class AsyncioCursor(Cursor, AsyncContextManager):
         ):
             self.outstanding_requests += 1
             # Keep a reference so the task is not garbage-collected before it runs.
-            self._fetch_batch_task = asyncio.ensure_future(
-                self.conn.parent.resume(self),
-                loop=self.conn.io_loop,
+            self._fetch_batch_task = self.conn.io_loop.create_task(
+                self.conn.parent.resume(self)
             )
 
 
@@ -192,9 +176,7 @@ class ConnectionInstance:
         self._user_queries = {}
         self._cursor_cache = {}
         self._ready = asyncio.Future()
-        self._io_loop = io_loop
-        if self._io_loop is None:
-            self._io_loop = asyncio.get_event_loop()
+        self._io_loop = io_loop if io_loop is not None else asyncio.get_running_loop()
 
     @property
     def parent(self):
@@ -264,9 +246,10 @@ class ConnectionInstance:
                     # an optimization, then need to read each separately
                     if request != "":
                         self._streamwriter.write(request)
+                        await self._streamwriter.drain()
 
                     response = await asyncio.wait_for(
-                        _read_until(self._streamreader, b"\0"),
+                        self._streamreader.readuntil(b"\0"),
                         timeout,
                     )
                     response = response[:-1]
@@ -287,7 +270,7 @@ class ConnectionInstance:
 
         # Start a parallel function to perform reads
         #  store a reference to it so it doesn't get destroyed
-        self._reader_task = asyncio.ensure_future(self._reader(), loop=self._io_loop)
+        self._reader_task = self._io_loop.create_task(self._reader())
         return self._parent
 
     def is_open(self):
@@ -327,16 +310,36 @@ class ConnectionInstance:
 
         return
 
+    def _discard_pending_query(self, token):
+        """Drop a waiter whose write failed before the server could answer."""
+        pending = self._user_queries.get(token)
+        if pending is None:
+            return
+
+        _, future = pending
+        if not future.done():
+            del self._user_queries[token]
+
     async def run_query(self, query, noreply):
         """Run a query on the connection."""
-        self._streamwriter.write(
-            query.serialize(self._parent.get_json_encoder(query))  # pylint: disable=protected-access
-        )
-        if noreply:
-            return None
+        # Register before writing. drain() yields, and the reader can observe
+        # the response before this coroutine resumes.
+        response_future = None
+        if not noreply:
+            response_future = self._io_loop.create_future()
+            self._user_queries[query.token] = (query, response_future)
 
-        response_future = asyncio.Future()
-        self._user_queries[query.token] = (query, response_future)
+        try:
+            self._streamwriter.write(
+                query.serialize(self._parent.get_json_encoder(query))  # pylint: disable=protected-access
+            )
+            await self._streamwriter.drain()
+        except Exception:
+            self._discard_pending_query(query.token)
+            raise
+
+        if response_future is None:
+            return None
         return await response_future
 
     # The _reader coroutine runs in parallel, reading responses

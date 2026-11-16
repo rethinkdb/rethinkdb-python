@@ -294,20 +294,35 @@ class ConnectionInstance:
         except OSError:
             pass
 
+    def _discard_pending_query(self, token):
+        """Drop a waiter whose write failed before the server could answer."""
+        pending = self._user_queries.get(token)
+        if pending is None:
+            return
+
+        _, async_res = pending
+        if not async_res.ready():
+            del self._user_queries[token]
+
     def run_query(self, query, noreply):
         """Run a query on the connection."""
+        # Register before sending. sendall can yield, and the reader can
+        # observe the response before this greenlet resumes.
         self._write_mutex.acquire()
-
+        async_res = None
         try:
+            if not noreply:
+                async_res = AsyncResult()
+                self._user_queries[query.token] = (query, async_res)
             self._socket.sendall(query.serialize(self._parent.get_json_encoder(query)))
+        except Exception:
+            self._discard_pending_query(query.token)
+            raise
         finally:
             self._write_mutex.release()
 
-        if noreply:
+        if async_res is None:
             return None
-
-        async_res = AsyncResult()
-        self._user_queries[query.token] = (query, async_res)
         return async_res.get()
 
     def _reader(self):

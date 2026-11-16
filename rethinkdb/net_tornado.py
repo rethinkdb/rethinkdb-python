@@ -259,7 +259,7 @@ class ConnectionInstance:
             # This may happen in the `V1_0` protocol where we send two requests as
             # an optimization, then need to read each separately
             if request != "":
-                self._stream.write(request)
+                await self._stream.write(request)
 
             response = await with_absolute_timeout(
                 deadline,
@@ -318,6 +318,16 @@ class ConnectionInstance:
                 pass
         return
 
+    def _discard_pending_query(self, token: int) -> None:
+        """Drop a waiter whose write failed before the server could answer."""
+        pending = self._user_queries.get(token)
+        if pending is None:
+            return
+
+        _, future = pending
+        if not future.done():
+            del self._user_queries[token]
+
     async def run_query(self, query: Query, noreply: bool) -> Any | None:
         """
         Run a query on the connection.
@@ -325,14 +335,24 @@ class ConnectionInstance:
         if self._stream is None:
             raise ReqlDriverError("Connection is closed.")
 
-        await self._stream.write(query.serialize(self._parent.get_json_encoder(query)))
-        if noreply:
-            return None
+        # Register before writing. The write future yields, and the reader can
+        # observe the response before this coroutine resumes.
+        response_future: Future[Any] | None = None
+        if not noreply:
+            response_future = Future()
+            self._user_queries[query.token] = (query, response_future)
 
-        response_future: Future = Future()
-        self._user_queries[query.token] = (query, response_future)
-        res = await response_future
-        return res
+        try:
+            await self._stream.write(
+                query.serialize(self._parent.get_json_encoder(query))
+            )
+        except Exception:
+            self._discard_pending_query(query.token)
+            raise
+
+        if response_future is None:
+            return None
+        return await response_future
 
     # The _reader coroutine runs in its own context at the top level of the
     # Tornado.IOLoop it was created with.  It runs in parallel, reading responses

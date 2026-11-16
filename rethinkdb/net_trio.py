@@ -382,13 +382,32 @@ class ConnectionInstance:
 
         return
 
-    async def run_query(self, query, noreply):
-        await self._send(query.serialize(self._parent.get_json_encoder(query)))
-        if noreply:
-            return None
+    def _discard_pending_query(self, token):
+        """Drop a waiter whose write failed before the server could answer."""
+        pending = self._user_queries.get(token)
+        if pending is None:
+            return
 
-        response_future = TrioFuture()
-        self._user_queries[query.token] = (query, response_future)
+        _, future = pending
+        if not future.done():
+            del self._user_queries[token]
+
+    async def run_query(self, query, noreply):
+        # Register before sending. send_all yields, and the reader can observe
+        # the response before this coroutine resumes.
+        response_future = None
+        if not noreply:
+            response_future = TrioFuture()
+            self._user_queries[query.token] = (query, response_future)
+
+        try:
+            await self._send(query.serialize(self._parent.get_json_encoder(query)))
+        except Exception:
+            self._discard_pending_query(query.token)
+            raise
+
+        if response_future is None:
+            return None
         return await response_future.wait()
 
     # The reader task runs in parallel, reading responses
