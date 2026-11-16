@@ -2411,7 +2411,10 @@ def needs_wrap(arg):
 
 # pylint: disable=too-many-return-statements
 def expr(
-    val: str
+    val: bool
+    | int
+    | float
+    | str
     | bytes
     | RqlQuery
     | RqlBinary
@@ -2419,15 +2422,13 @@ def expr(
     | datetime.datetime
     | Mapping
     | Iterable
-    | Callable,
+    | Callable
+    | None,
     nesting_depth: int = 20,
 ):
     """
     Convert a Python primitive into a Reql primitive value.
     """
-
-    if not isinstance(nesting_depth, int):
-        raise ReqlDriverCompileError("Second argument to `r.expr` must be a number.")
 
     if nesting_depth <= 0:
         raise ReqlDriverCompileError("Nesting depth limit exceeded.")
@@ -2438,7 +2439,7 @@ def expr(
     if callable(val):
         return Func(val)
 
-    if isinstance(val, str):  # TODO: Default is to return Datum - Remove?
+    if isinstance(val, str):
         return Datum(val)
 
     if isinstance(val, (bytes, RqlBinary)):
@@ -2450,31 +2451,21 @@ def expr(
     if isinstance(val, abc.Iterable):
         return MakeArray(*[expr(v, nesting_depth - 1) for v in val])  # type: ignore
 
-    if isinstance(val, datetime.date):
-        if isinstance(val, datetime.datetime):
-            if val.tzinfo is None:
-                raise ReqlDriverCompileError(
-                    f"""
-                Cannot convert {type(val).__name__} to Reql time object
-                without timezone information. You can add timezone information with
-                the third party module \"pytz\" or by constructing Reql compatible
-                timezone values with r.make_timezone(\"[+-]HH:MM\"). Alternatively,
-                use one of Reql's builtin time constructors, r.now, r.time,
-                or r.iso8601.
-                """
-                )
-            return ISO8601(val.isoformat())
+    # datetime.datetime subclasses datetime.date, so it must be checked first.
+    if isinstance(val, datetime.datetime):
+        if val.tzinfo is None:
+            raise ReqlDriverCompileError(
+                f"Cannot convert {type(val).__name__} to Reql time object "
+                "without timezone information. You can add timezone information with "
+                'the third party module "pytz" or by constructing Reql compatible '
+                'timezone values with r.make_timezone("[+-]HH:MM"). Alternatively, '
+                "use one of Reql's builtin time constructors, r.now, r.time, "
+                "or r.iso8601."
+            )
+        return ISO8601(val.isoformat())
 
-        raise ReqlDriverCompileError(
-            f"""
-        Cannot convert {type(val).__name__} to Reql time object
-        without timezone information. You can add timezone information with
-        the third party module \"pytz\" or by constructing Reql compatible
-        timezone values with r.make_timezone(\"[+-]HH:MM\"). Alternatively,
-        use one of Reql's builtin time constructors, r.now, r.time,
-        or r.iso8601.
-        """
-        )
+    if isinstance(val, datetime.date):
+        return ISO8601(val.isoformat())
 
     return Datum(val)
 
