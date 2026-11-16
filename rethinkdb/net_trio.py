@@ -190,8 +190,15 @@ class TrioCursor(Cursor, trio.abc.AsyncResource):
         return item
 
     async def _parent_continue(self):
-        """Send a CONTINUE request for this cursor."""
-        return await self.conn.parent.resume(self)
+        """
+        Send a CONTINUE request for this cursor.
+
+        A late continue after the socket dies must not fail the caller's nursery.
+        """
+        try:
+            return await self.conn.parent.resume(self)
+        except ReqlDriverError:
+            return None
 
     def _maybe_fetch_batch(self):
         if (
@@ -240,32 +247,43 @@ class ConnectionInstance:
         async with self._stream_lock:
             try:
                 await self._stream.send_all(data)
-            except (trio.BrokenResourceError, trio.ClosedResourceError):
+            except (trio.BrokenResourceError, trio.ClosedResourceError) as exc:
                 self._closed = True
+                raise ReqlDriverError("Connection is closed.") from exc
+
+    async def _receive_some(self, max_bytes):
+        """Read one chunk, treating EOF and a broken stream as a closed connection."""
+        try:
+            data = await self._stream.receive_some(max_bytes)
+        except (trio.BrokenResourceError, trio.ClosedResourceError) as exc:
+            self._closed = True
+            raise ReqlDriverError("Connection is closed.") from exc
+
+        if not data:
+            self._closed = True
+            raise ReqlDriverError("Connection is closed.")
+
+        return data
 
     async def _read_until(self, delimiter):
-        """Naive implementation of reading until a delimiter."""
+        """Read from the stream until ``delimiter`` or the connection closes."""
         buffer = bytearray()
 
-        try:
-            while True:
-                data = await self._stream.receive_some(1)
-                buffer.append(data[0])
-                if data == delimiter:
-                    break
-        except (trio.BrokenResourceError, trio.ClosedResourceError):
-            self._closed = True
+        while True:
+            data = await self._receive_some(1)
+            buffer.append(data[0])
+            if data == delimiter:
+                break
 
         return bytes(buffer)
 
     async def _read_exactly(self, num):
+        """Read exactly ``num`` bytes, or raise if the connection closes."""
         data = b""
-        try:
-            while len(data) < num:
-                data += await self._stream.receive_some(num - len(data))
-            return data
-        except (trio.BrokenResourceError, trio.ClosedResourceError):
-            self._closed = True
+        while len(data) < num:
+            data += await self._receive_some(num - len(data))
+
+        return data
 
     async def connect(self, timeout):
         try:

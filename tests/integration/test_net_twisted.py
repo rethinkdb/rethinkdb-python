@@ -1,9 +1,24 @@
+# Copyright 2016-2026 RethinkDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 
 import pytest
-from twisted.internet import defer
+from twisted.internet import defer, reactor
 
 from rethinkdb import net, net_twisted, query
+from rethinkdb.errors import ReqlRuntimeError, ReqlTimeoutError
 
 
 @pytest.fixture
@@ -29,6 +44,7 @@ def cleanup_test_dbs():
         "test_twisted_cursor_db",
         "test_twisted_helpers_db",
         "test_twisted_db",
+        "test_twisted_feed_drop_db",
         "test_twisted_queries_db",
     ]
 
@@ -368,6 +384,63 @@ def test_twisted_cursor_context_manager(conn):
         finally:
             try:
                 await connection.start(query.db_drop(db_name))
+            except Exception:
+                pass
+
+    return defer.ensureDeferred(run_test())
+
+
+@pytest.mark.twisted
+@pytest.mark.integration
+def test_twisted_changefeed_connection_lost(conn):
+    """Dropping the transport while a changefeed is waiting errbacks the next item."""
+
+    async def run_test():
+        connection = await conn
+        db_name = "test_twisted_feed_drop_db"
+        table_name = "feed"
+        try:
+            try:
+                await connection.start(query.db_drop(db_name))
+            except Exception:
+                pass
+
+            await connection.start(query.db_create(db_name))
+            await connection.start(query.db(db_name).table_create(table_name))
+            cursor = await connection.start(
+                query.db(db_name).table(table_name).changes()
+            )
+            pending = cursor.next()
+
+            def fail_if_still_waiting() -> None:
+                if not pending.called:
+                    pending.errback(ReqlTimeoutError())
+
+            timeout = reactor.callLater(5, fail_if_still_waiting)
+            reactor.callLater(
+                0,
+                connection._instance._connection.transport.loseConnection,  # pylint: disable=protected-access
+            )
+            try:
+                with pytest.raises(ReqlRuntimeError, match="Connection is closed"):
+                    await pending
+            finally:
+                if timeout.active():
+                    timeout.cancel()
+            assert connection.is_open() is False
+        finally:
+            try:
+                await connection.close(noreply_wait=False)
+            except Exception:
+                pass
+            try:
+                sync = net.make_connection(
+                    net.DefaultConnection,
+                    host=os.getenv("RDB_TEST_HOST", "localhost"),
+                    port=int(os.getenv("RDB_TEST_PORT", 28015)),
+                )
+                query.db_drop(db_name).run(sync)
+                sync.close()
             except Exception:
                 pass
 

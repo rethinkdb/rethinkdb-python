@@ -74,6 +74,7 @@ class DatabaseProtocol(Protocol):
         self.wait_for_handshake = Deferred()
 
         self._open = True
+        self._handshake_timed_out = False
         self._timeout_defer: Any | None = None
 
     def connectionMade(self) -> None:
@@ -90,15 +91,23 @@ class DatabaseProtocol(Protocol):
         )
 
     def connectionLost(self, reason: Any) -> None:  # pylint: disable=signature-differs
+        """Fail the handshake and notify the connection that the transport is gone."""
         self._open = False
+
+        if not self.wait_for_handshake.called and not self._handshake_timed_out:
+            self.wait_for_handshake.errback(ReqlDriverError("Connection is closed."))
+        if self.factory.connection_lost is not None:
+            self.factory.connection_lost(reason)
 
     def _handle_handshake_timeout(self) -> None:
         # If we are here, we failed to do the handshake before the timeout.
         # We close the connection and raise an ReqlTimeoutError in the
         # wait_for_handshake deferred.
         self._open = False
+        self._handshake_timed_out = True
         self.transport.loseConnection()
-        self.wait_for_handshake.errback(ReqlTimeoutError())
+        if not self.wait_for_handshake.called:
+            self.wait_for_handshake.errback(ReqlTimeoutError())
 
     def _handle_handshake(self, data: bytes) -> None:
         try:
@@ -169,10 +178,17 @@ class DatabaseProtoFactory(ClientFactory):
 
     protocol = DatabaseProtocol
 
-    def __init__(self, timeout: int, response_handler: Any, handshake: Any) -> None:
+    def __init__(
+        self,
+        timeout: int,
+        response_handler: Any,
+        handshake: Any,
+        connection_lost: Any = None,
+    ) -> None:
         self.timeout = timeout
         self.handshake = handshake
         self.response_handler = response_handler
+        self.connection_lost = connection_lost
 
     def startedConnecting(self, connector: Any) -> None:
         """Called when a connection is started."""
@@ -399,7 +415,10 @@ class ConnectionInstance:
     def connect(self, timeout: int) -> Generator:
         """Establish a connection to the server."""
         factory = DatabaseProtoFactory(
-            timeout, self._handle_response, self._parent.handshake
+            timeout,
+            self._handle_response,
+            self._parent.handshake,
+            self._on_connection_lost,
         )
 
         # We connect to the server, and send the handshake payload.
@@ -453,6 +472,22 @@ class ConnectionInstance:
         return (
             self._connection is not None and self._connection._open  # pylint: disable=protected-access
         )
+
+    def _on_connection_lost(self, reason: Any) -> None:
+        """
+        Fail open cursors and queries when the peer drops the connection.
+
+        ``close`` sets ``_closing`` before it drops the transport, so this
+        returns immediately when the loss was initiated locally.
+        """
+        if self._closing:
+            return
+
+        error = getattr(reason, "value", None)
+        if not isinstance(error, Exception):
+            error = ReqlDriverError("Connection is closed.")
+
+        self.close(exception=error)
 
     def close(
         self,
