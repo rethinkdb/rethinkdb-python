@@ -1,3 +1,5 @@
+import asyncio
+import gc
 import os
 
 import pytest
@@ -24,6 +26,7 @@ def cleanup_test_dbs():
     yield
 
     test_dbs = [
+        "test_asyncio_between_db",
         "test_asyncio_cursor_db",
         "test_asyncio_helpers_db",
         "test_asyncio_db",
@@ -172,6 +175,58 @@ async def test_asyncio_cursor_operations(conn):
         await connection.start(query.db_drop(db_name))
     except Exception:
         pass
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_asyncio_between_secondary_index(conn):
+    """A secondary-index between query returns rows and close finishes the reader."""
+    connection = await conn
+    assert connection.is_open(), "Connection should be open"
+
+    db_name = "test_asyncio_between_db"
+    table_name = "station"
+    loop = asyncio.get_running_loop()
+    previous_handler = loop.get_exception_handler()
+    messages: list[str] = []
+
+    def handler(running_loop, context):
+        messages.append(str(context.get("message", "")))
+        if previous_handler is not None:
+            previous_handler(running_loop, context)
+        else:
+            running_loop.default_exception_handler(context)
+
+    loop.set_exception_handler(handler)
+    try:
+        try:
+            await connection.start(query.db_drop(db_name))
+        except Exception:
+            pass
+
+        await connection.start(query.db_create(db_name))
+        await connection.start(query.db(db_name).table_create(table_name))
+        table = query.db(db_name).table(table_name)
+        docs = [{"id": i, "n": i} for i in range(5)]
+        inserted = await connection.start(table.insert(docs))
+        assert inserted["inserted"] == 5
+        await connection.start(table.index_create("n"))
+        await connection.start(table.index_wait("n"))
+
+        cursor = await connection.start(
+            table.between(0, 4, index="n", right_bound="closed")
+        )
+        results = [item async for item in cursor]
+        assert sorted(row["id"] for row in results) == [0, 1, 2, 3, 4]
+
+        await connection.start(query.db_drop(db_name))
+        await connection.close()
+        gc.collect()
+        assert not any(
+            "Task was destroyed but it is pending" in message for message in messages
+        )
+    finally:
+        loop.set_exception_handler(previous_handler)
 
 
 @pytest.mark.asyncio

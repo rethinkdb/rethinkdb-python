@@ -30,6 +30,7 @@ from twisted.internet.defer import (
 from twisted.internet.endpoints import clientFromString
 from twisted.internet.error import TimeoutError as TwistedTimeoutError
 from twisted.internet.protocol import ClientFactory, Protocol
+from twisted.python import log
 
 from rethinkdb.errors import (
     ReqlAuthError,
@@ -269,7 +270,8 @@ class TwistedCursor(Cursor):
     @inlineCallbacks
     def _get_next(self, timeout: float | None = None) -> "Deferred[Any]":
         if len(self.items) == 0 and self.error is not None:
-            return defer.fail(self.error)
+            result = yield defer.fail(self.error)
+            return result
 
         def raise_timeout(errback: Any) -> None:
             if isinstance(errback.value, CancelledError):
@@ -284,7 +286,18 @@ class TwistedCursor(Cursor):
             reactor.callLater(timeout, item_defer.cancel)
 
         self._maybe_fetch_batch()
-        return item_defer
+        item = yield item_defer
+        return item
+
+    def _maybe_fetch_batch(self) -> None:
+        if (
+            self.error is None
+            and len(self.items) < self.threshold
+            and self.outstanding_requests == 0
+        ):
+            self.outstanding_requests += 1
+            deferred = self.conn.parent.resume(self)
+            deferred.addErrback(log.err)
 
 
 class ConnectionInstance:
@@ -395,6 +408,11 @@ class ConnectionInstance:
 
         self._connection = connection
 
+        return self._parent
+
+    @property
+    def parent(self) -> "Connection":
+        """Return the parent connection."""
         return self._parent
 
     @property

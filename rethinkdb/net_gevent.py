@@ -44,25 +44,30 @@ class GeventCursor(Cursor):
     """Gevent-based cursor implementation for RethinkDB queries."""
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.new_response = Event()
+        super().__init__(*args, **kwargs)
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        return self._get_next(None)
+        try:
+            return self._get_next(None)
+        except ReqlCursorEmpty as exc:
+            raise StopIteration from exc
 
     @staticmethod
     def _empty_error():
         """Return the empty error exception class."""
         return ReqlCursorEmpty()
 
+    def extend(self, res_buf):
+        """Extend the cursor and wake greenlets waiting for the next batch."""
+        self._extend(res_buf)
+
     def _extend(self, res_buf):
         """Extend the cursor with new response data."""
-        # pylint: disable=no-member
-        super()._extend(res_buf)
-        # pylint: enable=no-member
+        super().extend(res_buf)
         self.new_response.set()
         self.new_response.clear()
 
@@ -226,6 +231,16 @@ class ConnectionInstance:
         self._write_mutex = Semaphore()
         self._socket = None
 
+    @property
+    def parent(self):
+        """Return the parent connection."""
+        return self._parent
+
+    @property
+    def cursor_cache(self):
+        """Return the cursor cache."""
+        return self._cursor_cache
+
     def connect(self, timeout):
         """Connect to the RethinkDB server."""
         with gevent.Timeout(
@@ -251,9 +266,7 @@ class ConnectionInstance:
 
         # Cursors may remove themselves when errored, so copy a list of them
         for cursor in list(self._cursor_cache.values()):
-            # pylint: disable=protected-access
-            cursor._error(err_message)
-            # pylint: enable=protected-access
+            cursor.raise_error(err_message)
 
         for _query, async_res in iter(self._user_queries.values()):
             async_res.set_exception(ReqlDriverError(err_message))

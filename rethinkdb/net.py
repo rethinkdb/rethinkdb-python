@@ -363,7 +363,9 @@ class Cursor:
         """
         if self.error is None:
             self.error = ReqlRuntimeError(message, self.query.term_type, [])
-            dummy_response = f'{"t":{PbResponse.ResponseType.SUCCESS_SEQUENCE},"r":[]}'
+            dummy_response = (
+                f'{{"t":{PbResponse.ResponseType.SUCCESS_SEQUENCE},"r":[]}}'
+            ).encode()
             self.extend(dummy_response)
 
     def _maybe_fetch_batch(self):

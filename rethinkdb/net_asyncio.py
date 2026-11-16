@@ -92,8 +92,8 @@ class AsyncioCursor(Cursor):
     """The asyncio implementation of the Cursor object."""
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.new_response = asyncio.Future()
+        super().__init__(*args, **kwargs)
 
     def __aiter__(self):
         return self
@@ -109,10 +109,14 @@ class AsyncioCursor(Cursor):
             self.error = self._empty_error()
             if self.conn.is_open():
                 self.outstanding_requests += 1
-                await self.conn.parent._stop(self)  # pylint: disable=protected-access
+                await self.conn.parent.stop(self)
+
+    def extend(self, res_buf):
+        """Extend the cursor and wake tasks waiting for the next batch."""
+        self._extend(res_buf)
 
     def _extend(self, res_buf):
-        super()._extend(res_buf)  # pylint: disable=no-member
+        super().extend(res_buf)
         self.new_response.set_result(True)
         self.new_response = asyncio.Future()
 
@@ -159,7 +163,7 @@ class AsyncioCursor(Cursor):
             self.outstanding_requests += 1
             # Keep a reference so the task is not garbage-collected before it runs.
             self._fetch_batch_task = asyncio.ensure_future(
-                self.conn.parent._continue(self),  # pylint: disable=protected-access
+                self.conn.parent.resume(self),
                 loop=self.conn.io_loop,
             )
 
@@ -180,6 +184,21 @@ class ConnectionInstance:
         self._io_loop = io_loop
         if self._io_loop is None:
             self._io_loop = asyncio.get_event_loop()
+
+    @property
+    def parent(self):
+        """Return the parent connection."""
+        return self._parent
+
+    @property
+    def cursor_cache(self):
+        """Return the cursor cache."""
+        return self._cursor_cache
+
+    @property
+    def io_loop(self):
+        """Return the event loop used by this connection."""
+        return self._io_loop
 
     def client_port(self):
         """Get the client port of the connection."""
@@ -274,7 +293,7 @@ class ConnectionInstance:
 
         # Cursors may remove themselves when errored, so copy a list of them
         for cursor in list(self._cursor_cache.values()):
-            cursor._error(err_message)  # pylint: disable=protected-access
+            cursor.raise_error(err_message)
 
         for _query, future in iter(self._user_queries.values()):
             if not future.done():
@@ -376,11 +395,6 @@ class Connection(ConnectionBase):
 
     async def __aexit__(self, exception_type, exception_val, traceback):
         await self.close(False)
-
-    async def _stop(self, cursor):
-        self.check_open()
-        q = Query(PbQuery.QueryType.STOP, cursor.query.token, None, None)
-        return await self._instance.run_query(q, True)  # pylint: disable=protected-access
 
     async def reconnect(  # pylint: disable=invalid-overridden-method
         self, noreply_wait=True, timeout=None
