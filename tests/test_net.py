@@ -250,3 +250,125 @@ def test_make_connection_with_ssl(conn_params):
         conn_params["ssl"],
         conn_params["handshake_version"],
     )
+
+
+def _assert_sync_context_manager(cls: type) -> None:
+    """The class supports ``with`` and not ``async with``."""
+    assert callable(getattr(cls, "__enter__", None))
+    assert callable(getattr(cls, "__exit__", None))
+    assert getattr(cls, "__aenter__", None) is None
+    assert getattr(cls, "__aexit__", None) is None
+
+
+def _assert_async_context_manager(cls: type) -> None:
+    """The class supports ``async with`` and not ``with``."""
+    assert callable(getattr(cls, "__aenter__", None))
+    assert callable(getattr(cls, "__aexit__", None))
+    assert getattr(cls, "__enter__", None) is None
+    assert getattr(cls, "__exit__", None) is None
+
+
+def test_sync_context_manager_closes_and_propagates():
+    """A synchronous context manager closes on exit and does not swallow errors."""
+    from rethinkdb.net import SyncConnectionContextManager, SyncContextManager
+
+    class Cursor(SyncContextManager):
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    cursor = Cursor()
+    with cursor:
+        assert cursor.closed is False
+    assert cursor.closed is True
+
+    cursor.closed = False
+    with pytest.raises(RuntimeError, match="boom"), cursor:
+        raise RuntimeError("boom")
+    assert cursor.closed is True
+
+    class Conn(SyncConnectionContextManager):
+        def __init__(self) -> None:
+            self.noreply_wait: bool | None = None
+
+        def close(self, noreply_wait: bool = True) -> None:
+            self.noreply_wait = noreply_wait
+
+    conn = Conn()
+    with pytest.raises(RuntimeError, match="boom"), conn:
+        raise RuntimeError("boom")
+    assert conn.noreply_wait is False
+
+
+@pytest.mark.asyncio
+async def test_async_context_manager_closes_and_propagates():
+    """An asynchronous context manager awaits close and does not swallow errors."""
+    from rethinkdb.net import AsyncConnectionContextManager, AsyncContextManager
+
+    class Cursor(AsyncContextManager):
+        def __init__(self) -> None:
+            self.closed = False
+
+        async def close(self) -> None:
+            self.closed = True
+
+    cursor = Cursor()
+    async with cursor:
+        assert cursor.closed is False
+    assert cursor.closed is True
+
+    cursor.closed = False
+    with pytest.raises(RuntimeError, match="boom"):
+        async with cursor:
+            raise RuntimeError("boom")
+    assert cursor.closed is True
+
+    class Conn(AsyncConnectionContextManager):
+        def __init__(self) -> None:
+            self.noreply_wait: bool | None = None
+
+        async def close(self, noreply_wait: bool = True) -> None:
+            self.noreply_wait = noreply_wait
+
+    conn = Conn()
+    async with conn:
+        pass
+    assert conn.noreply_wait is False
+
+    conn.noreply_wait = None
+    with pytest.raises(RuntimeError, match="boom"):
+        async with conn:
+            raise RuntimeError("boom")
+    assert conn.noreply_wait is False
+
+
+def test_driver_context_manager_protocols():
+    """Each driver exposes only the context manager its close method can honor."""
+    from rethinkdb.net import DefaultConnection, DefaultCursor
+    from rethinkdb.net_asyncio import AsyncioCursor
+    from rethinkdb.net_asyncio import Connection as AsyncioConnection
+    from rethinkdb.net_gevent import Connection as GeventConnection
+    from rethinkdb.net_gevent import GeventCursor
+    from rethinkdb.net_tornado import Connection as TornadoConnection
+    from rethinkdb.net_tornado import TornadoCursor
+    from rethinkdb.net_trio import Connection as TrioConnection
+    from rethinkdb.net_trio import TrioCursor
+    from rethinkdb.net_twisted import Connection as TwistedConnection
+    from rethinkdb.net_twisted import TwistedCursor
+
+    for cls in (DefaultCursor, DefaultConnection, GeventCursor, GeventConnection):
+        _assert_sync_context_manager(cls)
+
+    for cls in (
+        AsyncioCursor,
+        AsyncioConnection,
+        TornadoCursor,
+        TornadoConnection,
+        TrioCursor,
+        TrioConnection,
+        TwistedCursor,
+        TwistedConnection,
+    ):
+        _assert_async_context_manager(cls)

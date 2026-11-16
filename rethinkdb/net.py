@@ -27,7 +27,8 @@ import socket
 import ssl
 import struct
 import time
-from typing import Any, Union
+from types import TracebackType
+from typing import Any, Protocol, Self, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from rethinkdb.ast import DB, RqlQuery, expr
@@ -56,9 +57,13 @@ from rethinkdb.repl import Repl
 
 __all__ = [
     "DEFAULT_PORT",
+    "AsyncConnectionContextManager",
+    "AsyncContextManager",
     "Connection",
     "Cursor",
     "DefaultConnection",
+    "SyncConnectionContextManager",
+    "SyncContextManager",
     "make_connection",
 ]
 
@@ -190,10 +195,101 @@ class Response:  # pylint: disable=too-few-public-methods
         return error
 
 
+class _Closes(Protocol):
+    """Object that can be closed by a context manager."""
+
+    def close(self, *args: Any, **kwargs: Any) -> Any:
+        """Close the object."""
+
+
+class SyncContextManager:
+    """Synchronous context manager that closes the object on exit.
+
+    Use ``with`` for drivers whose ``close`` method is synchronous.
+    """
+
+    def __enter__(self) -> Self:
+        """Enter the context and return this object."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Close the object. Exceptions raised in the block propagate."""
+        cast(_Closes, self).close()
+
+
+class SyncConnectionContextManager:
+    """Synchronous context manager that closes a connection on exit.
+
+    Use ``with`` for drivers whose ``close`` method is synchronous.
+    Exit calls ``close(noreply_wait=False)``.
+    """
+
+    def __enter__(self) -> Self:
+        """Enter the context and return this connection."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Close the connection. Exceptions raised in the block propagate."""
+        cast(_Closes, self).close(noreply_wait=False)
+
+
+class AsyncContextManager:
+    """Asynchronous context manager that closes the object on exit.
+
+    Use ``async with`` for drivers whose ``close`` method is awaitable.
+    """
+
+    async def __aenter__(self) -> Self:
+        """Enter the context and return this object."""
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Close the object. Exceptions raised in the block propagate."""
+        await cast(_Closes, self).close()
+
+
+class AsyncConnectionContextManager:
+    """Asynchronous context manager that closes a connection on exit.
+
+    Use ``async with`` for drivers whose ``close`` method is awaitable.
+    Exit calls ``close(noreply_wait=False)``.
+    """
+
+    async def __aenter__(self) -> Self:
+        """Enter the context and return this connection."""
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Close the connection. Exceptions raised in the block propagate."""
+        await cast(_Closes, self).close(noreply_wait=False)
+
+
 class Cursor:
     """Shared behavior for every cursor implementation.
 
     Callers iterate with ``iter`` or advance one result at a time with ``next``.
+    Concrete cursors add the context manager for their driver: ``with`` when
+    ``close`` is synchronous, and ``async with`` when ``close`` is awaitable.
 
     * ``query`` is the original query that produced this cursor.
 
@@ -241,12 +337,6 @@ class Cursor:
 
         self._maybe_fetch_batch()
         self._extend_internal(first_response)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
 
     @staticmethod
     def _empty_error() -> type[ReqlCursorEmpty]:
@@ -384,9 +474,11 @@ class DefaultCursorEmpty(ReqlCursorEmpty, StopIteration):
     """
 
 
-class DefaultCursor(Cursor):
+class DefaultCursor(Cursor, SyncContextManager):
     """
     Default cursor used to get data.
+
+    Use ``with`` to close the cursor when the block exits.
     """
 
     def __iter__(self):
@@ -838,6 +930,9 @@ class Connection:  # pylint: disable=too-many-instance-attributes
     """
     Handle connection lifecycle, managing the connection instance, connect, reconnect,
     connection close and more.
+
+    Concrete connections add the context manager for their driver: ``with`` when
+    ``close`` is synchronous, and ``async with`` when ``close`` is awaitable.
     """
 
     _r = None
@@ -947,12 +1042,6 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         self._repl.set_connection(self)
         return self
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close(noreply_wait=False)
-
     def use(self, db: str):
         """
         Set the encapsulated database to use.
@@ -1054,9 +1143,11 @@ class Connection:  # pylint: disable=too-many-instance-attributes
         return (query.json_encoder or self._json_encoder)()
 
 
-class DefaultConnection(Connection):
+class DefaultConnection(Connection, SyncConnectionContextManager):
     """
     Default connection without async handlers.
+
+    Use ``with`` to close the connection when the block exits.
     """
 
     def __init__(self, *args, **kwargs):

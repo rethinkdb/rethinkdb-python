@@ -1256,3 +1256,46 @@ def test_js(conn):
     ]
 
     assert_test_table(query.js, conn, scenarios)
+
+
+@pytest.mark.integration
+def test_default_connection_context_manager(conn):
+    """with closes the default connection."""
+    assert conn.is_open()
+    with conn:
+        result = query.db_list().run(conn)
+        assert isinstance(result, list)
+    assert conn.is_open() is False
+
+
+@pytest.mark.integration
+def test_default_cursor_context_manager(conn):
+    """with closes the default cursor, and a second close is safe."""
+    db_name = "test_default_cursor_cm_db"
+    table_name = "test_cursor_cm_table"
+    try:
+        try:
+            query.db_drop(db_name).run(conn)
+        except Exception:
+            pass
+
+        query.db_create(db_name).run(conn)
+        query.db(db_name).table_create(table_name).run(conn)
+        inserted = (
+            query.db(db_name)
+            .table(table_name)
+            .insert([{"id": i} for i in range(5)])
+            .run(conn)
+        )
+        assert inserted["inserted"] == 5
+
+        cursor = query.db(db_name).table(table_name).run(conn)
+        with cursor:
+            next(cursor)
+        assert cursor.error is not None
+        cursor.close()
+    finally:
+        try:
+            query.db_drop(db_name).run(conn)
+        except Exception:
+            pass
