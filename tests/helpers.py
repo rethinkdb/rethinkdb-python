@@ -1,25 +1,189 @@
+# Copyright 2016-2026 RethinkDB
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
+from collections.abc import Callable, Iterable
+from typing import Any
 
-from rethinkdb import r
+import pytest
+from pydantic import BaseModel
 
-INTEGRATION_TEST_DB = "integration_test"
+from rethinkdb import ast, net, r
 
 
-class IntegrationTestCaseBase(object):
-    def _create_database(self, conn):
-        if INTEGRATION_TEST_DB not in self.r.db_list().run(conn):
-            self.r.db_create(INTEGRATION_TEST_DB).run(conn)
+class Scenario(BaseModel):
+    name: str
+    args: Any = []
+    kwargs: dict = {}
+    expr_args: Any = []
+    expected: Any
+    expected_field: str | None = None
+    callback: Callable[[], None] | None = None
+    result_as_string: bool = False
+    result_as_list: bool = False
+    approximate_results: bool = False
 
-        conn.use(INTEGRATION_TEST_DB)
+    def __str__(self) -> str:
+        return self.name
 
-    def setup_method(self):
-        self.r = r
-        self.rethinkdb_host = os.getenv("RETHINKDB_HOST", "127.0.0.1")
 
-        self.conn = self.r.connect(host=self.rethinkdb_host)
+@pytest.fixture
+def conn() -> net.Connection:
+    """
+    Return a new connection instance.
+    """
 
-        self._create_database(self.conn)
+    return net.make_connection(
+        net.DefaultConnection,
+        host=os.getenv("RDB_TEST_HOST", "localhost"),
+        port=int(os.getenv("RDB_TEST_PORT", 28015)),
+    )
 
-    def teardown_method(self):
-        self.r.db_drop(INTEGRATION_TEST_DB).run(self.conn)
-        self.conn.close()
+
+def format_failure(scenario: Scenario, result: Any, query: Any) -> str:
+    """
+    Format failure message to have a better error output.
+    """
+
+    return (
+        f'Failed scenario: "{scenario.name}"\n'
+        f"\t  executed: {query}\n"
+        f"\t  wanted: {scenario.expected}\n"
+        f"\t  got: {result}"
+    )
+
+
+def is_matching(value: Any, expected: Any, is_approximate: bool = False):
+    """
+    Check if the value matches the expected value.
+    """
+
+    if isinstance(expected, dict) and isinstance(value, dict):
+        if set(value.keys()) != set(expected.keys()):
+            return False
+        return all(is_matching(value[k], expected[k], is_approximate) for k in expected)
+
+    if isinstance(expected, (list, tuple)) and isinstance(value, (list, tuple)):
+        if len(value) != len(expected):
+            return False
+        return all(is_matching(v, e, is_approximate) for v, e in zip(value, expected))
+
+    if (
+        is_approximate
+        and isinstance(expected, (float, int))
+        and isinstance(value, (float, int))
+    ):
+        return value == pytest.approx(expected, rel=1e-9)
+
+    return value == expected
+
+
+def assert_test_table(
+    command, conn: net.Connection, scenarios: Iterable[Scenario]
+) -> None:
+    """
+    Run table test assertions.
+    """
+
+    failed: list[tuple] = []
+
+    for scenario in scenarios:
+        executor = ast.expr(*scenario.expr_args) if scenario.expr_args else r
+        query = getattr(executor, command.__name__)(*scenario.args, **scenario.kwargs)
+
+        try:
+            result = query.run(conn)
+
+            if scenario.expected_field is not None:
+                result = result[scenario.expected_field]
+            else:
+                if scenario.result_as_string:
+                    result = str(result)
+                elif scenario.result_as_list:
+                    result = list(result)
+
+            if not is_matching(
+                result, scenario.expected, is_approximate=scenario.approximate_results
+            ):
+                failed.append((scenario, result, query))
+        except Exception as exc:
+            failed.append((scenario, str(exc), query))
+        finally:
+            if scenario.callback is not None:
+                # Cleanup after the test
+                scenario.callback()
+
+    error_message = "\n\t".join(map(lambda x: format_failure(*x), failed))
+    assert len(failed) == 0, f"The following scenario(s) failed:\n\t{error_message}"
+
+
+def get_user(username: str, conn: net.Connection) -> dict | None:
+    """
+    Return the user if exists.
+    """
+
+    return r.db("rethinkdb").table("users").get(username).run(conn)
+
+
+def create_user(username: str, conn: net.Connection) -> dict:
+    """
+    Create a new user.
+    """
+
+    return (
+        r.db("rethinkdb")
+        .table("users")
+        .insert({"id": username, "password": "secret"})
+        .run(conn)
+    )
+
+
+def delete_user(username: str, conn: net.Connection) -> dict:
+    """
+    Delete a user.
+    """
+
+    return r.db("rethinkdb").table("users").get(username).delete().run(conn)
+
+
+def create_db(db_name: str, conn: net.Connection) -> dict:
+    """
+    Create a new database.
+    """
+
+    return r.db_create(db_name).run(conn)
+
+
+def drop_db(db_name: str, conn: net.Connection) -> dict:
+    """
+    Drop a database.
+    """
+
+    return r.db_drop(db_name).run(conn)
+
+
+def create_table(db_name, table_name: str, conn: net.Connection) -> dict:
+    """
+    Create a new table.
+    """
+
+    return r.db(db_name).table_create(table_name).run(conn)
+
+
+def drop_table(db_name, table_name: str, conn: net.Connection) -> dict:
+    """
+    Drop a table.
+    """
+
+    return r.db(db_name).table_drop(table_name).run(conn)

@@ -1,0 +1,95 @@
+[tools]
+python = "3.13.18"
+uv = "0.13.5"
+pre-commit = "4.7.0"
+actionlint = "1.7.12"
+shellcheck = "0.11.0"
+
+[env]
+_.python.venv = { path = ".venv", create = true }
+
+[tasks.setup]
+description = "Create the virtualenv and install all extras and dev tools"
+run = "uv sync --all-extras --all-groups"
+
+[tasks.format]
+description = "Format Python sources with Ruff"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+uv run ruff format rethinkdb tests scripts
+uv run ruff check --fix rethinkdb tests scripts
+"""
+
+[tasks.lint]
+description = "Run Ruff and mypy"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy rethinkdb
+"""
+
+[tasks.test]
+description = "Run unit and integration tests and report coverage"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+uv run coverage run -m pytest -m 'not v2_5' -vv
+uv run coverage report
+uv run coverage xml
+"""
+
+[tasks.test-unit]
+description = "Run unit tests"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+uv run coverage run -m pytest -m 'not integration and not v2_5' -vv
+uv run coverage report --fail-under=0
+"""
+
+[tasks.test-integration]
+description = "Run integration tests"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+uv run coverage run -m pytest -m 'integration and not v2_5' -vv
+uv run coverage report --fail-under=0
+"""
+
+[tasks.docs]
+description = "Build the Sphinx HTML documentation"
+run = "uv run sphinx-build -b html docs docs/_build/html"
+
+[tasks.protobuf]
+description = "Download and convert the protobuf file"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+curl -fsSL -o ql2.proto \
+    "https://raw.githubusercontent.com/rethinkdb/rethinkdb/70654faefe29bb0b4f6010fa82bd30a207d014d8/src/rdb_protocol/ql2.proto"
+uv run python scripts/convert_protofile.py -l python -i ql2.proto -o rethinkdb/ql2_pb2.py
+"""
+
+[tasks.generate-init-pyi]
+description = "Regenerate rethinkdb/__init__.pyi"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+uv run python scripts/generate_init_pyi.py
+uv run ruff check --fix rethinkdb/__init__.pyi
+uv run ruff format rethinkdb/__init__.pyi
+"""
+
+[tasks.clean]
+description = "Remove build, test, coverage, and cache artifacts"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+rm -rf build dist .eggs htmlcov docs/_build .pytest_cache .mypy_cache .ruff_cache .hypothesis
+rm -f .coverage coverage.xml
+find . -type d -name '__pycache__' -prune -exec rm -rf {} +
+find . -type d -name '*.egg-info' -prune -exec rm -rf {} +
+"""

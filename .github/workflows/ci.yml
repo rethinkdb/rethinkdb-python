@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+
+      - name: Sync dependencies
+        run: uv sync --frozen --all-extras --all-groups
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files
+
+  unit:
+    name: Unit tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14", "3.15"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+
+      - name: Install Python ${{ matrix.python-version }}
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: uv python install "$PYTHON_VERSION"
+
+      - name: Sync dependencies
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: uv sync --frozen --all-extras --all-groups --python "$PYTHON_VERSION"
+
+      - name: Run unit tests
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: |
+          set -euo pipefail
+          uv run --python "$PYTHON_VERSION" coverage run -m pytest -m "not integration and not v2_5" -vv
+          uv run --python "$PYTHON_VERSION" coverage report --fail-under=0
+
+  integration:
+    name: Integration tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14", "3.15"]
+    services:
+      rethinkdb:
+        image: rethinkdb:2.4.4-bookworm-slim
+        ports:
+          - 28015:28015
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+
+      - name: Install Python ${{ matrix.python-version }}
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: uv python install "$PYTHON_VERSION"
+
+      - name: Sync dependencies
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: uv sync --frozen --all-extras --all-groups --python "$PYTHON_VERSION"
+
+      - name: Wait for RethinkDB
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            if bash -c 'echo > /dev/tcp/127.0.0.1/28015' 2>/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "RethinkDB did not accept connections on port 28015" >&2
+          exit 1
+
+      - name: Run integration tests
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: uv run --python "$PYTHON_VERSION" pytest -m "integration and not v2_5" -vv
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+
+      - name: Sync dependencies
+        run: uv sync --frozen --all-extras --all-groups
+
+      - name: Build documentation
+        run: uv run sphinx-build -b html docs docs/_build/html
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Review dependencies
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
