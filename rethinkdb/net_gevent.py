@@ -32,7 +32,14 @@ from rethinkdb.errors import (
     ReqlTimeoutError,
 )
 from rethinkdb.net import Connection as ConnectionBase
-from rethinkdb.net import Cursor, Query, Response, maybe_profile
+from rethinkdb.net import (
+    Cursor,
+    Query,
+    Response,
+    SyncConnectionContextManager,
+    SyncContextManager,
+    maybe_profile,
+)
 from rethinkdb.net import SocketWrapper as SocketWrapperBase
 from rethinkdb.ql2_pb2 import Query as PbQuery
 from rethinkdb.ql2_pb2 import Response as PbResponse
@@ -40,8 +47,12 @@ from rethinkdb.ql2_pb2 import Response as PbResponse
 __all__ = ["Connection"]
 
 
-class GeventCursor(Cursor):
-    """Gevent-based cursor implementation for RethinkDB queries."""
+class GeventCursor(Cursor, SyncContextManager):
+    """
+    Gevent-based cursor implementation for RethinkDB queries.
+
+    Use ``with`` to close the cursor when the block exits.
+    """
 
     def __init__(self, *args, **kwargs):
         self.new_response = Event()
@@ -340,8 +351,12 @@ class ConnectionInstance:
                 self.close(exception=exc)
 
 
-class Connection(ConnectionBase):
-    """Gevent-based RethinkDB connection."""
+class Connection(ConnectionBase, SyncConnectionContextManager):
+    """
+    Gevent-based RethinkDB connection.
+
+    Use ``with`` to close the connection when the block exits.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(ConnectionInstance, *args, **kwargs)

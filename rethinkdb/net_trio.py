@@ -31,8 +31,15 @@ from rethinkdb.errors import (
     ReqlDriverError,
     ReqlTimeoutError,
 )
+from rethinkdb.net import (
+    AsyncConnectionContextManager,
+    Cursor,
+    Query,
+    Response,
+    make_connection,
+    maybe_profile,
+)
 from rethinkdb.net import Connection as ConnectionBase
-from rethinkdb.net import Cursor, Query, Response, make_connection, maybe_profile
 
 __all__ = ["Connection"]
 # pylint: disable=missing-class-docstring,missing-function-docstring
@@ -108,7 +115,11 @@ def _reql_timeout(seconds):
 
 
 class TrioCursor(Cursor, trio.abc.AsyncResource):
-    """A cursor that allows async iteration within the Trio framework."""
+    """
+    A cursor that allows async iteration within the Trio framework.
+
+    Use ``async with`` to close the cursor when the block exits.
+    """
 
     def __init__(self, *args, **kwargs):
         """Constructor"""
@@ -410,7 +421,13 @@ class ConnectionInstance:
             self._reader_ended_event.set()
 
 
-class Connection(ConnectionBase):
+class Connection(ConnectionBase, AsyncConnectionContextManager):
+    """
+    A RethinkDB connection using the Trio event loop.
+
+    Use ``async with`` to close the connection when the block exits.
+    """
+
     def __init__(self, *args, **kwargs):
         self._nursery = kwargs.pop("nursery", None)
         super().__init__(ConnectionInstance, *args, **kwargs)

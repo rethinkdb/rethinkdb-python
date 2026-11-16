@@ -27,8 +27,15 @@ from rethinkdb.errors import (
     ReqlDriverError,
     ReqlTimeoutError,
 )
+from rethinkdb.net import (
+    AsyncConnectionContextManager,
+    AsyncContextManager,
+    Cursor,
+    Query,
+    Response,
+    maybe_profile,
+)
 from rethinkdb.net import Connection as ConnectionBase
-from rethinkdb.net import Cursor, Query, Response, maybe_profile
 from rethinkdb.ql2_pb2 import Query as PbQuery
 from rethinkdb.ql2_pb2 import Response as PbResponse
 
@@ -88,8 +95,12 @@ def translate_timeout_errors():
 # to grab the next result.  In addition, the waiting coroutine will schedule a
 # timeout at the given deadline (if provided), at which point the future will be
 # errored.
-class AsyncioCursor(Cursor):
-    """The asyncio implementation of the Cursor object."""
+class AsyncioCursor(Cursor, AsyncContextManager):
+    """
+    The asyncio implementation of the Cursor object.
+
+    Use ``async with`` to close the cursor when the block exits.
+    """
 
     def __init__(self, *args, **kwargs):
         self.new_response = asyncio.Future()
@@ -378,8 +389,12 @@ class ConnectionInstance:
                 await self.close(exception=ex)
 
 
-class Connection(ConnectionBase):
-    """The asyncio implementation of the RethinkDB connection."""
+class Connection(ConnectionBase, AsyncConnectionContextManager):
+    """
+    The asyncio implementation of the RethinkDB connection.
+
+    Use ``async with`` to close the connection when the block exits.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(ConnectionInstance, *args, **kwargs)
@@ -389,12 +404,6 @@ class Connection(ConnectionBase):
             raise ReqlDriverError(
                 f"Could not convert port {self.port} to an integer."
             ) from exc
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exception_type, exception_val, traceback):
-        await self.close(False)
 
     async def reconnect(  # pylint: disable=invalid-overridden-method
         self, noreply_wait=True, timeout=None

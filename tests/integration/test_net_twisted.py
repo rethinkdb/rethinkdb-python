@@ -25,6 +25,7 @@ def cleanup_test_dbs():
 
     test_dbs = [
         "test_twisted_between_db",
+        "test_twisted_cursor_cm_db",
         "test_twisted_cursor_db",
         "test_twisted_helpers_db",
         "test_twisted_db",
@@ -317,3 +318,57 @@ def test_twisted_database_and_table_operations(conn):
         yield connection.start(query.db_drop(db_name))
 
     return run_test()
+
+
+@pytest.mark.twisted
+@pytest.mark.integration
+def test_twisted_connection_context_manager(conn):
+    """async with closes the Twisted connection."""
+
+    async def run_test():
+        connection = await conn
+        async with connection:
+            assert connection.is_open()
+            result = await connection.start(query.db_list())
+            assert isinstance(result, list)
+        assert connection.is_open() is False
+
+    return defer.ensureDeferred(run_test())
+
+
+@pytest.mark.twisted
+@pytest.mark.integration
+def test_twisted_cursor_context_manager(conn):
+    """async with closes the Twisted cursor, and a second close is safe."""
+
+    async def run_test():
+        connection = await conn
+        db_name = "test_twisted_cursor_cm_db"
+        table_name = "test_cursor_cm_table"
+        try:
+            try:
+                await connection.start(query.db_drop(db_name))
+            except Exception:
+                pass
+
+            await connection.start(query.db_create(db_name))
+            await connection.start(query.db(db_name).table_create(table_name))
+            inserted = await connection.start(
+                query.db(db_name)
+                .table(table_name)
+                .insert([{"id": i} for i in range(5)])
+            )
+            assert inserted["inserted"] == 5
+
+            cursor = await connection.start(query.db(db_name).table(table_name))
+            async with cursor:
+                await cursor.next()
+            assert cursor.error is not None
+            await cursor.close()
+        finally:
+            try:
+                await connection.start(query.db_drop(db_name))
+            except Exception:
+                pass
+
+    return defer.ensureDeferred(run_test())

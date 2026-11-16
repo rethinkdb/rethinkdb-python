@@ -27,6 +27,7 @@ def cleanup_test_dbs():
 
     test_dbs = [
         "test_asyncio_between_db",
+        "test_asyncio_cursor_cm_db",
         "test_asyncio_cursor_db",
         "test_asyncio_helpers_db",
         "test_asyncio_db",
@@ -320,3 +321,49 @@ async def test_asyncio_with_test_helpers(conn):
 
     await assert_test_table_async(lambda *args: args[0], connection, scenarios)
     await drop_db_async(db_name, connection)
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_asyncio_connection_context_manager(conn):
+    """async with closes the asyncio connection."""
+    connection = await conn
+    async with connection:
+        assert connection.is_open()
+        result = await connection.start(query.db_list())
+        assert isinstance(result, list)
+
+    assert connection.is_open() is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_asyncio_cursor_context_manager(conn):
+    """async with closes the asyncio cursor, and a second close is safe."""
+    connection = await conn
+    db_name = "test_asyncio_cursor_cm_db"
+    table_name = "test_cursor_cm_table"
+    try:
+        try:
+            await connection.start(query.db_drop(db_name))
+        except Exception:
+            pass
+
+        await connection.start(query.db_create(db_name))
+        await connection.start(query.db(db_name).table_create(table_name))
+        inserted = await connection.start(
+            query.db(db_name).table(table_name).insert([{"id": i} for i in range(5)])
+        )
+        assert inserted["inserted"] == 5
+
+        cursor = await connection.start(query.db(db_name).table(table_name))
+        async with cursor:
+            async for _row in cursor:
+                break
+        assert cursor.error is not None
+        await cursor.close()
+    finally:
+        try:
+            await connection.start(query.db_drop(db_name))
+        except Exception:
+            pass

@@ -38,8 +38,15 @@ from rethinkdb.errors import (
     ReqlDriverError,
     ReqlTimeoutError,
 )
+from rethinkdb.net import (
+    AsyncConnectionContextManager,
+    AsyncContextManager,
+    Cursor,
+    Query,
+    Response,
+    maybe_profile,
+)
 from rethinkdb.net import Connection as ConnectionBase
-from rethinkdb.net import Cursor, Query, Response, maybe_profile
 from rethinkdb.ql2_pb2 import Query as PbQuery
 from rethinkdb.ql2_pb2 import Response as PbResponse
 
@@ -214,13 +221,26 @@ class CursorItems(DeferredQueue):
         return iter(self.pending)
 
 
-class TwistedCursor(Cursor):
-    """Cursor implementation backed by Twisted Deferreds."""
+class TwistedCursor(Cursor, AsyncContextManager):
+    """
+    Cursor implementation backed by Twisted Deferreds.
+
+    Use ``async with`` to close the cursor when the block exits.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("items_type", CursorItems)
         super().__init__(*args, **kwargs)
         self.waiting: list[Deferred[Any]] = []
+
+    @inlineCallbacks
+    def close(self) -> Generator:  # pylint: disable=invalid-overridden-method
+        """Close the cursor and wait for the STOP query."""
+        if self.error is None:
+            self.error = self._empty_error()
+            if self.conn.is_open():
+                self.outstanding_requests += 1
+                yield self.conn.parent._stop(self)  # pylint: disable=protected-access
 
     def extend(self, res_buf: bytes) -> None:
         super().extend(res_buf)
@@ -486,8 +506,11 @@ class ConnectionInstance:
         return res
 
 
-class Connection(ConnectionBase):
-    """A RethinkDB connection using the Twisted event loop."""
+class Connection(ConnectionBase, AsyncConnectionContextManager):
+    """A RethinkDB connection using the Twisted event loop.
+
+    Use ``async with`` to close the connection when the block exits.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(ConnectionInstance, *args, **kwargs)
@@ -501,9 +524,16 @@ class Connection(ConnectionBase):
         return res
 
     @inlineCallbacks
-    def close(self, *args: Any, **kwargs: Any) -> Generator:
-        res = yield super().close(*args, **kwargs) or None
-        return res
+    def close(self, noreply_wait: bool = True) -> Generator:
+        """Close the connection and wait for the transport to finish."""
+        if self._instance is None:
+            return
+
+        token = self._new_token() if noreply_wait else None
+        instance = self._instance
+        self._next_token = 0
+        self._instance = None
+        yield instance.close(noreply_wait, token)
 
     @inlineCallbacks
     def noreply_wait(self) -> Generator:

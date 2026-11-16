@@ -31,8 +31,15 @@ from rethinkdb.errors import (
     ReqlDriverError,
     ReqlTimeoutError,
 )
+from rethinkdb.net import (
+    AsyncConnectionContextManager,
+    AsyncContextManager,
+    Cursor,
+    Query,
+    Response,
+    maybe_profile,
+)
 from rethinkdb.net import Connection as ConnectionBase
-from rethinkdb.net import Cursor, Query, Response, maybe_profile
 from rethinkdb.ql2_pb2 import Query as PbQuery
 from rethinkdb.ql2_pb2 import Response as PbResponse
 
@@ -58,9 +65,11 @@ async def with_absolute_timeout(deadline, generator, **kwargs):
 # to grab the next result.  In addition, the waiting coroutine will schedule a
 # timeout at the given deadline (if provided), at which point the future will be
 # errored.
-class TornadoCursor(Cursor):
+class TornadoCursor(Cursor, AsyncContextManager):
     """
     The Tornado implementation of the Cursor object.
+
+    Use ``async with`` to close the cursor when the block exits.
     """
 
     def __init__(self, *args, **kwargs):
@@ -84,6 +93,14 @@ class TornadoCursor(Cursor):
             return item
         except ReqlCursorEmpty as exc:
             raise StopAsyncIteration from exc
+
+    async def close(self):  # pylint: disable=invalid-overridden-method
+        """Close the cursor and wait for the STOP query."""
+        if self.error is None:
+            self.error = self._empty_error()
+            if self.conn.is_open():
+                self.outstanding_requests += 1
+                await self.conn.parent.stop(self)
 
     def extend(self, res_buf):
         Cursor.extend(self, res_buf)
@@ -382,9 +399,11 @@ class ConnectionInstance:
 
 # Wrap functions from the base connection class that may throw - these will
 # put any exception inside a Future and return it.
-class Connection(ConnectionBase):
+class Connection(ConnectionBase, AsyncConnectionContextManager):
     """
     A RethinkDB connection using the Tornado event loop.
+
+    Use ``async with`` to close the connection when the block exits.
     """
 
     def __init__(self, *args, **kwargs):

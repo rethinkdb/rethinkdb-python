@@ -25,6 +25,7 @@ def cleanup_test_dbs():
 
     test_dbs = [
         "test_gevent_between_db",
+        "test_gevent_cursor_cm_db",
         "test_gevent_cursor_db",
         "test_gevent_helpers_db",
         "test_gevent_db",
@@ -384,3 +385,48 @@ def test_gevent_database_and_table_operations(conn):
         connection.start(query.db_drop(db_name))
     except Exception:
         pass
+
+
+@pytest.mark.gevent
+@pytest.mark.integration
+def test_gevent_connection_context_manager(conn):
+    """with closes the gevent connection."""
+    connection = conn
+    assert connection.is_open()
+    with connection:
+        result = connection.start(query.db_list())
+        assert isinstance(result, list)
+
+    assert connection.is_open() is False
+
+
+@pytest.mark.gevent
+@pytest.mark.integration
+def test_gevent_cursor_context_manager(conn):
+    """with closes the gevent cursor, and a second close is safe."""
+    connection = conn
+    db_name = "test_gevent_cursor_cm_db"
+    table_name = "test_cursor_cm_table"
+    try:
+        try:
+            connection.start(query.db_drop(db_name))
+        except Exception:
+            pass
+
+        connection.start(query.db_create(db_name))
+        connection.start(query.db(db_name).table_create(table_name))
+        inserted = connection.start(
+            query.db(db_name).table(table_name).insert([{"id": i} for i in range(5)])
+        )
+        assert inserted["inserted"] == 5
+
+        cursor = connection.start(query.db(db_name).table(table_name))
+        with cursor:
+            next(cursor)
+        assert cursor.error is not None
+        cursor.close()
+    finally:
+        try:
+            connection.start(query.db_drop(db_name))
+        except Exception:
+            pass
