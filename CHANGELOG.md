@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Release Please writes new sections from conventional commits. The notes below
 for 2.5.0 were written by hand.
 
+## [3.0.0](https://github.com/rethinkdb/rethinkdb-python/compare/v2.5.0...v3.0.0) (2026-11-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* from Python 2 to Python 3 and bump to v2.5 ([#277](https://github.com/rethinkdb/rethinkdb-python/issues/277))
+
+### Features
+
+* implement async context managers ([#318](https://github.com/rethinkdb/rethinkdb-python/issues/318)) ([7c56a00](https://github.com/rethinkdb/rethinkdb-python/commit/7c56a0013f2d8b6cb81787c257906e586c816c72))
+
+
+### Bug Fixes
+
+* 225, dump fails when reading password from stdin ([#276](https://github.com/rethinkdb/rethinkdb-python/issues/276)) ([bc1a75a](https://github.com/rethinkdb/rethinkdb-python/commit/bc1a75a8a1126999afe3b70112a7fcad8e3b9624))
+* 2598 test dump/backup/restore/import ([4b780e6](https://github.com/rethinkdb/rethinkdb-python/commit/4b780e69d8716e8d3fc6bb5b197fded5223a2c3a))
+* access option.temp_dir correctly ([1f854b1](https://github.com/rethinkdb/rethinkdb-python/commit/1f854b1b071f12c086998da0e6046ad1fdbddfc0))
+* access option.temp_dir correctly ([4ea6719](https://github.com/rethinkdb/rethinkdb-python/commit/4ea6719194099d0ad24de5ae6a3f9340a4c7e836))
+* add r strings for regex escape ([#313](https://github.com/rethinkdb/rethinkdb-python/issues/313)) ([339cd9a](https://github.com/rethinkdb/rethinkdb-python/commit/339cd9a8b895ed3b1d74b2d8878eb7f0a5d4a9e9))
+* address AST date vs datetime parsing issues ([#319](https://github.com/rethinkdb/rethinkdb-python/issues/319)) ([72bae52](https://github.com/rethinkdb/rethinkdb-python/commit/72bae52feab06026c844a7730ee6aaf6dbd5cc42))
+* asyncio ConnectionInstance should yield from on Exception ([#5820](https://github.com/rethinkdb/rethinkdb-python/issues/5820)) ([574c7b6](https://github.com/rethinkdb/rethinkdb-python/commit/574c7b65a92c9bda2ff9188c7cf6b8d72fea758d))
+* do not depend on package to get the version ([5b6b193](https://github.com/rethinkdb/rethinkdb-python/commit/5b6b193b0cd61e9aabdbbf30205589bdbd8b601d))
+* do not depend on package to get the version ([85410ce](https://github.com/rethinkdb/rethinkdb-python/commit/85410ce8df25a67c8fe140bc5e514e038845e5f3))
+* do not drop trio and twisted streaming conn ([#320](https://github.com/rethinkdb/rethinkdb-python/issues/320)) ([9cd3f4c](https://github.com/rethinkdb/rethinkdb-python/commit/9cd3f4c6bf7bb20c206a18e11d71ba855f9d42c7))
+* ensure outcome version bind to the correct python version ([ecf1dd6](https://github.com/rethinkdb/rethinkdb-python/commit/ecf1dd6a4ccbec2c57dc73aaf711a148095f9be4))
+* ensure streaming queries stay open and can be closed ([#317](https://github.com/rethinkdb/rethinkdb-python/issues/317)) ([a3ae56c](https://github.com/rethinkdb/rethinkdb-python/commit/a3ae56c7dd85f349a2fbd711bd9b163453921b6b))
+* queries with constants fail to serialize ([fe1e996](https://github.com/rethinkdb/rethinkdb-python/commit/fe1e996f0f4f0bf8d6daeed58f09dc6d16181fcb))
+* queries with constants fail to serialize ([c6a9682](https://github.com/rethinkdb/rethinkdb-python/commit/c6a96822de03b032ec339b2519ebd62f5ffc307c))
+* report import workers killed by a signal ([#314](https://github.com/rethinkdb/rethinkdb-python/issues/314)) ([366e7ce](https://github.com/rethinkdb/rethinkdb-python/commit/366e7ceab4f13645dd044bd453439f4566df9ba5))
+* syntax warning ([b5d19a0](https://github.com/rethinkdb/rethinkdb-python/commit/b5d19a0e6d703e17f28b675b8c7acefd47a152f7))
+* wait for each write to finish ([#321](https://github.com/rethinkdb/rethinkdb-python/issues/321)) ([e02c553](https://github.com/rethinkdb/rethinkdb-python/commit/e02c553603d3a79c577787a38d28fc168d69e0e1))
+
+
+### Code Refactoring
+
+* from Python 2 to Python 3 and bump to v2.5 ([#277](https://github.com/rethinkdb/rethinkdb-python/issues/277)) ([ce50336](https://github.com/rethinkdb/rethinkdb-python/commit/ce5033650bb2077de00130639be666c11552bce3))
+
 ## [2.5.0]
 
 This is a major release that brings significant improvements including Python 3 support, async drivers, enhanced CLI tools, and comprehensive modernization of the codebase. This release is **NOT backward compatible** with 2.4.x.
